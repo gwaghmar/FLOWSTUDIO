@@ -1,0 +1,64 @@
+# Roadmap: Flowchart AI — Diagram Platform
+
+## Overview
+
+Three focused improvement phases to make the diagram platform significantly smarter and more precise. Phase 1 delivers the most critical feature: WYSIWYG preview where the canvas always matches the export size. Phase 2 makes the AI understand context — inferring platform from user prompts and applying the right export preset and style conventions automatically. Phase 3 upgrades the AI's generation quality across the board — better type selection, deeper content extraction, style cue interpretation, and a fixed clarification threshold.
+
+## Phases
+
+- [ ] **Phase 1: WYSIWYG Canvas** — Preview renders at exact export aspect ratio — what you see is what you export
+- [ ] **Phase 2: Use-Case Awareness** — AI infers target platform from prompt, "Use for" selector in editor, platform-specific conventions
+- [ ] **Phase 3: Smarter AI Generation** — Better type selection, full content depth, style cues, fixed clarification threshold, assumption disclosures
+
+## Phase Details
+
+### Phase 1: WYSIWYG Canvas
+**Goal**: Editor preview canvas renders at the exact aspect ratio of the selected export preset at all times
+**Depends on**: Nothing
+**Requirements**: WYSIWYG-01, WYSIWYG-02, WYSIWYG-03, WYSIWYG-04
+**UI hint**: yes
+**Success Criteria** (what must be TRUE):
+  1. When user selects "Landscape 16:9" preset, the preview canvas container is visibly wider than tall in a 16:9 ratio
+  2. When user selects "Story / Reel 9:16", the canvas is visibly taller than wide in a 9:16 ratio
+  3. When user selects "Square 1:1", the canvas is a perfect square
+  4. The export dimensions label (e.g., "1920×1080") is visible adjacent to the canvas
+  5. Canvas aspect ratio updates immediately on preset change without page reload
+**Plans**: TBD
+
+Plans:
+- [ ] 01-01: Canvas container — apply aspect-ratio CSS from selected preset, show dimension label
+- [ ] 01-02: Verify WYSIWYG behavior across all 5 social presets + custom dimensions
+
+### Phase 2: Use-Case Awareness
+**Goal**: AI infers target platform from prompt and sets the correct export preset; user can override via a "Use for" selector
+**Depends on**: Phase 1
+**Requirements**: USECASE-01, USECASE-02, USECASE-03, USECASE-04
+**Success Criteria** (what must be TRUE):
+  1. Typing "for my pitch deck" in the chat sets the preset to landscape 16:9 automatically
+  2. Typing "LinkedIn post" sets it to square 1:1 automatically
+  3. The "Use for" selector in the editor shows the currently active use-case
+  4. Clicking a different option in the "Use for" selector overrides the AI-inferred preset
+  5. A diagram generated for "presentation" uses fewer nodes and larger text than one generated for "documentation"
+**Plans**: TBD
+
+Plans:
+- [ ] 02-01: Use-case inference — extract platform keywords in intent planning, map to preset IDs + style mode
+- [ ] 02-02: "Use for" selector UI — dropdown in editor, pre-filled from AI inference, overrides preset
+- [ ] 02-03: Style-mode conventions — update generation prompts to apply presentation/social/docs conventions
+
+### Phase 3: Smarter AI Generation
+**Goal**: AI reliably picks the right diagram type, extracts full content depth, respects style cues, and generates immediately unless truly ambiguous
+**Depends on**: Phase 2
+**Requirements**: AI-01, AI-02, AI-03, AI-04, AI-05
+**Success Criteria** (what must be TRUE):
+  1. "OAuth login flow between browser, API, and auth server" generates a sequenceDiagram, not a flowchart
+  2. "Database schema for a blog with users, posts, and comments" generates an erDiagram with all three entities and their relationships
+  3. "Simple overview for a README" generates a minimal-node diagram vs "detailed architecture for documentation" generates a dense one
+  4. A 5-word prompt generates a diagram immediately without asking a clarification question
+  5. After a silent generation, a dismissible notice appears showing: "Generated as: sequenceDiagram · Landscape 16:9 · Medium detail"
+**Plans**: TBD
+
+Plans:
+- [ ] 03-01: System prompt overhaul — rewrite DIAGRAM_SYSTEM_PROMPTS for all 7 types with type-selection decision rules and content depth guidelines
+- [ ] 03-02: Intent pipeline fixes — raise clarification threshold to ambiguityScore ≥ 90, pass full IntentPlan to generation prompt
+- [ ] 03-03: Assumption disclosure — render dismissible notice in editor chat after silent generation
