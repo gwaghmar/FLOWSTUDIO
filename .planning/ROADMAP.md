@@ -26,7 +26,7 @@ Three focused improvement phases to make the diagram platform significantly smar
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Canvas container — apply aspect-ratio CSS from selected preset, show dimension label
+- [x] 01-01: Canvas container — apply aspect-ratio CSS from selected preset, show dimension label
 - [ ] 01-02: Verify WYSIWYG behavior across all 5 social presets + custom dimensions
 
 ### Phase 2: Use-Case Awareness
