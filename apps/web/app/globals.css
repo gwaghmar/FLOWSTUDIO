@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.dot-grid-bg {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+@keyframes ai-slide {
+  0% { left: -40%; width: 40%; }
+  50% { width: 60%; }
+  100% { left: 110%; width: 40%; }
+}
+
+.ai-progress-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #6366f1;
+  border-radius: 9999px;
+  animation: ai-slide 1.4s ease-in-out infinite;
+}

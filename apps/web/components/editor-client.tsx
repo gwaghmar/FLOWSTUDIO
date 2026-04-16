@@ -76,7 +76,7 @@ function CanvasLoader({ label }: { label: string }) {
 }
 
 type ChatMessage = { id: string; role: "assistant" | "user"; content: string };
-type UiState = { showGrid?: boolean; fontId?: string; paletteId?: string; customBackground?: string; customAccent?: string };
+type UiState = { showGrid?: boolean; fontId?: string; paletteId?: string; customBackground?: string; customAccent?: string; backgroundPattern?: string };
 type FontOption = { id: string; label: string; cssValue: string };
 
 const FONT_OPTIONS: FontOption[] = [
@@ -155,6 +155,8 @@ type Props = {
   projectId: string | null;
   showWatermark: boolean;
   aiAssistantHint?: AiAssistantHint;
+  isExample?: boolean;
+  creditsBalance?: number;
 };
 
 export function EditorClient({
@@ -165,6 +167,8 @@ export function EditorClient({
   projectId,
   showWatermark,
   aiAssistantHint = { kind: "none" },
+  isExample = false,
+  creditsBalance,
 }: Props) {
   const parsedInitial = useMemo(() => parseUiFromSource(initialSource), [initialSource]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId);
@@ -189,6 +193,10 @@ export function EditorClient({
   const [showTypePanel, setShowTypePanel] = useState(false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showEchartsStylePanel, setShowEchartsStylePanel] = useState(false);
+  const [showBgPanel, setShowBgPanel] = useState(false);
+  const [backgroundPattern, setBackgroundPattern] = useState<"none" | "dots" | "grid" | "lines">(
+    (parsedInitial.ui.backgroundPattern as "none" | "dots" | "grid" | "lines") ?? "none"
+  );
   const [echartsUiTheme, setEchartsUiTheme] = useState<EChartsUiTheme>("light");
   /** Raw source hidden by default; power users expand. Opens automatically on parse errors. */
   const [sourceExpanded, setSourceExpanded] = useState(true);
@@ -200,9 +208,11 @@ export function EditorClient({
     {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: initialDiagramType === "mermaid"
-        ? `Hi! I can generate Mermaid diagrams — flowcharts, sequences, ERDs, Gantt charts, mind maps, and more. Pick a subtype above, then describe what you want.`
-        : `Hi! I can generate and edit ${getDiagramTypeMeta(initialDiagramType).label} diagrams. Describe what you want and I'll build it.`,
+      content: isExample
+        ? `✨ Here's what I can do — a full OAuth login flow diagram, ready to export. Try asking me: "Make this a dark theme" or "Add a refresh token step" — or describe something completely new below.`
+        : initialDiagramType === "mermaid"
+          ? `Hi! I can generate diagrams — flowcharts, sequences, ERDs, Gantt charts, mind maps, and more. Pick a subtype above, then describe what you want.`
+          : `Hi! I can generate and edit ${getDiagramTypeMeta(initialDiagramType).label} diagrams. Describe what you want and I'll build it.`,
     },
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -227,7 +237,11 @@ export function EditorClient({
   const previousSourceRef = useRef(source);
   const sourceAutoExpandedRef = useRef(false);
   const sourceSuppressAutoExpandRef = useRef(false);
-  const lastSavedSnapshot = useRef("");
+  const lastSavedSnapshot = useRef(
+    isExample
+      ? JSON.stringify({ source: parsedInitial.source, themeId: initialThemeId, title: initialTitle })
+      : ""
+  );
   const hasHydratedRef = useRef(false);
 
   const typeMeta = useMemo(() => getDiagramTypeMeta(diagramType), [diagramType]);
@@ -235,7 +249,7 @@ export function EditorClient({
   const selectedFont = useMemo(() => FONT_OPTIONS.find((x) => x.id === fontId) ?? FONT_OPTIONS[0], [fontId]);
   const bgColor = paletteId === "default" ? (theme.themeVariables.background ?? "#f8fafc") : customBackground;
   const accentColor = paletteId === "default" ? (theme.themeVariables.primaryColor ?? "#6366f1") : customAccent;
-  const uiState = useMemo(() => ({ showGrid, fontId, paletteId, customBackground, customAccent }), [showGrid, fontId, paletteId, customBackground, customAccent]);
+  const uiState = useMemo(() => ({ showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern }), [showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern]);
   const sourceWithUi = useMemo(() => diagramType === "mermaid" ? embedUiInSource(source, uiState) : source, [source, uiState, diagramType]);
   // When loading an existing project, lastSavedSnapshot starts as "" — treat that as "saved" so we don't show "Unsaved" before any changes.
   const isDirty = useMemo(() => {
@@ -280,6 +294,7 @@ export function EditorClient({
         if (typeof p.paletteId === "string") setPaletteId(p.paletteId);
         if (typeof p.customBackground === "string") setCustomBackground(p.customBackground);
         if (typeof p.customAccent === "string") setCustomAccent(p.customAccent);
+        if (p.backgroundPattern === "dots" || p.backgroundPattern === "grid" || p.backgroundPattern === "lines") setBackgroundPattern(p.backgroundPattern);
       }
     } catch { /* ignore */ } finally { hasHydratedRef.current = true; }
   }, [currentProjectId]);
@@ -904,6 +919,64 @@ export function EditorClient({
         )}
 
 
+        {/* Universal background picker */}
+        <div className="shrink-0 border-b border-slate-200">
+          <button type="button" onClick={() => setShowBgPanel((p) => !p)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-slate-500 hover:bg-slate-50">
+            <span className="font-semibold uppercase tracking-wide">Background</span>
+            <span>{showBgPanel ? "▲" : "▼"}</span>
+          </button>
+          {showBgPanel && (
+            <div className="space-y-2.5 border-t border-slate-100 px-3 pb-3 pt-2">
+              <div>
+                <p className="mb-1.5 text-[10px] text-slate-500">Color</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(["#ffffff","#f8fafc","#f1f5f9","#0f172a","#1e1b4b","#000000","#fefce8","#f0fdf4"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setCustomBackground(c); setPaletteId("custom"); }}
+                      title={c}
+                      className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${customBackground === c ? "border-indigo-500 scale-110" : "border-slate-300"}`}
+                      style={{ background: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="color"
+                  value={customBackground}
+                  onChange={(e) => { setCustomBackground(e.target.value); setPaletteId("custom"); }}
+                  className="h-7 w-7 cursor-pointer rounded border border-slate-200 p-0.5"
+                />
+                <input
+                  type="text"
+                  value={customBackground}
+                  onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { setCustomBackground(e.target.value); setPaletteId("custom"); } }}
+                  className="flex-1 rounded border border-slate-200 px-2 py-1 text-xs"
+                  placeholder="#ffffff"
+                  maxLength={7}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-[10px] text-slate-500">Pattern</p>
+                <div className="flex gap-1.5">
+                  {(["none","dots","grid","lines"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setBackgroundPattern(p)}
+                      className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${backgroundPattern === p ? "border-indigo-300 bg-indigo-100 text-indigo-700" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+                    >
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* AI Assistant */}
         <div className="flex min-h-0 flex-1 flex-col bg-white">
           <div className="shrink-0 border-b border-slate-200 px-4 py-3">
@@ -929,6 +1002,15 @@ export function EditorClient({
                 — OpenAI, Gemini, Claude, Groq and more.
               </p>
             )}
+            {creditsBalance !== undefined && creditsBalance <= 2 && showWatermark && (
+              <div className={`mt-2 rounded-lg border px-3 py-2 text-xs leading-snug ${
+                creditsBalance === 0 ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900"
+              }`}>
+                {creditsBalance === 0
+                  ? <><span className="font-semibold">0 generations left.</span> <Link href="/app/billing" className="font-semibold underline underline-offset-2">Upgrade to Pro →</Link></>
+                  : <>{creditsBalance} generation{creditsBalance === 1 ? "" : "s"} left on the free plan. <Link href="/app/billing" className="font-semibold underline underline-offset-2">Upgrade →</Link></>}
+              </div>
+            )}
           </div>
 
           <div ref={chatListRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
@@ -942,6 +1024,11 @@ export function EditorClient({
                 <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
                   <div className="flex gap-1.5">{[0, 150, 300].map((d) => <div key={d} className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: `${d}ms` }} />)}</div>
                 </div>
+              </div>
+            )}
+            {chatInput.trim().length > 0 && !aiLoading && (
+              <div className="flex justify-end">
+                <div className="rounded-2xl rounded-br-sm bg-indigo-100 px-3.5 py-2 text-xs italic text-indigo-400">typing…</div>
               </div>
             )}
           </div>
@@ -970,7 +1057,7 @@ export function EditorClient({
                 data-ai-chat-input
                 className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-relaxed focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
-              <button type="button" onClick={() => void handleChatSend()} disabled={aiLoading || !chatInput.trim()} className="self-end rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => void handleChatSend()} disabled={aiLoading || !chatInput.trim() || creditsBalance === 0} className="self-end rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
                 {aiLoading ? "…" : "↑"}
               </button>
             </div>
@@ -981,6 +1068,12 @@ export function EditorClient({
 
       {/* Canvas — full width when left panel hidden */}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* AI generation progress bar */}
+        {aiLoading && (
+          <div className="relative h-0.5 w-full shrink-0 overflow-hidden bg-indigo-100">
+            <div className="ai-progress-bar" />
+          </div>
+        )}
         {!leftPanelOpen && (
           <button
             type="button"
@@ -1173,8 +1266,13 @@ export function EditorClient({
                     width: `${frameW}px`,
                     aspectRatio: `${frameW} / ${frameH}`,
                     backgroundColor: bgColor,
-                    backgroundImage: showGrid ? "radial-gradient(circle, #c8c8c8 1px, transparent 1px)" : undefined,
-                    backgroundSize: showGrid ? "24px 24px" : undefined,
+                    backgroundImage: showGrid
+                      ? "radial-gradient(circle, #c8c8c8 1px, transparent 1px)"
+                      : backgroundPattern === "dots" ? "radial-gradient(circle, #c8c8c8 1px, transparent 1px)"
+                      : backgroundPattern === "grid" ? "linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)"
+                      : backgroundPattern === "lines" ? "repeating-linear-gradient(-45deg, #e2e8f0, #e2e8f0 1px, transparent 1px, transparent 8px)"
+                      : undefined,
+                    backgroundSize: (showGrid || backgroundPattern !== "none") ? "20px 20px" : undefined,
                     fontFamily: selectedFont.cssValue,
                   }}
                   className="relative overflow-hidden rounded-xl shadow-xl"
