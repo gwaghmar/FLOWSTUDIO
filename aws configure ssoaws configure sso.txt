@@ -1,0 +1,1 @@
+aws configure ssoaws configure sso

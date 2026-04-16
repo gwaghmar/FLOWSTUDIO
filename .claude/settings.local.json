@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter @flowchart/web add ai @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google @ai-sdk/mistral @ai-sdk/groq)",
+      "Bash(where pnpm:*)",
+      "Bash(npm --version)",
+      "Bash(pnpm.cmd --filter @flowchart/web add ai @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google @ai-sdk/mistral @ai-sdk/groq)",
+      "Bash(pnpm.cmd --filter @flowchart/web add @excalidraw/excalidraw @xyflow/react @dagrejs/dagre echarts echarts-for-react)",
+      "Bash(pnpm.cmd --filter @flowchart/web add @nivo/core @nivo/bar @nivo/line @nivo/pie @nivo/radar @nivo/treemap @nivo/sankey @nivo/network tldraw)",
+      "Bash(pnpm.cmd --filter @flowchart/web add bpmn-js @types/dagre)",
+      "Bash(pnpm.cmd db:push)",
+      "Bash(pnpm.cmd build:*)",
+      "Bash(del \"C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web\\\\components\\\\editor-client.tsx\")",
+      "Bash(powershell -Command \"Remove-Item 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web\\\\components\\\\editor-client.tsx' -Force\")",
+      "Bash(powershell -Command \"Remove-Item 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web\\\\app\\\\app\\\\editor\\\\page.tsx' -Force\")",
+      "Bash(powershell -Command \"Remove-Item 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web\\\\app\\\\app\\\\page.tsx' -Force\")",
+      "Bash(powershell -Command \"Remove-Item 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web\\\\app\\\\app\\\\settings\\\\page.tsx' -Force\")",
+      "Bash(pnpm.cmd --filter web tsc --noEmit)",
+      "Bash(npx tsc:*)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(\"C:\\\\Users\\\\govin\\\\AppData\\\\Roaming\\\\npm\\\\pnpm.cmd\" exec:*)",
+      "Bash(powershell -Command \"Remove-Item 'apps\\\\web\\\\components\\\\diagrams\\\\tldraw-renderer.tsx' -Force\")",
+      "Bash(cmd:*)",
+      "Bash(powershell -Command \"cd 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web'; npx tsc --noEmit 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web'; & 'C:\\\\Program Files\\\\nodejs\\\\npx.cmd' tsc --noEmit 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\govin\\\\New folder\\\\apps\\\\web'; & 'node_modules\\\\.bin\\\\tsc' --noEmit 2>&1\")",
+      "Bash(powershell:*)"
+    ]
+  }
+}

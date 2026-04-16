@@ -1,0 +1,50 @@
+import { NextResponse } from "next/server";
+
+const spec = {
+  openapi: "3.1.0",
+  info: {
+    title: "Flowchart Studio API",
+    version: "1.0.0",
+    description: "REST API mirroring MCP tools. Use Authorization: Bearer fc_…",
+  },
+  paths: {
+    "/api/v1/validate": {
+      post: {
+        summary: "Validate diagram text source (length + optional parse)",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { source: { type: "string" } },
+                required: ["source"],
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "OK" },
+          "400": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/v1/export": {
+      post: {
+        summary: "Queue or run server-side export (Pro)",
+        responses: {
+          "200": { description: "PNG or job id" },
+          "402": { description: "Pro required" },
+        },
+      },
+    },
+    "/api/ai/generate": {
+      post: {
+        summary: "Generate diagram text from prompt (BYOK or server key)",
+      },
+    },
+  },
+};
+
+export async function GET() {
+  return NextResponse.json(spec);
+}

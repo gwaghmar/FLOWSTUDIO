@@ -1,0 +1,157 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
+import type { Node, Edge, NodeChange, EdgeChange, Connection } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+
+// Dynamically import React Flow to avoid SSR issues
+const ReactFlowProvider = dynamic(
+  async () => (await import("@xyflow/react")).ReactFlowProvider,
+  { ssr: false }
+);
+const ReactFlow = dynamic(
+  async () => (await import("@xyflow/react")).ReactFlow,
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-slate-400">Loading graph…</div> }
+);
+const Background = dynamic(async () => (await import("@xyflow/react")).Background, { ssr: false });
+const Controls = dynamic(async () => (await import("@xyflow/react")).Controls, { ssr: false });
+const MiniMap = dynamic(async () => (await import("@xyflow/react")).MiniMap, { ssr: false });
+
+type ReactFlowData = {
+  nodes: Node[];
+  edges: Edge[];
+};
+
+type Props = {
+  source: string;
+  onChange?: (source: string) => void;
+  readOnly?: boolean;
+};
+
+// Custom styled node component
+function CustomNode({ data }: { data: { label: string; description?: string; color?: string } }) {
+  return (
+    <div
+      style={{ borderColor: data.color ?? "#6366f1", borderWidth: 2 }}
+      className="min-w-[120px] rounded-lg border-2 bg-white px-4 py-2 text-center shadow-sm"
+    >
+      <div className="text-sm font-semibold text-slate-800">{data.label}</div>
+      {data.description && <div className="mt-1 text-xs text-slate-500">{data.description}</div>}
+    </div>
+  );
+}
+
+function parseSource(source: string): ReactFlowData {
+  try {
+    const data = JSON.parse(source) as ReactFlowData;
+    return {
+      nodes: (data.nodes ?? []).map((n) => ({
+        ...n,
+        style: { ...n.style, borderColor: (n.data as { color?: string })?.color ?? "#6366f1" },
+      })),
+      edges: data.edges ?? [],
+    };
+  } catch {
+    return { nodes: [], edges: [] };
+  }
+}
+
+function ReactFlowInner({ source, onChange, readOnly }: Props) {
+  const data = useMemo(() => parseSource(source), [source]);
+  const lastSource = useRef(source);
+
+  const pushChange = useCallback(
+    (nodes: Node[], edges: Edge[]) => {
+      if (readOnly) return;
+      const newSource = JSON.stringify({ nodes, edges });
+      if (newSource !== lastSource.current) {
+        lastSource.current = newSource;
+        onChange?.(newSource);
+      }
+    },
+    [onChange, readOnly]
+  );
+
+  const onNodesChange = useCallback(
+    async (changes: NodeChange[]) => {
+      const { applyNodeChanges } = await import("@xyflow/react");
+      const updated = applyNodeChanges(changes, data.nodes);
+      pushChange(updated, data.edges);
+    },
+    [data, pushChange]
+  );
+
+  const onEdgesChange = useCallback(
+    async (changes: EdgeChange[]) => {
+      const { applyEdgeChanges } = await import("@xyflow/react");
+      const updated = applyEdgeChanges(changes, data.edges);
+      pushChange(data.nodes, updated);
+    },
+    [data, pushChange]
+  );
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      const newEdge: Edge = {
+        id: `e${connection.source}-${connection.target}-${Date.now()}`,
+        source: connection.source,
+        target: connection.target,
+        type: "smoothstep",
+      };
+      pushChange(data.nodes, [...data.edges, newEdge]);
+    },
+    [data, pushChange]
+  );
+
+  return (
+    <div className="h-full w-full">
+      <ReactFlow
+        nodes={data.nodes}
+        edges={data.edges}
+        onNodesChange={readOnly ? undefined : onNodesChange}
+        onEdgesChange={readOnly ? undefined : onEdgesChange}
+        onConnect={readOnly ? undefined : onConnect}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
+        elementsSelectable={!readOnly}
+        fitView
+        attributionPosition="bottom-right"
+        defaultEdgeOptions={{ type: "smoothstep", animated: false }}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#e2e8f0" gap={20} />
+        <Controls />
+        <MiniMap nodeColor={(n) => (n.data as { color?: string })?.color ?? "#6366f1"} />
+      </ReactFlow>
+    </div>
+  );
+}
+
+export function ReactFlowRenderer({ source, onChange, readOnly = false }: Props) {
+  return (
+    <ReactFlowProvider>
+      <ReactFlowInner source={source} onChange={onChange} readOnly={readOnly} />
+    </ReactFlowProvider>
+  );
+}
+
+export async function autoLayoutReactFlow(source: string): Promise<string> {
+  try {
+    const dagre = (await import("@dagrejs/dagre")).default;
+    const data = JSON.parse(source) as ReactFlowData;
+    const graph = new dagre.graphlib.Graph();
+    graph.setDefaultEdgeLabel(() => ({}));
+    graph.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 120 });
+    data.nodes.forEach((n) => graph.setNode(n.id, { width: 160, height: 60 }));
+    data.edges.forEach((e) => graph.setEdge(e.source, e.target));
+    dagre.layout(graph);
+    const laid = data.nodes.map((n) => {
+      const pos = graph.node(n.id);
+      return { ...n, position: { x: pos.x - 80, y: pos.y - 30 } };
+    });
+    return JSON.stringify({ nodes: laid, edges: data.edges });
+  } catch {
+    return source;
+  }
+}

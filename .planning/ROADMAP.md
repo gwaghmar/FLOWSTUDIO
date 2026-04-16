@@ -42,9 +42,9 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Use-case inference â€” extract platform keywords in intent planning, map to preset IDs + style mode
-- [ ] 02-02: "Use for" selector UI â€” dropdown in editor, pre-filled from AI inference, overrides preset
-- [ ] 02-03: Style-mode conventions â€” update generation prompts to apply presentation/social/docs conventions
+- [x] 02-01: Use-case inference â€” extract platform keywords in intent planning, map to preset IDs + style mode
+- [x] 02-02: "Use for" selector UI â€” dropdown in editor, pre-filled from AI inference, overrides preset
+- [x] 02-03: Style-mode conventions â€” update generation prompts to apply presentation/social/docs conventions
 
 ### Phase 3: Smarter AI Generation
 **Goal**: AI reliably picks the right diagram type, extracts full content depth, respects style cues, and generates immediately unless truly ambiguous

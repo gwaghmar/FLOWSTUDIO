@@ -1,0 +1,30 @@
+{
+  "name": "flowchart-studio",
+  "private": true,
+  "scripts": {
+    "postinstall": "pnpm --filter @flowchart/core build",
+    "build": "pnpm --filter @flowchart/core build && pnpm --filter @flowchart/web build",
+    "dev": "pnpm --filter @flowchart/web dev",
+    "lint": "pnpm -r lint",
+    "db:push": "pnpm --filter @flowchart/web db:push",
+    "db:studio": "pnpm --filter @flowchart/web db:studio",
+    "mcp:dev": "pnpm --filter @flowchart/mcp-server dev",
+    "test": "pnpm exec playwright test",
+    "test:web": "pnpm --filter @flowchart/web test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "puppeteer",
+      "sharp",
+      "esbuild",
+      "@parcel/watcher",
+      "unrs-resolver"
+    ]
+  }
+}

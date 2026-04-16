@@ -1,0 +1,21 @@
+{
+  "name": "@flowchart/cli",
+  "version": "0.1.0",
+  "description": "CLI for Flowchart Studio — generate diagrams from your terminal or IDE",
+  "bin": {
+    "flowchart": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "lint": "node -e \"process.exit(0)\""
+  },
+  "dependencies": {
+    "@flowchart/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

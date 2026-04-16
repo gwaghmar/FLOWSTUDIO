@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
-import { MermaidSourceSchema, DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS } from "@flowchart/core";
+import { MermaidSourceSchema, DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta } from "@flowchart/core";
 import type { DiagramType, SocialPresetId, UseCaseId } from "@flowchart/core";
 import type { ApiError } from "@flowchart/core";
 import { BpmnModdle } from "bpmn-moddle";
@@ -31,6 +31,7 @@ type IntentPlan = {
   shouldAskClarification: boolean;
   clarificationQuestion?: string;
   suggestedPresetId?: SocialPresetId | null;
+  suggestedDiagramType?: DiagramType | null;
 };
 
 function extractFirstJsonValue(text: string): string | null {
@@ -176,6 +177,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -207,6 +209,9 @@ function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?
       clarificationQuestion,
       suggestedPresetId: typeof parsed.suggestedPresetId === "string" && VALID_PRESET_IDS.includes(parsed.suggestedPresetId as SocialPresetId)
         ? (parsed.suggestedPresetId as SocialPresetId)
+        : null,
+      suggestedDiagramType: typeof parsed.suggestedDiagramType === "string" && VALID_DIAGRAM_TYPES.includes(parsed.suggestedDiagramType as DiagramType)
+        ? (parsed.suggestedDiagramType as DiagramType)
         : null,
     };
   } catch {
@@ -496,7 +501,8 @@ Return ONLY JSON matching this shape:
   "detailLevel": "low|medium|high",
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
-  "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null"
+  "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -510,7 +516,16 @@ Rules:
   - "OG image", "link preview", "Open Graph", "social card", "blog thumbnail" -> "link_preview"
   - "README", "docs", "documentation", "diagram", "chart", "flowchart", no platform signal -> null
   - Only return a non-null value when a STRONG, EXPLICIT platform keyword is present.
-  - Do NOT infer from vague style cues like "make it nice" or "for my team".`;
+  - Do NOT infer from vague style cues like "make it nice" or "for my team".
+- suggestedDiagramType rules (ONLY set when prompt strongly fits a DIFFERENT type than current):
+  - "chart", "bar chart", "pie chart", "line chart", "graph the data", "visualize numbers", "statistics", "metrics", "compare values" → "echarts"
+  - "beautiful chart", "nivo chart", "publication chart" → "nivo"
+  - "org chart", "node graph", "network diagram", "pipeline stages", "dependency graph", "tree nodes" → "reactflow"
+  - "whiteboard", "sketch", "brainstorm", "freehand", "wireframe", "rough drawing" → "excalidraw"
+  - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
+  - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
+  - "flowchart", "sequence diagram", "ERD", "database schema", "class diagram", "Gantt", "mindmap" → "mermaid"
+  - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const { text: intentText } = await generateText({
       model: languageModel,
       system: "You are a diagram intent analyzer. Extract structure from user requests accurately.",
@@ -522,7 +537,7 @@ Rules:
       maxOutputTokens: compact ? 500 : 800,
     });
     const intentPlan = parseIntentPlan(intentText, promptText);
-    const shouldClarify = intentPlan.shouldAskClarification && intentPlan.ambiguityScore >= 68;
+    const shouldClarify = intentPlan.shouldAskClarification && intentPlan.ambiguityScore >= 90;
     if (shouldClarify) {
       return NextResponse.json({
         diagramType,
@@ -533,12 +548,20 @@ Rules:
       });
     }
 
+    // AI-suggested type switch — use a different diagram type if the intent plan recommends it
+    const effectiveDiagramType: DiagramType =
+      intentPlan.suggestedDiagramType && intentPlan.suggestedDiagramType !== diagramType
+        ? intentPlan.suggestedDiagramType
+        : diagramType;
+    const effectiveSystemPrompt =
+      effectiveDiagramType === diagramType ? systemPrompt : DIAGRAM_SYSTEM_PROMPTS[effectiveDiagramType];
+
     const baseMaxOutputTokens =
-      diagramType === "mermaid"
+      effectiveDiagramType === "mermaid"
         ? 2500
-        : diagramType === "bpmn"
+        : effectiveDiagramType === "bpmn"
           ? 2800
-          : diagramType === "echarts" || diagramType === "nivo"
+          : effectiveDiagramType === "echarts" || effectiveDiagramType === "nivo"
             ? 3200
             : 3500;
     const maxOutputTokens = compact ? Math.max(900, Math.round(baseMaxOutputTokens * 0.7)) : baseMaxOutputTokens;
@@ -556,16 +579,16 @@ Quality requirements:
 
     const { text } = await generateText({
       model: languageModel,
-      system: `${systemPrompt}\n\n${generationInstruction}`,
+      system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
       messages,
       temperature: 0.3,
       maxOutputTokens,
     });
-    let validated = await validateAndRepairOutput(diagramType, text);
+    let validated = await validateAndRepairOutput(effectiveDiagramType, text);
     if (!validated.ok) {
       const { text: retryText } = await generateText({
         model: languageModel,
-        system: `${systemPrompt}\n\nReturn only valid ${diagramType} output.`,
+        system: `${effectiveSystemPrompt}\n\nReturn only valid ${effectiveDiagramType} output.`,
         messages: [
           ...messages,
           {
@@ -576,11 +599,11 @@ Quality requirements:
         temperature: 0.15,
         maxOutputTokens,
       });
-      validated = await validateAndRepairOutput(diagramType, retryText);
+      validated = await validateAndRepairOutput(effectiveDiagramType, retryText);
       if (!validated.ok) {
         const errBody: ApiError = {
-          error: `Model returned invalid output for ${diagramType}`,
-          code: diagramType === "mermaid" ? "MERMAID_PARSE_ERROR" : "VALIDATION_ERROR",
+          error: `Model returned invalid output for ${effectiveDiagramType}`,
+          code: effectiveDiagramType === "mermaid" ? "MERMAID_PARSE_ERROR" : "VALIDATION_ERROR",
           details: { reason: validated.reason },
         };
         return NextResponse.json(errBody, { status: 422 });
@@ -595,17 +618,22 @@ Quality requirements:
       }
     }
 
-    const assumptionNote =
-      intentPlan.assumptions.length > 0
+    const typeSwitched = effectiveDiagramType !== diagramType;
+    const switchedTypeLabel = typeSwitched ? getDiagramTypeMeta(effectiveDiagramType).label : null;
+    const assumptionNote = typeSwitched
+      ? `Switched to ${switchedTypeLabel} — better fit for your prompt.${intentPlan.assumptions.length > 0 ? ` Assumptions: ${intentPlan.assumptions.slice(0, 2).join("; ")}.` : ""}`
+      : intentPlan.assumptions.length > 0
         ? `Assumptions used: ${intentPlan.assumptions.slice(0, 3).join("; ")}.`
         : "Updated with explicit structure from your request.";
 
     return NextResponse.json({
       source: validated.source,
-      diagramType,
+      diagramType: effectiveDiagramType,
       needsClarification: false,
       assumptions: intentPlan.assumptions,
       assistantMessage: assumptionNote,
+      detailLevel: intentPlan.detailLevel,
+      ...(typeSwitched ? { typeSwitched: true } : {}),
       ...(intentPlan.suggestedPresetId != null ? { suggestedPresetId: intentPlan.suggestedPresetId } : {}),
       ...(intentPlan._fallback ? { intentFallback: true } : {}),
     });

@@ -218,6 +218,7 @@ export function EditorClient({
   const [chatInput, setChatInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [compactAiContext, setCompactAiContext] = useState(false);
@@ -301,6 +302,7 @@ export function EditorClient({
 
   useEffect(() => { if (!hasHydratedRef.current) return; localStorage.setItem(`flowchart-ui:${currentProjectId ?? "draft"}`, JSON.stringify(uiState)); }, [currentProjectId, uiState]);
   useEffect(() => { if (chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight; }, [chatMessages]);
+  useEffect(() => { if (!aiNotice) return; const t = setTimeout(() => setAiNotice(null), 8000); return () => clearTimeout(t); }, [aiNotice]);
 
   useEffect(() => {
     if (diagramType === "mermaid" && parseError) {
@@ -413,7 +415,7 @@ export function EditorClient({
           useCaseId,
         }),
       });
-      let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string; suggestedPresetId?: SocialPresetId } = {};
+      let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string; suggestedPresetId?: SocialPresetId; diagramType?: DiagramType; typeSwitched?: boolean; detailLevel?: string } = {};
       try {
         const ct = res.headers.get("content-type");
         if (ct?.includes("application/json")) {
@@ -472,6 +474,14 @@ export function EditorClient({
 
         previousSourceRef.current = source;
         setSource(finalSource);
+
+        // Phase 3: auto-switch diagram type when AI suggests a better fit
+        if (data.typeSwitched && data.diagramType && data.diagramType !== diagramType) {
+          setDiagramType(data.diagramType);
+          if (data.diagramType === "mermaid") setMermaidSubtype("flowchart");
+          setParseError(null);
+        }
+
         // D-03: apply AI-inferred preset if a strong platform signal was detected
         if (data.suggestedPresetId) {
           const inferredUseCase: UseCaseId =
@@ -480,8 +490,15 @@ export function EditorClient({
           setUseCaseId(inferredUseCase);
           setPresetId(data.suggestedPresetId);
         }
+
+        // Show dismissible notice when type switched or assumptions were used
+        if (data.typeSwitched && data.assistantMessage) {
+          setAiNotice(data.assistantMessage);
+        }
+
         showToast("Diagram updated · ↩ to undo");
-        const activeLabel = diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label;
+        const effectiveType = data.typeSwitched && data.diagramType ? data.diagramType : diagramType;
+        const activeLabel = effectiveType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : getDiagramTypeMeta(effectiveType).label;
         const msg = data.assistantMessage?.trim()
           ? `Done! Updated your ${activeLabel}. ${data.assistantMessage}`
           : `Done! Updated your ${activeLabel}. Ask me to refine it further.`;
@@ -1072,6 +1089,13 @@ export function EditorClient({
         {aiLoading && (
           <div className="relative h-0.5 w-full shrink-0 overflow-hidden bg-indigo-100">
             <div className="ai-progress-bar" />
+          </div>
+        )}
+        {/* AI notice banner — type switch or assumption info */}
+        {aiNotice && (
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
+            <span>{aiNotice}</span>
+            <button type="button" onClick={() => setAiNotice(null)} className="rounded p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
           </div>
         )}
         {!leftPanelOpen && (
