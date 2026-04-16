@@ -3,8 +3,8 @@ import { generateText } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
-import { MermaidSourceSchema, DIAGRAM_SYSTEM_PROMPTS } from "@flowchart/core";
-import type { DiagramType, SocialPresetId } from "@flowchart/core";
+import { MermaidSourceSchema, DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS } from "@flowchart/core";
+import type { DiagramType, SocialPresetId, UseCaseId } from "@flowchart/core";
 import type { ApiError } from "@flowchart/core";
 import { BpmnModdle } from "bpmn-moddle";
 import { auth } from "@/auth";
@@ -418,6 +418,7 @@ export async function POST(req: Request) {
     diagramSummary?: string;
     title?: string;
     compact?: boolean;
+    useCaseId?: UseCaseId;
   };
 
   if (!reqBody.prompt?.trim()) {
@@ -428,6 +429,8 @@ export async function POST(req: Request) {
   const diagramType: DiagramType = reqBody.diagramType ?? "mermaid";
   const systemPrompt = DIAGRAM_SYSTEM_PROMPTS[diagramType];
   const compact = Boolean(reqBody.compact);
+  const useCaseId: UseCaseId = reqBody.useCaseId ?? "custom";
+  const useCaseStyleBlock = USE_CASE_STYLE_INSTRUCTIONS[useCaseId] ?? "";
 
   const userProvider = (user.aiProvider ?? "openai") as AiProvider;
   // Hosted OpenAI / gateway env vars are not valid for Google, Anthropic, etc. SDKs.
@@ -549,7 +552,7 @@ Quality requirements:
 - Label edges with intent verbs for flow diagrams.
 - Use balanced spacing and avoid overlapping/orphaned nodes.
 - Detail scaling: low=compact but complete, medium=moderate branching, high=rich sub-steps and annotations.
-- If assumptions are used, encode them conservatively in the diagram content.`;
+- If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}`;
 
     const { text } = await generateText({
       model: languageModel,

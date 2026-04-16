@@ -397,6 +397,7 @@ export function EditorClient({
           diagramSummary: summarizeDiagramSource(diagramType, source),
           conversationHistory: history,
           compact: compactAiContext,
+          useCaseId,
         }),
       });
       let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string; suggestedPresetId?: SocialPresetId } = {};
