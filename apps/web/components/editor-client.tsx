@@ -18,6 +18,9 @@ import {
   type DiagramType,
   type MermaidSubtype,
 } from "@flowchart/core";
+
+// Fallback until packages/core exports UseCaseId
+type UseCaseId = "presentation" | "social" | "documentation" | "custom";
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { saveProject, createProject } from "@/app/actions/project";
@@ -172,6 +175,7 @@ export function EditorClient({
   const [title, setTitle] = useState(initialTitle);
   const [diagramType, setDiagramType] = useState<DiagramType>(initialDiagramType);
   const [presetId, setPresetId] = useState<SocialPresetId>("square_feed");
+  const [useCaseId, setUseCaseId] = useState<UseCaseId>("custom");
   const [customExportWidth, setCustomExportWidth] = useState(1920);
   const [customExportHeight, setCustomExportHeight] = useState(1080);
   const [pngScale, setPngScale] = useState<1 | 2 | 3>(2);
@@ -395,7 +399,7 @@ export function EditorClient({
           compact: compactAiContext,
         }),
       });
-      let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string } = {};
+      let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string; suggestedPresetId?: SocialPresetId } = {};
       try {
         const ct = res.headers.get("content-type");
         if (ct?.includes("application/json")) {
@@ -454,6 +458,10 @@ export function EditorClient({
 
         previousSourceRef.current = source;
         setSource(finalSource);
+        // D-03: apply AI-inferred preset if a strong platform signal was detected
+        if (data.suggestedPresetId) {
+          setPresetId(data.suggestedPresetId);
+        }
         showToast("Diagram updated · ↩ to undo");
         const activeLabel = diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label;
         const msg = data.assistantMessage?.trim()
@@ -613,6 +621,14 @@ export function EditorClient({
       { id: crypto.randomUUID(), role: "assistant", content: `Switched to ${meta.label} diagram. Tell me what to build and I'll generate it.` },
     ]);
   }, [mermaidSubtype]);
+
+  const handleUseCaseChange = useCallback((id: UseCaseId) => {
+    setUseCaseId(id);
+    // D-07: use-case change drives preset to canonical default
+    if (id === "presentation") setPresetId("landscape");
+    else if (id === "social") setPresetId("square_feed");
+    // "documentation" and "custom" do not change the preset
+  }, []);
 
   const preset = useMemo(() => presetId === "custom" ? null : getPreset(presetId), [presetId]);
   const frameW = preset?.width ?? customExportWidth;
@@ -1006,6 +1022,25 @@ export function EditorClient({
                 <span className="text-xs tabular-nums text-slate-400" aria-label="Export dimensions">
                   {frameW}×{frameH}
                 </span>
+              </div>
+            </>
+          )}
+          {((["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType)) && (
+            <>
+              <div className="h-4 w-px shrink-0 bg-slate-200" />
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="text-xs text-slate-400">Use for</span>
+                <select
+                  value={useCaseId}
+                  onChange={(e) => handleUseCaseChange(e.target.value as UseCaseId)}
+                  className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  aria-label="Use case"
+                >
+                  <option value="custom">Custom</option>
+                  <option value="presentation">Presentation</option>
+                  <option value="social">Social</option>
+                  <option value="documentation">Documentation</option>
+                </select>
               </div>
             </>
           )}
