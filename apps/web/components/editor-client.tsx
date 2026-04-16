@@ -17,10 +17,8 @@ import {
   type SocialPresetId,
   type DiagramType,
   type MermaidSubtype,
+  type UseCaseId,
 } from "@flowchart/core";
-
-// Fallback until packages/core exports UseCaseId
-type UseCaseId = "presentation" | "social" | "documentation" | "custom";
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { saveProject, createProject } from "@/app/actions/project";
