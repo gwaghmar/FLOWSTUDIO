@@ -461,6 +461,10 @@ export function EditorClient({
         setSource(finalSource);
         // D-03: apply AI-inferred preset if a strong platform signal was detected
         if (data.suggestedPresetId) {
+          const inferredUseCase: UseCaseId =
+            data.suggestedPresetId === "landscape" ? "presentation" :
+            (["square_feed", "vertical_feed", "story_reel"].includes(data.suggestedPresetId) ? "social" : "custom");
+          setUseCaseId(inferredUseCase);
           setPresetId(data.suggestedPresetId);
         }
         showToast("Diagram updated · ↩ to undo");
