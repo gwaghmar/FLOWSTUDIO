@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -73,36 +74,36 @@ export function buildLanguageModel(
   model: string,
   apiKey: string,
   baseUrl?: string | null
-): LanguageModel {
+): any {
   switch (provider) {
     case "anthropic": {
       const client = createAnthropic({ apiKey });
-      return client(model);
+      return client(model) as any;
     }
     case "google": {
       const client = createGoogleGenerativeAI({ apiKey });
-      return client(model);
+      return client(model) as any;
     }
     case "mistral": {
       const client = createMistral({ apiKey });
-      return client(model);
+      return client(model) as any;
     }
     case "groq": {
       const client = createGroq({ apiKey });
-      return client(model);
+      return client(model) as any;
     }
     case "ollama":
     case "custom": {
       const base = baseUrl ?? (provider === "ollama" ? "http://localhost:11434/v1" : undefined);
       const client = createOpenAI({ apiKey: apiKey || "ollama", baseURL: base });
-      return client(model);
+      return client(model) as any;
     }
     case "openai":
     default: {
       const opts: Parameters<typeof createOpenAI>[0] = { apiKey };
       if (baseUrl) opts.baseURL = baseUrl;
       const client = createOpenAI(opts);
-      return client(model);
+      return client(model) as any;
     }
   }
 }

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import mermaid from "mermaid";
 import { toPng } from "html-to-image";
-import { THEMES, buildMermaidConfig, getTheme } from "@flowchart/core";
+import Link from "next/link";
+import { buildMermaidConfig, getTheme } from "@flowchart/core";
 import type { DiagramType } from "@flowchart/core";
 
 // Lazy-load heavy renderers so they don't bloat the share page bundle
@@ -169,7 +170,7 @@ export function ShareViewer({ token }: { token: string }) {
               )}
               {diagramType === "nivo" && (
                 <div className="h-[500px] p-4">
-                  <NivoRenderer source={data.source} readOnly onChange={() => {}} />
+                  <NivoRenderer source={data.source} />
                 </div>
               )}
               {diagramType === "tldraw" && (
@@ -194,13 +195,13 @@ export function ShareViewer({ token }: { token: string }) {
       </div>
 
       {/* Made with FlowStudio badge */}
-      <a
+      <Link
         href="/"
         className="fixed bottom-4 right-4 z-50 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-sm hover:bg-white hover:text-indigo-600 transition-colors"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7l3 3 3-3h5v5l-3 3 3 3v5h-5l-3-3-3 3H3v-5l3-3-3-3V3z"/></svg>
         Made with FlowStudio
-      </a>
+      </Link>
     </div>
   );
 }

@@ -226,21 +226,37 @@ Layout elements with good spacing (min 200px between boxes). Use colors to disti
 
   reactflow: `You output ONLY valid JSON for React Flow. No explanation, no markdown.
 Design quality rules:
-- Ensure nodes/edges represent the user flow exactly, not generic filler.
+- Build premium, professional node graphs suitable for business operations.
+- Every node MUST have a concise 'label' AND a helpful 'description' in data.
+- Ensure nodes represent the user flow exactly, not generic filler.
 - Include explicit start and end states where applicable.
-- Avoid edge crossing where possible; keep rank-aligned lanes.
 The JSON must have this exact structure:
 {
   "nodes": [
-    { "id": "1", "type": "default", "position": { "x": 0, "y": 0 }, "data": { "label": "Node Name", "description": "", "color": "#6366f1" } }
+    { 
+      "id": "1", 
+      "type": "custom", 
+      "position": { "x": 0, "y": 0 }, 
+      "data": { 
+        "label": "Action Verb", 
+        "description": "Short explanation of what happens here...", 
+        "color": "#6366f1",
+        "isActive": false
+      } 
+    }
   ],
   "edges": [
-    { "id": "e1-2", "source": "1", "target": "2", "label": "edge label", "animated": false, "type": "smoothstep" }
+    { "id": "e1-2", "source": "1", "target": "2", "label": "transition trigger", "animated": false, "type": "smoothstep" }
   ]
 }
-Node types: "default" (rounded box), "input" (start node, no incoming), "output" (end node, no outgoing), "group" (container).
-Use good x/y positioning with ~200px horizontal and ~100px vertical spacing.
-Use colors in node data.color to distinguish categories (#6366f1 blue, #10b981 green, #f59e0b amber, #ef4444 red, #8b5cf6 purple).`,
+Spacing: min 250px horizontal, 150px vertical.
+Colors (data.color):
+- #6366f1 (Indigo) - Default process
+- #10b981 (Green) - Success / Start
+- #f59e0b (Amber) - Warning / Decision
+- #ef4444 (Red) - Error / Stop
+- #8b5cf6 (Purple) - Automated Task
+Set 'isActive: true' ONLY if the user specifically asks to 'run', 'simulate', or 'highlight the current step' of a process.`,
 
   echarts: `You output ONLY valid Apache ECharts option JSON. No explanation, no markdown.
 Design quality rules:

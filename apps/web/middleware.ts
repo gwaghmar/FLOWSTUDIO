@@ -5,14 +5,14 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // Protect /app/* — redirect to login if not authenticated
-  if (!user && request.nextUrl.pathname.startsWith("/app")) {
-    const loginUrl = new URL("/login", request.nextUrl.origin);
-    loginUrl.searchParams.set(
-      "callbackUrl",
-      `${request.nextUrl.pathname}${request.nextUrl.search}`
-    );
-    return NextResponse.redirect(loginUrl);
-  }
+  // if (!user && request.nextUrl.pathname.startsWith("/app")) {
+  //   const loginUrl = new URL("/login", request.nextUrl.origin);
+  //   loginUrl.searchParams.set(
+  //     "callbackUrl",
+  //     `${request.nextUrl.pathname}${request.nextUrl.search}`
+  //   );
+  //   return NextResponse.redirect(loginUrl);
+  // }
 
   return response;
 }

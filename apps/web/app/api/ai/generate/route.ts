@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateText } from "ai";
+import { generateText, streamText, createDataStreamResponse } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
@@ -394,8 +394,18 @@ export async function POST(req: Request) {
     }
   }
 
+  let detectedProvider: AiProvider | null = null;
   if (!apiKey) {
-    apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_KEY || null;
+    if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      detectedProvider = "google";
+    } else if (process.env.OPENAI_API_KEY) {
+      apiKey = process.env.OPENAI_API_KEY;
+      detectedProvider = "openai";
+    } else if (process.env.AI_GATEWAY_KEY) {
+      apiKey = process.env.AI_GATEWAY_KEY;
+      detectedProvider = "openai";
+    }
     if (apiKey) keySource = "env";
   }
 
@@ -420,13 +430,16 @@ export async function POST(req: Request) {
     diagramType?: DiagramType;
     currentSource?: string;
     conversationHistory?: ChatTurn[];
+    messages?: ChatTurn[];
     diagramSummary?: string;
     title?: string;
     compact?: boolean;
     useCaseId?: UseCaseId;
   };
 
-  if (!reqBody.prompt?.trim()) {
+  const promptText = (reqBody.prompt || reqBody.messages?.[reqBody.messages.length - 1]?.content)?.trim();
+
+  if (!promptText) {
     const errBody: ApiError = { error: "prompt required", code: "VALIDATION_ERROR" };
     return NextResponse.json(errBody, { status: 400 });
   }
@@ -437,17 +450,21 @@ export async function POST(req: Request) {
   const useCaseId: UseCaseId = reqBody.useCaseId ?? "custom";
   const useCaseStyleBlock = USE_CASE_STYLE_INSTRUCTIONS[useCaseId] ?? "";
 
-  const userProvider = (user.aiProvider ?? "openai") as AiProvider;
-  // Hosted OpenAI / gateway env vars are not valid for Google, Anthropic, etc. SDKs.
-  const useEnvOpenAiCompatible = keySource === "env";
-  const provider: AiProvider = useEnvOpenAiCompatible ? "openai" : userProvider;
+  const userProvider = (user.aiProvider ?? "google") as AiProvider;
+  const provider: AiProvider = (keySource === "env" && detectedProvider) ? detectedProvider : userProvider;
+  
+  const googleModelFromEnv = process.env.GOOGLE_MODEL?.trim();
   const openAiModelFromEnv = process.env.OPENAI_MODEL?.trim();
-  const model = useEnvOpenAiCompatible
+  
+  const model = (keySource === "env" && detectedProvider === "google")
+    ? (googleModelFromEnv || "gemini-1.5-flash")
+    : (keySource === "env" && detectedProvider === "openai")
     ? (openAiModelFromEnv || "gpt-4o-mini")
     : user.aiModel?.trim() ||
+      (provider === "google" ? googleModelFromEnv : undefined) ||
       (provider === "openai" ? openAiModelFromEnv : undefined) ||
       getProviderMeta(provider).defaultModel;
-  const baseUrl = useEnvOpenAiCompatible
+  const baseUrl = (keySource === "env" && detectedProvider === "openai")
     ? (process.env.OPENAI_BASE_URL?.replace(/\/$/, "") ?? null)
     : (user.aiBaseUrl?.replace(/\/$/, "") ?? null);
 
@@ -467,7 +484,6 @@ export async function POST(req: Request) {
   const sourceSnippet = reqBody.currentSource?.slice(0, compact ? 900 : 2200) ?? "";
   const summarySnippet = reqBody.diagramSummary?.slice(0, compact ? 280 : 560) ?? "";
   const titleSnippet = reqBody.title?.trim() ? reqBody.title.trim().slice(0, 120) : "";
-  const promptText = reqBody.prompt.trim();
 
   let userMessage = `Request: ${promptText}`;
   if (titleSnippet) userMessage += `\nTitle: ${titleSnippet}`;
@@ -534,7 +550,7 @@ Rules:
         { role: "user", content: `${intentInstruction}\n\nUser prompt:\n${promptText}\n\nHistory:\n${messages.map((m) => `${m.role}: ${m.content}`).join("\n").slice(-1800)}` },
       ],
       temperature: 0.1,
-      maxOutputTokens: compact ? 500 : 800,
+      maxTokens: compact ? 500 : 800,
     });
     const intentPlan = parseIntentPlan(intentText, promptText);
     const shouldClarify = intentPlan.shouldAskClarification && intentPlan.ambiguityScore >= 90;
@@ -564,7 +580,7 @@ Rules:
           : effectiveDiagramType === "echarts" || effectiveDiagramType === "nivo"
             ? 3200
             : 3500;
-    const maxOutputTokens = compact ? Math.max(900, Math.round(baseMaxOutputTokens * 0.7)) : baseMaxOutputTokens;
+    const maxTokens = compact ? Math.max(900, Math.round(baseMaxOutputTokens * 0.7)) : baseMaxOutputTokens;
 
     const generationInstruction = `Intent plan:
 ${JSON.stringify(intentPlan, null, 2)}
@@ -577,47 +593,6 @@ Quality requirements:
 - Detail scaling: low=compact but complete, medium=moderate branching, high=rich sub-steps and annotations.
 - If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}`;
 
-    const { text } = await generateText({
-      model: languageModel,
-      system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
-      messages,
-      temperature: 0.3,
-      maxOutputTokens,
-    });
-    let validated = await validateAndRepairOutput(effectiveDiagramType, text);
-    if (!validated.ok) {
-      const { text: retryText } = await generateText({
-        model: languageModel,
-        system: `${effectiveSystemPrompt}\n\nReturn only valid ${effectiveDiagramType} output.`,
-        messages: [
-          ...messages,
-          {
-            role: "user",
-            content: `Your previous output failed validation: ${validated.reason}. Fix and regenerate from scratch. Respect this intent:\n${JSON.stringify(intentPlan)}`,
-          },
-        ],
-        temperature: 0.15,
-        maxOutputTokens,
-      });
-      validated = await validateAndRepairOutput(effectiveDiagramType, retryText);
-      if (!validated.ok) {
-        const errBody: ApiError = {
-          error: `Model returned invalid output for ${effectiveDiagramType}`,
-          code: effectiveDiagramType === "mermaid" ? "MERMAID_PARSE_ERROR" : "VALIDATION_ERROR",
-          details: { reason: validated.reason },
-        };
-        return NextResponse.json(errBody, { status: 422 });
-      }
-    }
-
-    if (user.plan === "free" && !skipCredits) {
-      const ok = await tryDecrementCredit(user.id);
-      if (!ok) {
-        const errBody: ApiError = { error: "Could not deduct credit; try again.", code: "INSUFFICIENT_CREDITS" };
-        return NextResponse.json(errBody, { status: 402 });
-      }
-    }
-
     const typeSwitched = effectiveDiagramType !== diagramType;
     const switchedTypeLabel = typeSwitched ? getDiagramTypeMeta(effectiveDiagramType).label : null;
     const assumptionNote = typeSwitched
@@ -626,16 +601,34 @@ Quality requirements:
         ? `Assumptions used: ${intentPlan.assumptions.slice(0, 3).join("; ")}.`
         : "Updated with explicit structure from your request.";
 
-    return NextResponse.json({
-      source: validated.source,
-      diagramType: effectiveDiagramType,
-      needsClarification: false,
-      assumptions: intentPlan.assumptions,
-      assistantMessage: assumptionNote,
-      detailLevel: intentPlan.detailLevel,
-      ...(typeSwitched ? { typeSwitched: true } : {}),
-      ...(intentPlan.suggestedPresetId != null ? { suggestedPresetId: intentPlan.suggestedPresetId } : {}),
-      ...(intentPlan._fallback ? { intentFallback: true } : {}),
+    return createDataStreamResponse({
+      execute: async (dataStream) => {
+        dataStream.writeData({
+          diagramType: effectiveDiagramType,
+          needsClarification: false,
+          assumptions: intentPlan.assumptions,
+          assistantMessage: assumptionNote,
+          detailLevel: intentPlan.detailLevel,
+          typeSwitched,
+          suggestedPresetId: intentPlan.suggestedPresetId ?? null,
+          intentFallback: Boolean(intentPlan._fallback),
+        });
+
+        const result = await streamText({
+          model: languageModel,
+          system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
+          messages,
+          temperature: 0.3,
+          maxTokens,
+          onFinish: async () => {
+            if (user.plan === "free" && !skipCredits) {
+              await tryDecrementCredit(user.id);
+            }
+          },
+        });
+
+        result.mergeIntoDataStream(dataStream);
+      },
     });
   } catch (e) {
     console.error("[AI generate error]", e);

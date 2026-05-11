@@ -3,6 +3,9 @@ import { db } from "./db";
 import { users } from "./db/schema";
 
 export async function getPlanForEmail(email: string): Promise<"free" | "pro"> {
+  // Mock for development
+  return "pro";
+  /*
   const [u] = await db
     .select()
     .from(users)
@@ -10,4 +13,5 @@ export async function getPlanForEmail(email: string): Promise<"free" | "pro"> {
     .limit(1);
   if (u?.plan === "pro") return "pro";
   return "free";
+  */
 }

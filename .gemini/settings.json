@@ -1,0 +1,8 @@
+{
+  "general": {
+    "plan": { "enabled": true }
+  },
+  "security": {
+    "disableYoloMode": true
+  }
+}

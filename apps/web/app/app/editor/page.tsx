@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 const VALID_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn"];
 
 function buildAiAssistantHint(ai: Awaited<ReturnType<typeof getAiSettingsForUser>>) {
@@ -33,7 +35,7 @@ function buildAiAssistantHint(ai: Awaited<ReturnType<typeof getAiSettingsForUser
 export default async function EditorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; template?: string; type?: string }>;
+  searchParams: Promise<{ id?: string; template?: string; type?: string; prompt?: string }>;
 }) {
   const sp = await searchParams;
   const session = await auth();
@@ -54,13 +56,15 @@ export default async function EditorPage({
   const projectId = sp.id ?? null;
   const templateId = sp.template ?? null;
   const typeParam = sp.type as DiagramType | undefined;
+  const initialPrompt = sp.prompt ?? null;
 
   const plan = await getPlanForEmail(email);
   const showWatermark = plan !== "pro";
 
   // Fetch credits balance for upgrade nudge
-  const [userData] = await db.select({ creditsBalance: users.creditsBalance }).from(users).where(eq(users.email, email)).limit(1);
-  const creditsBalance = userData?.creditsBalance ?? 5;
+  // const [userData] = await db.select({ creditsBalance: users.creditsBalance }).from(users).where(eq(users.email, email)).limit(1);
+  // const creditsBalance = userData?.creditsBalance ?? 5;
+  const creditsBalance = 100;
 
   if (projectId) {
     const p = await getProject(projectId);
@@ -78,6 +82,7 @@ export default async function EditorPage({
         showWatermark={showWatermark}
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
+        initialPrompt={initialPrompt}
       />
     );
   }
@@ -94,6 +99,7 @@ export default async function EditorPage({
         showWatermark={showWatermark}
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
+        initialPrompt={initialPrompt}
       />
     );
   }
@@ -130,6 +136,7 @@ export default async function EditorPage({
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
         isExample={true}
+        initialPrompt={initialPrompt}
       />
     );
   }
@@ -148,6 +155,7 @@ export default async function EditorPage({
       showWatermark={showWatermark}
       creditsBalance={creditsBalance}
       aiAssistantHint={aiAssistantHint}
+      initialPrompt={initialPrompt}
     />
   );
 }

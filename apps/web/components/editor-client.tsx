@@ -1,9 +1,32 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import mermaid from "mermaid";
 import { toPng, toSvg } from "html-to-image";
 import JSZip from "jszip";
+import { Logo } from "@/components/logo";
+import { useChat } from "@ai-sdk/react";
+import { 
+  Sparkles, 
+  Send, 
+  Undo, 
+  Share2, 
+  Download, 
+  PanelLeft, 
+  Layers, 
+  Settings2, 
+  Play, 
+  Database, 
+  Users,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  ChevronRight,
+  ChevronDown,
+  Layout,
+  MessageSquare
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   THEMES,
   buildMermaidConfig,
@@ -157,6 +180,7 @@ type Props = {
   aiAssistantHint?: AiAssistantHint;
   isExample?: boolean;
   creditsBalance?: number;
+  initialPrompt?: string | null;
 };
 
 export function EditorClient({
@@ -169,6 +193,7 @@ export function EditorClient({
   aiAssistantHint = { kind: "none" },
   isExample = false,
   creditsBalance,
+  initialPrompt,
 }: Props) {
   const parsedInitial = useMemo(() => parseUiFromSource(initialSource), [initialSource]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId);
@@ -204,24 +229,126 @@ export function EditorClient({
   const [mermaidSubtype, setMermaidSubtype] = useState<MermaidSubtype>("flowchart");
   /** Tools / chat column — hide for focus on diagram (persisted). */
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: isExample
-        ? `✨ Here's what I can do — a full OAuth login flow diagram, ready to export. Try asking me: "Make this a dark theme" or "Add a refresh token step" — or describe something completely new below.`
-        : initialDiagramType === "mermaid"
-          ? `Hi! I can generate diagrams — flowcharts, sequences, ERDs, Gantt charts, mind maps, and more. Pick a subtype above, then describe what you want.`
-          : `Hi! I can generate and edit ${getDiagramTypeMeta(initialDiagramType).label} diagrams. Describe what you want and I'll build it.`,
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
+  const [compactAiContext, setCompactAiContext] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(false);
+  const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
+    api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
+    body: {
+      diagramType,
+      title,
+      currentSource: source.slice(0, compactAiContext ? 800 : 2000),
+      diagramSummary: summarizeDiagramSource(diagramType, source),
+      compact: compactAiContext,
+      useCaseId,
     },
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+    onResponse: () => {
+      setAgentTasks([
+        { id: "intent", label: "Analyzing intent...", status: "completed" },
+        { id: "structure", label: "Planning structure...", status: "completed" },
+        { id: "generate", label: "Streaming diagram...", status: "loading" },
+      ]);
+    },
+    onFinish: (message) => {
+      // If it's a normal message (not just tool calls), we try to extract code from it
+      if (message.content.trim()) {
+         const cleaned = cleanModelOutput(message.content);
+         if (cleaned && cleaned.trim() !== source.trim()) {
+            previousSourceRef.current = source;
+            setSource(cleaned);
+         }
+      }
+      
+      setAgentTasks((prev) => prev.map(t => t.id === "generate" ? { ...t, status: "completed" } : t));
+      showToast("Diagram updated · ↩ to undo");
+    },
+  });
+
+  // Handle Tool Results surgically
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.toolInvocations) return;
+
+    lastMessage.toolInvocations.forEach(tool => {
+      if (tool.state !== 'result') return;
+      const result = tool.result;
+      if (!result || !result.success) return;
+
+      if (tool.toolName === 'update_diagram' && result.sourceCode) {
+         setSource(result.sourceCode);
+      }
+
+      if (tool.toolName === 'apply_patch' && result.find && result.replace) {
+         setSource(prev => {
+           if (prev.includes(result.find)) {
+             return prev.replace(result.find, result.replace);
+           }
+           return prev;
+         });
+      }
+
+      if (tool.toolName === 'update_node' && diagramType === 'reactflow') {
+         try {
+           const parsed = JSON.parse(source);
+           const nodes = parsed.nodes || [];
+           const updatedNodes = nodes.map((n: any) => {
+             if (n.id === result.id) {
+               return {
+                 ...n,
+                 data: result.data ? { ...n.data, ...result.data } : n.data,
+                 style: result.style ? { ...n.style, ...result.style } : n.style
+               };
+             }
+             return n;
+           });
+           setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
+         } catch (e) {
+           console.error("Failed to update node surgically", e);
+         }
+      }
+    });
+  }, [messages, diagramType]);
+
+  // Handle incoming data stream (replacing experimental_onData)
+  useEffect(() => {
+    if (!streamData || streamData.length === 0) return;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = streamData[0] as any;
+    if (!meta) return;
+    
+    if (meta.suggestedPresetId) {
+      const inferredUseCase: UseCaseId =
+        meta.suggestedPresetId === "landscape" ? "presentation" :
+        (["square_feed", "vertical_feed", "story_reel"].includes(meta.suggestedPresetId) ? "social" : "custom");
+      setUseCaseId(inferredUseCase);
+      setPresetId(meta.suggestedPresetId);
+    }
+    if (meta.typeSwitched && meta.diagramType) {
+      setDiagramType(meta.diagramType);
+      if (meta.diagramType === "mermaid") setMermaidSubtype("flowchart");
+    }
+    if (meta.assistantMessage) {
+      setAiNotice(meta.assistantMessage);
+    }
+  }, [streamData]);
+
+  // Sync source with streaming AI response
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant" && aiLoading) {
+      const cleaned = cleanModelOutput(lastMessage.content);
+      if (cleaned && cleaned.length > 5) {
+        setSource(cleaned);
+      }
+    }
+  }, [messages, aiLoading]);
+
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [compactAiContext, setCompactAiContext] = useState(false);
   const [isMermaidPanning, setIsMermaidPanning] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -244,6 +371,17 @@ export function EditorClient({
       : ""
   );
   const hasHydratedRef = useRef(false);
+  const promptAppendedRef = useRef(false);
+
+  useEffect(() => {
+    if (initialPrompt && !promptAppendedRef.current) {
+      promptAppendedRef.current = true;
+      setTimeout(() => {
+        setLeftPanelOpen(true);
+        append({ role: "user", content: initialPrompt });
+      }, 100);
+    }
+  }, [initialPrompt, append]);
 
   const typeMeta = useMemo(() => getDiagramTypeMeta(diagramType), [diagramType]);
   const theme = useMemo(() => THEMES.find((t) => t.id === themeId) ?? THEMES[0], [themeId]);
@@ -262,348 +400,141 @@ export function EditorClient({
 
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
 
-  // Text flowchart rendering (depend on themeId + primitives — not theme object — to avoid spurious effect re-runs)
-  useEffect(() => {
-    if (diagramType !== "mermaid") return;
-    let cancelled = false;
-    const mermaidTheme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
-    (async () => {
-      const cfg = buildMermaidConfig(mermaidTheme);
-      mermaid.initialize({ ...cfg, themeVariables: { ...cfg.themeVariables, fontFamily: selectedFont.cssValue, background: bgColor, primaryColor: accentColor, primaryBorderColor: accentColor, lineColor: accentColor, nodeBorder: accentColor, titleColor: accentColor }, startOnLoad: false, suppressErrorRendering: true });
-      try {
-        const id = `m${exportWrapId.replace(/:/g, "")}${Date.now()}`;
-        const { svg } = await mermaid.render(id, source);
-        if (cancelled) return;
-        if (innerRef.current) innerRef.current.innerHTML = svg;
-        setParseError(null);
-      } catch (e) {
-        if (!cancelled) setParseError(e instanceof Error ? e.message : "Invalid diagram text");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [source, themeId, exportWrapId, selectedFont.cssValue, bgColor, accentColor, diagramType]);
-
-  // localStorage hydration
-  useEffect(() => {
-    const key = `flowchart-ui:${currentProjectId ?? "draft"}`;
-    try {
-      const cached = localStorage.getItem(key);
-      if (cached) {
-        const p = JSON.parse(cached) as UiState;
-        if (typeof p.showGrid === "boolean") setShowGrid(p.showGrid);
-        if (typeof p.fontId === "string") setFontId(p.fontId);
-        if (typeof p.paletteId === "string") setPaletteId(p.paletteId);
-        if (typeof p.customBackground === "string") setCustomBackground(p.customBackground);
-        if (typeof p.customAccent === "string") setCustomAccent(p.customAccent);
-        if (p.backgroundPattern === "dots" || p.backgroundPattern === "grid" || p.backgroundPattern === "lines") setBackgroundPattern(p.backgroundPattern);
-      }
-    } catch { /* ignore */ } finally { hasHydratedRef.current = true; }
-  }, [currentProjectId]);
-
-  useEffect(() => { if (!hasHydratedRef.current) return; localStorage.setItem(`flowchart-ui:${currentProjectId ?? "draft"}`, JSON.stringify(uiState)); }, [currentProjectId, uiState]);
-  useEffect(() => { if (chatListRef.current) chatListRef.current.scrollTop = chatListRef.current.scrollHeight; }, [chatMessages]);
-  useEffect(() => { if (!aiNotice) return; const t = setTimeout(() => setAiNotice(null), 8000); return () => clearTimeout(t); }, [aiNotice]);
-
-  useEffect(() => {
-    if (diagramType === "mermaid" && parseError) {
-      if (!sourceSuppressAutoExpandRef.current) {
-        sourceAutoExpandedRef.current = true;
-        setSourceExpanded(true);
-      }
-      return;
+  const cleanModelOutput = (text: string) => {
+    // Strip markdown code blocks
+    let cleaned = text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "");
+    // Strip metadata prefix if AI included it in stream
+    if (cleaned.includes(UI_META_PREFIX)) {
+      cleaned = cleaned.split("\n").slice(1).join("\n");
     }
-    if (diagramType === "mermaid" && !parseError && sourceAutoExpandedRef.current) {
-      sourceAutoExpandedRef.current = false;
-      setSourceExpanded(false);
-    }
-    if (diagramType === "mermaid" && !parseError) {
-      sourceSuppressAutoExpandRef.current = false;
-    }
-  }, [parseError, diagramType]);
+    return cleaned.trim();
+  };
 
-  // Hydrate export + AI compact toggles (local-only)
-  useEffect(() => {
-    try {
-      const w = localStorage.getItem("flowchart-export:customWidth");
-      const h = localStorage.getItem("flowchart-export:customHeight");
-      const s = localStorage.getItem("flowchart-export:pngScale");
-      const c = localStorage.getItem("flowchart-ai:compact");
-      if (w && Number.isFinite(Number(w))) setCustomExportWidth(Math.max(200, Math.min(8192, Math.round(Number(w)))));
-      if (h && Number.isFinite(Number(h))) setCustomExportHeight(Math.max(200, Math.min(8192, Math.round(Number(h)))));
-      if (s === "1" || s === "2" || s === "3") setPngScale(Number(s) as 1 | 2 | 3);
-      if (c === "true") setCompactAiContext(true);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("flowchart-export:customWidth", String(customExportWidth));
-      localStorage.setItem("flowchart-export:customHeight", String(customExportHeight));
-      localStorage.setItem("flowchart-export:pngScale", String(pngScale));
-      localStorage.setItem("flowchart-ai:compact", String(compactAiContext));
-    } catch {
-      /* ignore */
-    }
-  }, [customExportWidth, customExportHeight, pngScale, compactAiContext]);
-
-  useEffect(() => {
-    if (!exportOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!t) return;
-      if (t.closest?.("[data-export-menu-root]")) return;
-      setExportOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [exportOpen]);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem("flowchart-editor:leftPanelOpen");
-      if (v === "false") setLeftPanelOpen(false);
-    } catch {
-      /* ignore */
-    }
-    leftPanelHydrated.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (!leftPanelHydrated.current) return;
-    try {
-      localStorage.setItem("flowchart-editor:leftPanelOpen", String(leftPanelOpen));
-    } catch {
-      /* ignore */
-    }
-  }, [leftPanelOpen]);
+  const handleNodeClick = useCallback((nodeId: string) => {
+    console.log("Node clicked:", nodeId);
+    setInput(`Edit node [${nodeId}]: `);
+    // Future enhancement: Automatically scroll to or focus the input bar
+  }, [setInput]);
 
   // Keyboard shortcuts
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      if (currentProjectId) { await saveProject(currentProjectId, { source: sourceWithUi, themeId, title, diagramType }); }
-      else { const newId = await createProject(title || "Untitled", sourceWithUi, themeId, diagramType); setCurrentProjectId(newId); }
-      lastSavedSnapshot.current = JSON.stringify({ source: sourceWithUi, themeId, title });
+      const sourceToSave = diagramType === "mermaid" ? embedUiInSource(source, uiState) : source;
+      if (currentProjectId) { 
+        await saveProject(currentProjectId, { source: sourceToSave, themeId, title, diagramType }); 
+      }
+      else { 
+        const newId = await createProject(title || "Untitled", sourceToSave, themeId, diagramType); 
+        setCurrentProjectId(newId); 
+      }
+      lastSavedSnapshot.current = JSON.stringify({ source: sourceToSave, themeId, title });
+      showToast("Project saved");
     } finally { setSaving(false); }
-  }, [currentProjectId, sourceWithUi, themeId, title, diagramType]);
+  }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast]);
 
-  const handleChatSend = useCallback(async () => {
-    const text = chatInput.trim();
-    if (!text || aiLoading) return;
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text };
-    setChatMessages((prev) => [...prev, userMsg]);
-    setChatInput("");
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const history = chatMessages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
-      // For mermaid, prepend subtype hint so the model knows which diagram variant to produce
-      const aiHint = diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).aiHint : "";
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: aiHint + text,
-          diagramType,
-          title,
-          currentSource: source.slice(0, compactAiContext ? 800 : 2000),
-          diagramSummary: summarizeDiagramSource(diagramType, source),
-          conversationHistory: history,
-          compact: compactAiContext,
-          useCaseId,
-        }),
-      });
-      let data: { source?: string | null; error?: string; needsClarification?: boolean; assistantMessage?: string; suggestedPresetId?: SocialPresetId; diagramType?: DiagramType; typeSwitched?: boolean; detailLevel?: string } = {};
-      try {
-        const ct = res.headers.get("content-type");
-        if (ct?.includes("application/json")) {
-          data = (await res.json()) as { source?: string; error?: string };
-        } else {
-          const t = await res.text();
-          data = { error: t.slice(0, 200) || `HTTP ${res.status}` };
-        }
-      } catch {
-        data = { error: "Could not read AI response" };
-      }
-      if (!res.ok) {
-        const errMsg = data.error ?? "AI request failed";
-        setAiError(errMsg);
-        setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: `Sorry, I hit an error: ${errMsg}` }]);
-        return;
-      }
-      if (data.needsClarification) {
-        setChatMessages((prev) => [...prev, {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: data.assistantMessage?.trim() || "I need one clarification before generating the diagram. What should be the main outcome?",
-        }]);
-        return;
-      }
-      if (typeof data.source === "string") {
-        let finalSource = data.source;
+  const handleUseCaseChange = useCallback((id: UseCaseId) => {
+    setUseCaseId(id);
+    // D-07: use-case change drives preset to canonical default
+    if (id === "presentation") setPresetId("landscape");
+    else if (id === "social") setPresetId("square_feed");
+    // "documentation" and "custom" do not change the preset
+  }, []);
 
-        // For mermaid: validate syntax client-side and auto-retry once if broken
-        if (diagramType === "mermaid" && finalSource.trim()) {
-          try {
-            await mermaid.parse(finalSource);
-          } catch (parseErr) {
-            const errorText = parseErr instanceof Error ? parseErr.message : String(parseErr);
-            setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: "Got a syntax error — fixing it automatically…" }]);
-            try {
-              const retryRes = await fetch("/api/ai/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  prompt: `Fix this Mermaid parse error and output only the corrected diagram source.\nError: ${errorText}\nBroken diagram:\n${finalSource}`,
-                  diagramType: "mermaid",
-                  currentSource: finalSource,
-                  compact: true,
-                }),
-              });
-              if (retryRes.ok) {
-                const retryData = (await retryRes.json()) as { source?: string };
-                if (typeof retryData.source === "string" && retryData.source.trim()) {
-                  finalSource = retryData.source;
-                }
-              }
-            } catch { /* use original if retry network fails */ }
-          }
-        }
-
-        previousSourceRef.current = source;
-        setSource(finalSource);
-
-        // Phase 3: auto-switch diagram type when AI suggests a better fit
-        if (data.typeSwitched && data.diagramType && data.diagramType !== diagramType) {
-          setDiagramType(data.diagramType);
-          if (data.diagramType === "mermaid") setMermaidSubtype("flowchart");
-          setParseError(null);
-        }
-
-        // D-03: apply AI-inferred preset if a strong platform signal was detected
-        if (data.suggestedPresetId) {
-          const inferredUseCase: UseCaseId =
-            data.suggestedPresetId === "landscape" ? "presentation" :
-            (["square_feed", "vertical_feed", "story_reel"].includes(data.suggestedPresetId) ? "social" : "custom");
-          setUseCaseId(inferredUseCase);
-          setPresetId(data.suggestedPresetId);
-        }
-
-        // Show dismissible notice when type switched or assumptions were used
-        if (data.typeSwitched && data.assistantMessage) {
-          setAiNotice(data.assistantMessage);
-        }
-
-        showToast("Diagram updated · ↩ to undo");
-        const effectiveType = data.typeSwitched && data.diagramType ? data.diagramType : diagramType;
-        const activeLabel = effectiveType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : getDiagramTypeMeta(effectiveType).label;
-        const msg = data.assistantMessage?.trim()
-          ? `Done! Updated your ${activeLabel}. ${data.assistantMessage}`
-          : `Done! Updated your ${activeLabel}. Ask me to refine it further.`;
-        setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: msg }]);
-      }
-    } catch {
-      setAiError("Network error");
-      setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", content: "Network error. Please try again." }]);
-    } finally { setAiLoading(false); }
-  }, [chatInput, aiLoading, chatMessages, diagramType, mermaidSubtype, source, title, typeMeta.label, showToast, compactAiContext]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const inField = (e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA";
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        void handleSave();
-      }
-      // ⌘/Ctrl+Enter for AI is handled on the AI textarea only (not diagram source).
-      if (!inField && e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        setShowGrid((p) => !p);
-      }
-      if (!inField && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        setLeftPanelOpen((p) => !p);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, handleChatSend]);
-
-  const downloadBlob = (blob: Blob, name: string) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href); };
+  const downloadBlob = (blob: Blob, name: string) => { 
+    const a = document.createElement("a"); 
+    a.href = URL.createObjectURL(blob); 
+    a.download = name; 
+    a.click(); 
+    URL.revokeObjectURL(a.href); 
+  };
 
   const handleExport = useCallback(async (format: "png" | "svg" | "zip") => {
     setIsExporting(true);
     try {
       const fn = title || "diagram";
-    if (diagramType === "mermaid" && (format === "png" || format === "svg")) {
-      const svg = innerRef.current?.querySelector("svg");
-      if (!svg) return;
-      if (format === "svg") {
-        const serialized = new XMLSerializer().serializeToString(svg);
-        downloadBlob(new Blob([serialized], { type: "image/svg+xml" }), `${fn}.svg`);
+      if (diagramType === "mermaid" && (format === "png" || format === "svg")) {
+        const svg = innerRef.current?.querySelector("svg");
+        if (!svg) return;
+        if (format === "svg") {
+          const serialized = new XMLSerializer().serializeToString(svg);
+          downloadBlob(new Blob([serialized], { type: "image/svg+xml" }), `${fn}.svg`);
+          return;
+        }
+        const du = await toPng(svg as unknown as HTMLElement, { pixelRatio: pngScale, backgroundColor: bgColor });
+        downloadBlob(await (await fetch(du)).blob(), `${fn}.png`);
         return;
       }
-      const du = await toPng(svg as unknown as HTMLElement, { pixelRatio: pngScale, backgroundColor: bgColor });
-      downloadBlob(await (await fetch(du)).blob(), `${fn}.png`);
-      return;
-    }
-    if (diagramType === "excalidraw") {
-      if (format === "png") { const { exportExcalidrawToPng } = await import("./diagrams/excalidraw-renderer"); const b = await exportExcalidrawToPng(source); if (b) downloadBlob(b, `${fn}.png`); }
-      else if (format === "svg") { const { exportExcalidrawToSvg } = await import("./diagrams/excalidraw-renderer"); const s = await exportExcalidrawToSvg(source); if (s) downloadBlob(new Blob([s], { type: "image/svg+xml" }), `${fn}.svg`); }
-      return;
-    }
-    if (diagramType === "echarts") {
-      const bg = echartsUiTheme === "dark" ? "#0f172a" : "#ffffff";
-      if (format === "png") {
-        const url = echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: bg });
-        if (url) {
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `${fn}.png`;
-          a.click();
+      if (diagramType === "excalidraw") {
+        if (format === "png") { 
+          const { exportExcalidrawToPng } = await import("./diagrams/excalidraw-renderer"); 
+          const b = await exportExcalidrawToPng(source); 
+          if (b) downloadBlob(b, `${fn}.png`); 
+        } else if (format === "svg") { 
+          const { exportExcalidrawToSvg } = await import("./diagrams/excalidraw-renderer"); 
+          const s = await exportExcalidrawToSvg(source); 
+          if (s) downloadBlob(new Blob([s], { type: "image/svg+xml" }), `${fn}.svg`); 
         }
         return;
       }
-      if (format === "svg") {
-        const url = echartsRef.current?.getDataURL({ type: "svg" });
-        if (url) {
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `${fn}.svg`;
-          a.click();
+      if (diagramType === "echarts") {
+        const bg = echartsUiTheme === "dark" ? "#0f172a" : "#ffffff";
+        if (format === "png") {
+          const url = echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: bg });
+          if (url) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${fn}.png`;
+            a.click();
+          }
+          return;
+        }
+        if (format === "svg") {
+          const url = echartsRef.current?.getDataURL({ type: "svg" });
+          if (url) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${fn}.svg`;
+            a.click();
+          }
+          return;
         }
         return;
       }
-      return;
-    }
-    const node = frameRef.current;
-    if (!node) return;
-    if (format === "png") { const du = await toPng(node, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") }); downloadBlob(await (await fetch(du)).blob(), `${fn}.png`); }
-    else if (format === "svg") { const s = await toSvg(node, { filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") }); downloadBlob(await (await fetch(s)).blob(), `${fn}.svg`); }
-    else if (format === "zip" && diagramType === "mermaid") {
-      const zip = new JSZip();
-      const pw = node.style.width, ph = node.style.height;
-      try {
-        for (const p of SOCIAL_PRESETS) {
-          node.style.width = `${p.width}px`; node.style.height = `${p.height}px`;
-          await new Promise((r) => setTimeout(r, 150));
-          const du = await toPng(node, { pixelRatio: pngScale });
-          zip.file(`${p.id}-${p.width}x${p.height}.png`, await (await fetch(du)).blob());
+      const node = frameRef.current;
+      if (!node) return;
+      if (format === "png") { 
+        const du = await toPng(node, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") }); 
+        downloadBlob(await (await fetch(du)).blob(), `${fn}.png`); 
+      } else if (format === "svg") { 
+        const s = await toSvg(node, { filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") }); 
+        downloadBlob(await (await fetch(s)).blob(), `${fn}.svg`); 
+      } else if (format === "zip" && diagramType === "mermaid") {
+        const zip = new JSZip();
+        const pw = node.style.width, ph = node.style.height;
+        try {
+          for (const p of SOCIAL_PRESETS) {
+            node.style.width = `${p.width}px`; 
+            node.style.height = `${p.height}px`;
+            await new Promise((r) => setTimeout(r, 150));
+            const du = await toPng(node, { pixelRatio: pngScale });
+            zip.file(`${p.id}-${p.width}x${p.height}.png`, await (await fetch(du)).blob());
+          }
+          if (zipIncludeCustom) {
+            const w = Math.max(200, Math.min(8192, Math.round(customExportWidth)));
+            const h = Math.max(200, Math.min(8192, Math.round(customExportHeight)));
+            node.style.width = `${w}px`;
+            node.style.height = `${h}px`;
+            await new Promise((r) => setTimeout(r, 150));
+            const du = await toPng(node, { pixelRatio: pngScale });
+            zip.file(`custom-${w}x${h}.png`, await (await fetch(du)).blob());
+          }
+        } finally { 
+          node.style.width = pw; 
+          node.style.height = ph; 
         }
-        if (zipIncludeCustom) {
-          const w = Math.max(200, Math.min(8192, Math.round(customExportWidth)));
-          const h = Math.max(200, Math.min(8192, Math.round(customExportHeight)));
-          node.style.width = `${w}px`;
-          node.style.height = `${h}px`;
-          await new Promise((r) => setTimeout(r, 150));
-          const du = await toPng(node, { pixelRatio: pngScale });
-          zip.file(`custom-${w}x${h}.png`, await (await fetch(du)).blob());
-        }
-      } finally { node.style.width = pw; node.style.height = ph; }
-      downloadBlob(await zip.generateAsync({ type: "blob" }), `${fn}-social.zip`);
-    }
+        downloadBlob(await zip.generateAsync({ type: "blob" }), `${fn}-social.zip`);
+      }
     } finally {
       setIsExporting(false);
     }
@@ -613,8 +544,12 @@ export function EditorClient({
     setIsSharing(true);
     try {
       let id = currentProjectId;
-      if (!id) { id = await createProject(title || "Untitled", sourceWithUi, themeId, diagramType); setCurrentProjectId(id); }
-      else { await saveProject(id, { source: sourceWithUi, themeId, title, diagramType }); }
+      if (!id) { 
+        id = await createProject(title || "Untitled", sourceWithUi, themeId, diagramType);
+        setCurrentProjectId(id); 
+      } else { 
+        await saveProject(id, { source: sourceWithUi, themeId, title, diagramType }); 
+      }
       const token = await createShareLink(id);
       await navigator.clipboard.writeText(`${window.location.origin}/s/${encodeURIComponent(token)}`);
       showToast("Share link copied!");
@@ -638,10 +573,6 @@ export function EditorClient({
     sourceAutoExpandedRef.current = false;
     setParseError(null);
     setAiError(null);
-    setChatMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "assistant", content: `Switched to ${getDiagramTypeMeta(newType).label}. The canvas was reset to a starter template — tell me what to build next.` },
-    ]);
   }, [diagramType, source]);
 
   const handleSwitchMermaidSubtype = useCallback((subtype: MermaidSubtype) => {
@@ -651,19 +582,22 @@ export function EditorClient({
     setSource(meta.starter);
     setParseError(null);
     setAiError(null);
-    setChatMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "assistant", content: `Switched to ${meta.label} diagram. Tell me what to build and I'll generate it.` },
-    ]);
   }, [mermaidSubtype]);
 
-  const handleUseCaseChange = useCallback((id: UseCaseId) => {
-    setUseCaseId(id);
-    // D-07: use-case change drives preset to canonical default
-    if (id === "presentation") setPresetId("landscape");
-    else if (id === "social") setPresetId("square_feed");
-    // "documentation" and "custom" do not change the preset
-  }, []);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        void handleSave();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+        e.preventDefault();
+        setLeftPanelOpen((p) => !p);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleSave]);
 
   const preset = useMemo(() => presetId === "custom" ? null : getPreset(presetId), [presetId]);
   const frameW = preset?.width ?? customExportWidth;
@@ -683,514 +617,311 @@ export function EditorClient({
   const sourceLabel = ["mermaid", "bpmn"].includes(diagramType) ? "Source" : "JSON Source";
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-row overflow-hidden bg-transparent">
-
-      {/* Left: metadata, collapsible source, style, actions, AI chat — can hide for full-width diagram */}
-      {leftPanelOpen && (
-      <aside className="flex h-full min-h-0 w-[320px] shrink-0 flex-col border-r border-slate-200 bg-white">
-
-        {/* Header */}
-        <div className="shrink-0 border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Link href="/app" className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">← Projects</Link>
-            <button
-              type="button"
-              onClick={() => setLeftPanelOpen(false)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-              title="Hide panel (⌘B)"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/></svg>
-            </button>
-          </div>
-          <div className="mt-3">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 placeholder:font-normal placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
-              placeholder="Untitled diagram"
-            />
-            <div className="mt-2 flex items-center gap-2">
-              <span className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
-                saveState === "saved" ? "bg-emerald-400" : saveState === "saving" ? "bg-amber-400 animate-pulse" : "bg-slate-300"
-              }`} />
-              <span className="text-xs text-slate-400 flex-1">
-                {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Unsaved changes"}
-              </span>
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saving || saveState === "saved"}
-                className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Diagram type strip */}
-        <div className="shrink-0 border-b border-slate-200 px-4 py-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Type</p>
-          <div className="flex flex-wrap gap-1.5">
-            {DIAGRAM_TYPE_META.map((dt) => (
-              <button
-                key={dt.id}
-                type="button"
-                onClick={() => handleSwitchType(dt.id)}
-                title={dt.description}
-                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  dt.id === diagramType
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <DiagramTypeIcon type={dt.id} size={12} />
-                {dt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Mermaid subtype strip — only when mermaid is selected */}
-        {diagramType === "mermaid" && (
-          <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Subtype</p>
-            <div className="flex flex-wrap gap-1">
-              {MERMAID_SUBTYPE_META.map((sub) => (
-                <button
-                  key={sub.id}
-                  type="button"
-                  onClick={() => handleSwitchMermaidSubtype(sub.id)}
-                  title={sub.label}
-                  className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
-                    sub.id === mermaidSubtype
-                      ? "border-indigo-300 bg-indigo-100 text-indigo-700"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  {sub.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Collapsible source (advanced / raw text) */}
-        <div className="shrink-0 border-b border-slate-200">
-          <button
-            type="button"
-            id={`source-toggle-${exportWrapId}`}
-            aria-expanded={sourceExpanded}
-            aria-controls={sourcePanelBodyId}
-            onClick={() => {
-              setSourceExpanded((prev) => {
-                const next = !prev;
-                if (!next && diagramType === "mermaid" && parseError) {
-                  // If the user explicitly collapses while the diagram is invalid,
-                  // don’t keep auto-reopening it on repeated render errors.
-                  sourceSuppressAutoExpandRef.current = true;
-                  sourceAutoExpandedRef.current = false;
-                }
-                if (next) {
-                  sourceSuppressAutoExpandRef.current = false;
-                }
-                return next;
-              });
-            }}
-            className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left hover:bg-slate-50 focus-visible:outline-none"
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+      {/* GLOBAL TOP HEADER (Lovable style) */}
+      <header className="shrink-0 flex items-center justify-between border-b border-slate-200 px-4 py-1.5 bg-white z-50">
+        {/* Left: Logo & Dropdown */}
+        <div className="flex items-center gap-4 relative">
+          <button 
+            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-slate-50"
           >
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              {sourceLabel}
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5" aria-hidden="true">
-              {parseError && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">⚠ Error</span>}
-              <span className={`text-slate-400 transition-transform ${sourceExpanded ? "rotate-180" : ""}`}>▼</span>
-            </span>
+            <Logo className="h-5 w-5 shadow-sm rounded shadow-orange-500/20" />
+            <span className="font-semibold text-slate-900 tracking-tight">workoutplanner</span>
+            <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
-          {sourceExpanded && (
-            <div
-              id={sourcePanelBodyId}
-              role="region"
-              aria-labelledby={`source-toggle-${exportWrapId}`}
-              className="flex flex-col border-t border-slate-100" style={{ height: '200px' }}
-            >
-              <textarea
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                className="min-h-0 h-full flex-1 resize-none bg-[#0d1117] px-4 py-3 text-[12.5px] leading-[1.65] text-[#e6edf3] caret-indigo-400 focus:outline-none"
-              style={{ fontFamily: "ui-monospace, 'Fira Code', Menlo, Consolas, monospace" }}
-                placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : diagramType === "bpmn" ? "BPMN XML…" : `${diagramType} JSON…`}
-                spellCheck={false}
-              />
-              {parseError && <div className="shrink-0 border-t border-red-900/20 bg-red-950/50 px-4 py-1.5 text-[11px] leading-snug text-red-300" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{parseError}</div>}
+
+          {isNavMenuOpen && (
+            <div className="absolute top-full left-0 mt-1 w-48 rounded-xl border border-slate-200 bg-white shadow-lg z-[100] py-1 text-sm">
+              <Link href="/" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Home</Link>
+              <Link href="/app" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Projects</Link>
+              <Link href="/app/settings" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Settings</Link>
+              <div className="h-px bg-slate-100 my-1" />
+              <button className="block w-full text-left px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Change Logo</button>
             </div>
           )}
+
+          <div className="flex items-center gap-1">
+             <button className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                <div className="h-4 w-4 border-2 border-slate-300 rounded-full border-t-transparent animate-spin-slow" title="History" />
+             </button>
+          </div>
         </div>
 
-        {/* Flowchart text style controls */}
-        {diagramType === "mermaid" && (
-          <div className="shrink-0 border-b border-slate-200">
-            <button type="button" onClick={() => setShowStylePanel((p) => !p)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-slate-500 hover:bg-slate-50">
-              <span className="font-semibold uppercase tracking-wide">Style</span>
-              <span>{showStylePanel ? "▲" : "▼"}</span>
-            </button>
-            {showStylePanel && (
-              <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2">
-                <div>
-                  <label htmlFor="editor-mermaid-theme" className="block text-[10px] text-slate-500 mb-0.5">Theme</label>
-                  <select id="editor-mermaid-theme" value={themeId} onChange={(e) => setThemeId(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1 text-xs">{THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+        {/* Center: Tabs & Preview/Code */}
+        <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center bg-slate-100 p-1 rounded-xl">
+           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold bg-white rounded-lg shadow-sm text-slate-900">
+              <Play className="h-3.5 w-3.5" /> Preview
+           </button>
+           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
+              <div className="h-3 w-3 border border-slate-400 rounded-sm" /> Code
+           </button>
+        </div>
+
+        {/* Right: Publish, Share, User Profile */}
+        <div className="flex items-center gap-2">
+           <button 
+             onClick={() => void handleShare()}
+             disabled={isSharing}
+             className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
+           >
+             <Share2 className="h-3.5 w-3.5" /> Share
+           </button>
+           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm">
+             Publish
+           </button>
+           <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold ml-2 cursor-pointer border border-indigo-200">
+             U
+           </div>
+        </div>
+      </header>
+
+      <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden bg-[#fafafa]">
+        <AnimatePresence mode="wait">
+          {leftPanelOpen && (
+            <motion.aside
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 380, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 220 }}
+              className="relative z-40 flex flex-col overflow-hidden pl-4 py-3"
+            >
+              <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+
+          {/* AI Task List (Plan Mode) */}
+          {aiLoading && agentTasks.length > 0 && (
+            <div className="shrink-0 border-b border-white/5 bg-indigo-500/5 px-5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">Agent Plan</span>
+              </div>
+              <div className="space-y-2">
+                {agentTasks.map((task) => (
+                  <div key={task.id} className="flex items-center gap-3">
+                    {task.status === "completed" ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : task.status === "loading" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-slate-700" />
+                    )}
+                    <span className={`text-xs ${task.status === "loading" ? "text-white font-medium" : "text-slate-500"}`}>
+                      {task.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chat History */}
+          <div ref={chatListRef} className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-6 no-scrollbar">
+            {messages.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center text-center px-4">
+                <div className="mb-4 rounded-2xl bg-indigo-50 p-4">
+                  <Sparkles className="h-8 w-8 text-indigo-500" />
                 </div>
-                <div>
-                  <label htmlFor="editor-mermaid-font" className="block text-[10px] text-slate-500 mb-0.5">Font</label>
-                  <select id="editor-mermaid-font" value={fontId} onChange={(e) => setFontId(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1 text-xs">{FONT_OPTIONS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}</select>
-                </div>
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer"><input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} className="rounded" />Show grid overlay</label>
+                <h3 className="text-sm font-semibold text-slate-900">How can I help you build?</h3>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  Describe the diagram or process you want to create. I can handle Mermaid, Charts, Whiteboards and more.
+                </p>
               </div>
             )}
-          </div>
-        )}
-
-        {diagramType === "echarts" && (
-          <div className="shrink-0 border-b border-slate-200">
-            <button type="button" onClick={() => setShowEchartsStylePanel((p) => !p)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-slate-500 hover:bg-slate-50">
-              <span className="font-semibold uppercase tracking-wide">Quick style</span>
-              <span>{showEchartsStylePanel ? "▲" : "▼"}</span>
-            </button>
-            {showEchartsStylePanel && (() => {
-              const eo = parseEChartsJson(source);
-              const fam = detectChartFamily(eo);
-              const series0 = eo?.series && Array.isArray(eo.series) ? eo.series[0] : eo?.series;
-              const labelShow = Boolean(series0 && typeof series0 === "object" && (series0 as { label?: { show?: boolean } }).label?.show);
-              const legendShow = eo?.legend === undefined || eo?.legend === null || (typeof eo.legend === "object" && (eo.legend as { show?: boolean }).show !== false);
-              const stacked = Boolean(series0 && typeof series0 === "object" && (series0 as { stack?: string }).stack);
-              const yAxis = eo?.yAxis;
-              const y0 = Array.isArray(yAxis) ? yAxis[0] : yAxis;
-              const gridOn = typeof y0 === "object" && y0 !== null ? (y0 as { splitLine?: { show?: boolean } }).splitLine?.show !== false : true;
-              const paletteKey = (Object.keys(COLOR_PALETTES).find((k) => {
-                const pal = COLOR_PALETTES[k as keyof typeof COLOR_PALETTES];
-                return Array.isArray(eo?.color) && eo!.color![0] === pal[0];
-              }) ?? "indigo") as keyof typeof COLOR_PALETTES;
-              return (
-                <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2">
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-slate-500">Preview theme</label>
-                    <select
-                      value={echartsUiTheme}
-                      onChange={(e) => setEchartsUiTheme(e.target.value as EChartsUiTheme)}
-                      className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-slate-500">Chart type</label>
-                    <select
-                      value={fam}
-                      onChange={(e) => setSource(applyChartFamily(source, e.target.value as ChartFamilyId))}
-                      className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
-                    >
-                      <option value="bar">Bar</option>
-                      <option value="line">Line</option>
-                      <option value="area">Area</option>
-                      <option value="pie">Pie</option>
-                      <option value="donut">Donut</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-slate-500">Color palette</label>
-                    <select
-                      value={paletteKey}
-                      onChange={(e) => setSource(applyColorPalette(source, e.target.value as keyof typeof COLOR_PALETTES))}
-                      className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
-                    >
-                      {Object.keys(COLOR_PALETTES).map((k) => (
-                        <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                    <input type="checkbox" checked={legendShow} onChange={(e) => setSource(toggleLegend(source, e.target.checked))} className="rounded" />
-                    Show legend
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                    <input type="checkbox" checked={labelShow} onChange={(e) => setSource(toggleDataLabels(source, e.target.checked))} className="rounded" />
-                    Data labels
-                  </label>
-                  {fam !== "pie" && fam !== "donut" && (
-                    <>
-                      <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                        <input type="checkbox" checked={stacked} onChange={(e) => setSource(toggleStack(source, e.target.checked))} className="rounded" />
-                        Stack series
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                        <input type="checkbox" checked={gridOn} onChange={(e) => setSource(toggleSplitLine(source, e.target.checked))} className="rounded" />
-                        Y grid lines
-                      </label>
-                    </>
+            
+            {messages.map((msg, i) => (
+              <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`relative max-w-[92%] rounded-[20px] px-5 py-4 text-[14px] leading-relaxed shadow-sm ${
+                  msg.role === "user" 
+                    ? "bg-[#f1f0ee] text-slate-900" 
+                    : "bg-white text-slate-700 border border-slate-100"
+                }`}>
+                  {msg.content}
+                  {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
+                    <span className="inline-block h-4 w-1 animate-pulse bg-indigo-400 ml-1 translate-y-0.5" />
                   )}
                 </div>
-              );
-            })()}
-          </div>
-        )}
-
-
-        {/* Universal background picker */}
-        <div className="shrink-0 border-b border-slate-200">
-          <button type="button" onClick={() => setShowBgPanel((p) => !p)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-slate-500 hover:bg-slate-50">
-            <span className="font-semibold uppercase tracking-wide">Background</span>
-            <span>{showBgPanel ? "▲" : "▼"}</span>
-          </button>
-          {showBgPanel && (
-            <div className="space-y-2.5 border-t border-slate-100 px-3 pb-3 pt-2">
-              <div>
-                <p className="mb-1.5 text-[10px] text-slate-500">Color</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(["#ffffff","#f8fafc","#f1f5f9","#0f172a","#1e1b4b","#000000","#fefce8","#f0fdf4"] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => { setCustomBackground(c); setPaletteId("custom"); }}
-                      title={c}
-                      className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${customBackground === c ? "border-indigo-500 scale-110" : "border-slate-300"}`}
-                      style={{ background: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="color"
-                  value={customBackground}
-                  onChange={(e) => { setCustomBackground(e.target.value); setPaletteId("custom"); }}
-                  className="h-7 w-7 cursor-pointer rounded border border-slate-200 p-0.5"
-                />
-                <input
-                  type="text"
-                  value={customBackground}
-                  onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { setCustomBackground(e.target.value); setPaletteId("custom"); } }}
-                  className="flex-1 rounded border border-slate-200 px-2 py-1 text-xs"
-                  placeholder="#ffffff"
-                  maxLength={7}
-                />
-              </div>
-              <div>
-                <p className="mb-1.5 text-[10px] text-slate-500">Pattern</p>
-                <div className="flex gap-1.5">
-                  {(["none","dots","grid","lines"] as const).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setBackgroundPattern(p)}
-                      className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${backgroundPattern === p ? "border-indigo-300 bg-indigo-100 text-indigo-700" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
-                    >
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* AI Assistant */}
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
-          <div className="shrink-0 border-b border-slate-200 px-4 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">AI Assistant</h2>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-xs text-slate-400"><DiagramTypeIcon type={diagramType} size={11} />{diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label} · ⌘Enter</p>
-              <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-slate-400">
-                <input type="checkbox" checked={compactAiContext} onChange={(e) => setCompactAiContext(e.target.checked)} className="rounded" />
-                Low cost
-              </label>
-            </div>
-            {aiAssistantHint.kind === "byok" ? (
-              <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs leading-snug text-emerald-800">
-                ✓ Using your key · <span className="font-semibold">{aiAssistantHint.providerLabel}</span>
-              </p>
-            ) : aiAssistantHint.kind === "server" ? (
-              <p className="mt-2 text-xs text-slate-400">Using server key.</p>
-            ) : (
-              <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs leading-snug text-amber-900">
-                <Link href="/app/settings" className="font-semibold underline underline-offset-2 hover:text-amber-950">
-                  Add an API key
-                </Link>{" "}
-                — OpenAI, Gemini, Claude, Groq and more.
-              </p>
-            )}
-            {creditsBalance !== undefined && creditsBalance <= 2 && showWatermark && (
-              <div className={`mt-2 rounded-lg border px-3 py-2 text-xs leading-snug ${
-                creditsBalance === 0 ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900"
-              }`}>
-                {creditsBalance === 0
-                  ? <><span className="font-semibold">0 generations left.</span> <Link href="/app/billing" className="font-semibold underline underline-offset-2">Upgrade to Pro →</Link></>
-                  : <>{creditsBalance} generation{creditsBalance === 1 ? "" : "s"} left on the free plan. <Link href="/app/billing" className="font-semibold underline underline-offset-2">Upgrade →</Link></>}
-              </div>
-            )}
-          </div>
-
-          <div ref={chatListRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-            {chatMessages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-sm" : "bg-slate-100 text-slate-800 rounded-bl-sm"}`}>{msg.content}</div>
+                {msg.toolInvocations && msg.toolInvocations.map(tool => (
+                  <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      {tool.state === 'result' ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
+                      <span className="font-semibold">{tool.toolName === 'web_search' ? 'Searching web...' : tool.toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
+                    </div>
+                    {tool.state === 'result' && tool.toolName === 'update_diagram' && (
+                      <span className="text-slate-400 pl-5">Diagram updated successfully.</span>
+                    )}
+                  </div>
+                ))}
+                {msg.role === "assistant" && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2 flex items-center gap-4 px-2 text-slate-400"
+                  >
+                    <button className="hover:text-slate-600 transition-colors"><Undo className="h-3.5 w-3.5" /></button>
+                    <button className="hover:text-slate-600 transition-colors"><Share2 className="h-3.5 w-3.5" /></button>
+                  </motion.div>
+                )}
               </div>
             ))}
-            {aiLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
-                  <div className="flex gap-1.5">{[0, 150, 300].map((d) => <div key={d} className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: `${d}ms` }} />)}</div>
-                </div>
-              </div>
-            )}
-            {chatInput.trim().length > 0 && !aiLoading && (
-              <div className="flex justify-end">
-                <div className="rounded-2xl rounded-br-sm bg-indigo-100 px-3.5 py-2 text-xs italic text-indigo-400">typing…</div>
-              </div>
-            )}
           </div>
 
-          {aiError && <div className="shrink-0 mx-4 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{aiError}</div>}
-
-          <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-2.5 flex flex-wrap gap-1.5">
-            {(QUICK_PROMPTS[diagramType] ?? []).map((qp) => (
-              <button key={qp} type="button" onClick={() => setChatInput(qp)} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">{qp}</button>
-            ))}
-          </div>
-
-          <div className="shrink-0 border-t border-slate-200 bg-white p-3">
-            <div className="flex items-end gap-2">
+          {/* Prompt Area with Quick Prompts */}
+          <div className="shrink-0 space-y-4 border-t border-slate-100 bg-white/50 p-5">
+            {messages.length > 0 && QUICK_PROMPTS[diagramType]?.length && (
+              <div className="flex flex-wrap gap-2">
+                {QUICK_PROMPTS[diagramType]?.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => setInput(q)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit(e);
+              }}
+              className="group relative flex flex-col gap-2 rounded-[24px] border border-slate-200/80 bg-white p-2 shadow-lg shadow-slate-200/30 focus-within:border-indigo-500/50 transition-all"
+            >
               <textarea
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                value={input}
+                onChange={handleInputChange}
+                placeholder="How should I change the diagram?"
+                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                rows={1}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    void handleChatSend();
+                    handleSubmit(e as any);
                   }
                 }}
-                placeholder="Describe what to build or change…"
-                rows={3}
-                data-ai-chat-input
-                className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-relaxed focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
-              <button type="button" onClick={() => void handleChatSend()} disabled={aiLoading || !chatInput.trim() || creditsBalance === 0} className="self-end rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
-                {aiLoading ? "…" : "↑"}
-              </button>
-            </div>
+              <div className="flex items-center justify-between px-2 pb-1">
+                <div className="flex items-center gap-1">
+                  <button type="button" className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-all">
+                    <div className="h-3.5 w-3.5 border-2 border-slate-300 rounded-[3px]" />
+                    Visual edits
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsAgentMode(!isAgentMode)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    <div className={`h-3.5 w-3.5 border-2 rounded-[3px] ${isAgentMode ? 'border-indigo-500' : 'border-slate-300'}`} />
+                    Agent Mode
+                  </button>
+                </div>
+                <button
+                  type="submit"
+                  disabled={!input?.trim() || aiLoading}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 transition-all shadow-md"
+                >
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </button>
+              </div>
+            </form>
           </div>
-        </div>
-      </aside>
+          </div>
+        </motion.aside>
       )}
+    </AnimatePresence>
 
-      {/* Canvas — full width when left panel hidden */}
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* AI generation progress bar */}
-        {aiLoading && (
-          <div className="relative h-0.5 w-full shrink-0 overflow-hidden bg-indigo-100">
-            <div className="ai-progress-bar" />
-          </div>
-        )}
-        {/* AI notice banner — type switch or assumption info */}
-        {aiNotice && (
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
-            <span>{aiNotice}</span>
-            <button type="button" onClick={() => setAiNotice(null)} className="rounded p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
-          </div>
-        )}
-        {!leftPanelOpen && (
+    {/* Center/Right: Diagram Canvas */}
+    <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* AI generation progress bar */}
+      {aiLoading && (
+        <div className="relative h-0.5 w-full shrink-0 overflow-hidden bg-indigo-100">
+          <div className="ai-progress-bar" />
+        </div>
+      )}
+      {/* AI notice banner — type switch or assumption info */}
+      {aiNotice && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
+          <span>{aiNotice}</span>
+          <button type="button" onClick={() => setAiNotice(null)} className="rounded p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
+        </div>
+      )}
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-1 justify-between">
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setLeftPanelOpen(true)}
-            className="absolute left-0 top-28 z-20 flex items-center rounded-r-lg border border-slate-200 border-l-0 bg-white py-4 pl-1 pr-1.5 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50"
-            aria-label="Show tools and AI panel"
-            title="Show tools & AI (⌘B)"
+            onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+            className={`flex items-center gap-2 rounded-lg border border-slate-200 p-1.5 transition-all ${leftPanelOpen ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-inner' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            title="Toggle AI Panel (⌘B)"
           >
-            ›
+            <MessageSquare className="h-4 w-4" />
+            <span className="text-xs font-semibold pr-1">AI Chat</span>
           </button>
-        )}
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
-          {/* Zoom */}
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
-            <span className="w-11 text-center text-xs tabular-nums text-slate-600">{Math.round(zoom * 100)}%</span>
-            <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
-            <button type="button" onClick={() => setZoom(1)} className="rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100" title="Reset zoom">↺</button>
-          </div>
-          <div className="h-4 w-px shrink-0 bg-slate-200" />
-          <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-500">
-            <DiagramTypeIcon type={diagramType} size={13} />
-            <span className="font-medium">
-              {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label}
+            
+            {/* Zoom */}
+            <div className="hidden lg:flex shrink-0 items-center gap-0.5">
+              <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
+              <span className="w-11 text-center text-xs tabular-nums text-slate-600">{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
+              <button type="button" onClick={() => setZoom(1)} className="rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100" title="Reset zoom">↺</button>
+            </div>
+            
+            <div className="hidden lg:block h-4 w-px shrink-0 bg-slate-200" />
+            <span className="hidden lg:flex shrink-0 items-center gap-1.5 text-xs text-slate-500">
+              <DiagramTypeIcon type={diagramType} size={13} />
+              <span className="font-medium">
+                {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label}
+              </span>
             </span>
-          </span>
-          {(["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType) && (
-            <>
-              <div className="h-4 w-px shrink-0 bg-slate-200" />
-              <div className="flex shrink-0 items-center gap-1.5">
-                <select
-                  value={presetId}
-                  onChange={(e) => setPresetId(e.target.value as SocialPresetId)}
-                  className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                  aria-label="Canvas size preset"
-                >
-                  {SOCIAL_PRESETS.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                  <option value="custom">Custom</option>
-                </select>
-                <span className="text-xs tabular-nums text-slate-400" aria-label="Export dimensions">
-                  {frameW}×{frameH}
-                </span>
-              </div>
-            </>
-          )}
-          {((["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType)) && (
-            <>
-              <div className="h-4 w-px shrink-0 bg-slate-200" />
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="text-xs text-slate-400">Use for</span>
-                <select
-                  value={useCaseId}
-                  onChange={(e) => handleUseCaseChange(e.target.value as UseCaseId)}
-                  className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                  aria-label="Use case"
-                >
-                  <option value="custom">Custom</option>
-                  <option value="presentation">Presentation</option>
-                  <option value="social">Social</option>
-                  <option value="documentation">Documentation</option>
-                </select>
-              </div>
-            </>
-          )}
-          {/* Right-side actions */}
+
+            {(["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType) && (
+              <>
+                <div className="hidden xl:block h-4 w-px shrink-0 bg-slate-200" />
+                <div className="hidden xl:flex shrink-0 items-center gap-1.5">
+                  <select
+                    value={presetId}
+                    onChange={(e) => setPresetId(e.target.value as SocialPresetId)}
+                    className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    aria-label="Canvas size preset"
+                  >
+                    {SOCIAL_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
+                    <option value="custom">Custom</option>
+                  </select>
+                  <span className="text-xs tabular-nums text-slate-400" aria-label="Export dimensions">
+                    {frameW}×{frameH}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {showWatermark && (
-              <span className="rounded border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Free plan</span>
+              <span className="hidden sm:inline-block rounded border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Free plan</span>
             )}
-            <button
-              type="button"
-              onClick={() => { const prev = previousSourceRef.current; if (prev === source) return; previousSourceRef.current = source; setSource(prev); }}
-              title="Undo last AI change"
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
-            >
-              ↩ Undo
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleShare()}
-              disabled={isSharing}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              {isSharing ? "…" : "Share"}
-            </button>
+            
+            <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+              <button
+                type="button"
+                onClick={() => { const prev = previousSourceRef.current; if (prev === source) return; previousSourceRef.current = source; setSource(prev); }}
+                title="Undo last AI change"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <Undo className="h-4 w-4" />
+              </button>
+              <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors" title="Users">
+                <Users className="h-4 w-4" />
+              </button>
+            </div>
+
             <div className="relative" data-export-menu-root>
               <button
                 type="button"
                 onClick={() => setExportOpen((p) => !p)}
                 disabled={isExporting}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                className="hidden sm:block px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors shadow-sm"
                 aria-expanded={exportOpen}
               >
                 {isExporting ? "…" : "Export ▾"}
@@ -1260,7 +991,7 @@ export function EditorClient({
           {diagramType === "mermaid" && (
             <div
               ref={mermaidViewportRef}
-              className={`h-full w-full overflow-auto rounded-xl ${isMermaidPanning ? "cursor-grabbing" : "cursor-grab"}`}
+              className={`h-full w-full overflow-auto rounded-xl flex flex-col items-center ${isMermaidPanning ? "cursor-grabbing" : "cursor-grab"}`}
               onMouseDown={(e) => {
                 if (e.button !== 0 || !mermaidViewportRef.current) return;
                 const el = mermaidViewportRef.current;
@@ -1283,7 +1014,7 @@ export function EditorClient({
                 setIsMermaidPanning(false);
               }}
             >
-              <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: "max-content", height: "max-content", padding: "12px" }}>
+              <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top center", width: "max-content", height: "max-content", padding: "12px" }}>
                 <div
                   ref={frameRef}
                   style={{
@@ -1314,7 +1045,7 @@ export function EditorClient({
               className="rounded-xl overflow-hidden shadow-xl bg-white"
               style={{ width: `${frameW}px`, height: `${frameH}px`, transform: `scale(${previewScale})`, transformOrigin: "top center" }}
             >
-              <ReactFlowRenderer source={source} onChange={setSource} />
+              <ReactFlowRenderer source={source} onChange={setSource} onNodeClick={handleNodeClick} />
             </div>
           )}
           {diagramType === "echarts" && (
@@ -1350,6 +1081,7 @@ export function EditorClient({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {toast && (

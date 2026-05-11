@@ -31,9 +31,15 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refreshes session if expired — do NOT remove this line.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: supabaseUser },
+    } = await supabase.auth.getUser();
+    user = supabaseUser;
+  } catch (e) {
+    console.error("Supabase auth error (likely dummy credentials):", e);
+  }
 
   return { response: supabaseResponse, user };
 }

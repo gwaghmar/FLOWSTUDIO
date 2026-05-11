@@ -4,6 +4,8 @@ import {
   adminSetPlan,
 } from "@/app/actions/admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const rows = await adminListUsers();
 

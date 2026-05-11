@@ -1,5 +1,6 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { auth } from "@/auth";
+import { Logo } from "@/components/logo";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
@@ -24,9 +25,10 @@ export default async function HomePage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link
           href="/"
-          className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-sm`}
+          className={`flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-sm`}
         >
-          Flowchart Studio
+          <Logo className="h-7 w-7 shadow-sm rounded shadow-orange-500/20" />
+          <span>Flowchart Studio</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
           <Link href="/pricing" className={`rounded-sm hover:text-slate-900 ${focusRing}`}>Pricing</Link>

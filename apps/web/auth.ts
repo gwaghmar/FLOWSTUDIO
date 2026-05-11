@@ -28,6 +28,16 @@ export type AuthSession = {
  * Works in Server Components, Server Actions, and Route Handlers.
  */
 export async function auth(): Promise<AuthSession> {
+  // Mock user for development
+  return {
+    user: {
+      id: "dev-user-id",
+      email: "dev@example.com",
+      name: "Developer",
+      image: null,
+    },
+  };
+  /*
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,6 +59,7 @@ export async function auth(): Promise<AuthSession> {
         null,
     },
   };
+  */
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import type { Node, Edge, NodeChange, EdgeChange, Connection } from "@xyflow/react";
+import { Handle, Position, type Node, type Edge, type NodeChange, type EdgeChange, type Connection, BackgroundVariant } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 // Dynamically import React Flow to avoid SSR issues
@@ -26,21 +26,32 @@ type ReactFlowData = {
 type Props = {
   source: string;
   onChange?: (source: string) => void;
+  onNodeClick?: (id: string) => void;
   readOnly?: boolean;
 };
 
 // Custom styled node component
-function CustomNode({ data }: { data: { label: string; description?: string; color?: string } }) {
+function CustomNode({ data }: { data: { label: string; description?: string; color?: string; isActive?: boolean } }) {
   return (
     <div
-      style={{ borderColor: data.color ?? "#6366f1", borderWidth: 2 }}
-      className="min-w-[120px] rounded-lg border-2 bg-white px-4 py-2 text-center shadow-sm"
+      style={{ 
+        borderColor: data.isActive ? "#fbbf24" : (data.color ?? "#6366f1"), 
+        borderWidth: data.isActive ? 3 : 2,
+        boxShadow: data.isActive ? "0 0 20px rgba(251, 191, 36, 0.4)" : "none"
+      }}
+      className={`min-w-[160px] rounded-xl border-2 bg-white px-5 py-3 text-center shadow-md transition-all ${data.isActive ? "scale-105" : "hover:shadow-lg"}`}
     >
-      <div className="text-sm font-semibold text-slate-800">{data.label}</div>
-      {data.description && <div className="mt-1 text-xs text-slate-500">{data.description}</div>}
+      <Handle type="target" position={Position.Top} className="!bg-slate-300" />
+      <div className="text-[13px] font-bold text-slate-800">{data.label}</div>
+      {data.description && <div className="mt-1 text-[11px] leading-relaxed text-slate-500">{data.description}</div>}
+      <Handle type="source" position={Position.Bottom} className="!bg-slate-300" />
     </div>
   );
 }
+
+const nodeTypes = {
+  custom: CustomNode,
+};
 
 function parseSource(source: string): ReactFlowData {
   try {
@@ -48,16 +59,21 @@ function parseSource(source: string): ReactFlowData {
     return {
       nodes: (data.nodes ?? []).map((n) => ({
         ...n,
-        style: { ...n.style, borderColor: (n.data as { color?: string })?.color ?? "#6366f1" },
+        type: "custom", // Force use of CustomNode
+        data: { ...n.data, isActive: (n.data as Record<string, unknown>)?.isActive ?? false },
       })),
-      edges: data.edges ?? [],
+      edges: (data.edges ?? []).map((e) => ({
+        ...e,
+        animated: !!(e as Record<string, unknown>).isActive,
+        style: (e as Record<string, unknown>).isActive ? { stroke: "#fbbf24", strokeWidth: 3 } : {},
+      })),
     };
   } catch {
     return { nodes: [], edges: [] };
   }
 }
 
-function ReactFlowInner({ source, onChange, readOnly }: Props) {
+function ReactFlowInner({ source, onChange, onNodeClick, readOnly }: Props) {
   const data = useMemo(() => parseSource(source), [source]);
   const lastSource = useRef(source);
 
@@ -109,9 +125,11 @@ function ReactFlowInner({ source, onChange, readOnly }: Props) {
       <ReactFlow
         nodes={data.nodes}
         edges={data.edges}
+        nodeTypes={nodeTypes}
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
+        onNodeClick={(_e, node) => onNodeClick?.(node.id)}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable={!readOnly}
@@ -120,18 +138,21 @@ function ReactFlowInner({ source, onChange, readOnly }: Props) {
         defaultEdgeOptions={{ type: "smoothstep", animated: false }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#e2e8f0" gap={20} />
+        <Background color="#f1f5f9" gap={20} variant={BackgroundVariant.Dots} />
         <Controls />
-        <MiniMap nodeColor={(n) => (n.data as { color?: string })?.color ?? "#6366f1"} />
+        <MiniMap 
+          nodeColor={(n) => (n.data as { color?: string; isActive?: boolean })?.isActive ? "#fbbf24" : (n.data as { color?: string })?.color ?? "#6366f1"}
+          className="!bg-white shadow-lg border border-slate-200 rounded-lg overflow-hidden"
+        />
       </ReactFlow>
     </div>
   );
 }
 
-export function ReactFlowRenderer({ source, onChange, readOnly = false }: Props) {
+export function ReactFlowRenderer({ source, onChange, onNodeClick, readOnly = false }: Props) {
   return (
     <ReactFlowProvider>
-      <ReactFlowInner source={source} onChange={onChange} readOnly={readOnly} />
+      <ReactFlowInner source={source} onChange={onChange} onNodeClick={onNodeClick} readOnly={readOnly} />
     </ReactFlowProvider>
   );
 }

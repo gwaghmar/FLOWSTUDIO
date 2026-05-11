@@ -1,0 +1,63 @@
+<h2>Focusing on the "Big Four" Live Features</h2>
+<p class="subtitle">Integrating Collaboration, Data, Streaming AI, and Execution into the existing FlowStudio</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-image" style="background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2rem">👥</div>
+    <div class="card-body">
+      <h3>Live Collaboration</h3>
+      <p>Multi-user editing and shared state.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-image" style="background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2rem">📊</div>
+    <div class="card-body">
+      <h3>Live Data</h3>
+      <p>Diagrams connected to real-world APIs.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-image" style="background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2rem">⚡</div>
+    <div class="card-body">
+      <h3>Streaming AI</h3>
+      <p>Continuous generation as you think/type.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-image" style="background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2rem">🚀</div>
+    <div class="card-body">
+      <h3>Live Execution</h3>
+      <p>Flowcharts as working business workflows.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:2rem">
+  <h3>Clarifying Question: The "Execution" Model</h3>
+  <p>To keep the existing app structure, how do you see <strong>Live Execution</strong> working?</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="interactive" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Interactive Diagram</h3>
+      <p>The diagram itself becomes a mini-app. Users click buttons on nodes to trigger next steps within the editor or a shared view.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="workflow" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Backend Workflow</h3>
+      <p>The flowchart is a blueprint for a backend process. When a node "runs", it sends emails, updates DBs, or calls other APIs automatically.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="plugin" onclick="toggleSelect(
+  this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>External Export</h3>
+      <p>A "Deploy" button that generates a standalone React app or a configuration for a tool like Zapier or Camunda (BPMN).</p>
+    </div>
+  </div>
+</div>
