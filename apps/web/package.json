@@ -49,7 +49,7 @@
     "mermaid": "^11.4.1",
     "nanoid": "^5.1.7",
     "next": "^15.1.6",
-    "next-auth": "5.0.0-beta.25",
+    "next-auth": "5.0.0-beta.30",
     "pdfkit": "^0.18.0",
     "postgres": "^3.4.5",
     "react": "^19.0.0",
