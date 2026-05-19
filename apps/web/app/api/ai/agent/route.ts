@@ -104,8 +104,8 @@ export async function POST(req: Request) {
       model: languageModel,
       messages,
       maxSteps: 5, // Allow the agent to take multiple steps (use tools)
-      system: `You are an autonomous Lovable-style AI agent building diagrams for the user. 
-You can use tools to find data, check documentation, and update the diagram.
+      system: `You are an autonomous Lovable-style AI agent building diagrams for the user.
+You can use tools to inspect and update the diagram source code.
 The current diagram type is: ${diagramType}.
 
 Current source code:
@@ -114,21 +114,11 @@ ${currentSource || "No source provided"}
 \`\`\`
 
 STRATEGY:
-1. For small changes (color, text, adding 1-2 nodes), use granular tools like 'update_node' or 'apply_patch' if available, otherwise use 'update_diagram' with a surgical rewrite.
+1. For small changes (color, text, adding 1-2 nodes), use 'apply_patch' or 'update_node' (React Flow only) for surgical edits.
 2. For large changes or new diagrams, use 'update_diagram' with the full code.
-3. Always explain what you are doing.
-4. If you need external data, use 'web_search'.`,
+3. If the user asks for chart data, use 'fetch_external_data' to load sample rows, then incorporate them.
+4. Always explain what you are doing before calling a tool.`,
       tools: {
-        web_search: tool({
-          description: "Search the web for information or data (e.g., 'Apple Q3 revenue 2024').",
-          parameters: z.object({
-            query: z.string().describe("The search query"),
-          }),
-          execute: async ({ query }) => {
-             // Mock search for now, will implement actual search or let AI hallucinate structurally based on prompt
-             return "Simulated search results for: " + query;
-          },
-        }),
         update_diagram: tool({
           description: "Update or create the diagram source code (Full rewrite).",
           parameters: z.object({

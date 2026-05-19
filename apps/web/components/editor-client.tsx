@@ -6,24 +6,18 @@ import { toPng, toSvg } from "html-to-image";
 import JSZip from "jszip";
 import { Logo } from "@/components/logo";
 import { useChat } from "@ai-sdk/react";
-import { 
-  Sparkles, 
-  Send, 
-  Undo, 
-  Share2, 
-  Download, 
-  PanelLeft, 
-  Layers, 
-  Settings2, 
-  Play, 
-  Database, 
-  Users,
+import {
+  Sparkles,
+  ArrowUp,
+  Bot,
+  Undo,
+  Share2,
+  Settings2,
+  Play,
   CheckCircle2,
   Circle,
   Loader2,
-  ChevronRight,
   ChevronDown,
-  Layout,
   MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -101,6 +95,12 @@ function CanvasLoader({ label }: { label: string }) {
 type ChatMessage = { id: string; role: "assistant" | "user"; content: string };
 type UiState = { showGrid?: boolean; fontId?: string; paletteId?: string; customBackground?: string; customAccent?: string; backgroundPattern?: string };
 type FontOption = { id: string; label: string; cssValue: string };
+type ReactFlowSourceNode = {
+  id: string;
+  data?: Record<string, unknown>;
+  style?: Record<string, unknown>;
+  [key: string]: unknown;
+};
 
 const FONT_OPTIONS: FontOption[] = [
   { id: "geist", label: "Geist Sans", cssValue: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif" },
@@ -291,8 +291,8 @@ export function EditorClient({
       if (tool.toolName === 'update_node' && diagramType === 'reactflow') {
          try {
            const parsed = JSON.parse(source);
-           const nodes = parsed.nodes || [];
-           const updatedNodes = nodes.map((n: any) => {
+           const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+           const updatedNodes = nodes.map((n) => {
              if (n.id === result.id) {
                return {
                  ...n,
@@ -627,7 +627,7 @@ export function EditorClient({
             className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-slate-50"
           >
             <Logo className="h-5 w-5 shadow-sm rounded shadow-orange-500/20" />
-            <span className="font-semibold text-slate-900 tracking-tight">workoutplanner</span>
+            <span className="font-semibold text-slate-900 tracking-tight">{title || "Flowchart Studio"}</span>
             <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
 
@@ -650,28 +650,38 @@ export function EditorClient({
 
         {/* Center: Tabs & Preview/Code */}
         <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center bg-slate-100 p-1 rounded-xl">
-           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold bg-white rounded-lg shadow-sm text-slate-900">
+           <button
+             onClick={() => setSourceExpanded(false)}
+             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${!sourceExpanded ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+           >
               <Play className="h-3.5 w-3.5" /> Preview
            </button>
-           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
+           <button
+             onClick={() => setSourceExpanded(true)}
+             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${sourceExpanded ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+           >
               <div className="h-3 w-3 border border-slate-400 rounded-sm" /> Code
            </button>
         </div>
 
-        {/* Right: Publish, Share, User Profile */}
+        {/* Right: Share, Publish, User avatar */}
         <div className="flex items-center gap-2">
-           <button 
+           <button
              onClick={() => void handleShare()}
              disabled={isSharing}
              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
            >
-             <Share2 className="h-3.5 w-3.5" /> Share
+             <Share2 className="h-3.5 w-3.5" /> {isSharing ? "Sharing…" : "Share"}
            </button>
-           <button className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm">
+           <button
+             onClick={() => void handleShare()}
+             disabled={isSharing}
+             className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm disabled:opacity-60"
+           >
              Publish
            </button>
            <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold ml-2 cursor-pointer border border-indigo-200">
-             U
+             {(title || "F").charAt(0).toUpperCase()}
            </div>
         </div>
       </header>
@@ -752,13 +762,25 @@ export function EditorClient({
                   </div>
                 ))}
                 {msg.role === "assistant" && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-2 flex items-center gap-4 px-2 text-slate-400"
                   >
-                    <button className="hover:text-slate-600 transition-colors"><Undo className="h-3.5 w-3.5" /></button>
-                    <button className="hover:text-slate-600 transition-colors"><Share2 className="h-3.5 w-3.5" /></button>
+                    <button
+                      onClick={() => { const prev = previousSourceRef.current; if (prev && prev !== source) { previousSourceRef.current = source; setSource(prev); } }}
+                      title="Undo last AI change"
+                      className="hover:text-slate-600 transition-colors"
+                    >
+                      <Undo className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => void handleShare()}
+                      title="Share diagram"
+                      className="hover:text-slate-600 transition-colors"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </button>
                   </motion.div>
                 )}
               </div>
@@ -797,22 +819,19 @@ export function EditorClient({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(e as any);
+                    e.currentTarget.form?.requestSubmit();
                   }
                 }}
               />
               <div className="flex items-center justify-between px-2 pb-1">
                 <div className="flex items-center gap-1">
-                  <button type="button" className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-all">
-                    <div className="h-3.5 w-3.5 border-2 border-slate-300 rounded-[3px]" />
-                    Visual edits
-                  </button>
+                  {/* Visual edits — placeholder, not yet implemented */}
                   <button 
                     type="button" 
                     onClick={() => setIsAgentMode(!isAgentMode)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-sm transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
                   >
-                    <div className={`h-3.5 w-3.5 border-2 rounded-[3px] ${isAgentMode ? 'border-indigo-500' : 'border-slate-300'}`} />
+                    <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
                     Agent Mode
                   </button>
                 </div>
@@ -821,7 +840,7 @@ export function EditorClient({
                   disabled={!input?.trim() || aiLoading}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 transition-all shadow-md"
                 >
-                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2.5} />}
                 </button>
               </div>
             </form>
@@ -911,9 +930,7 @@ export function EditorClient({
               >
                 <Undo className="h-4 w-4" />
               </button>
-              <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors" title="Users">
-                <Users className="h-4 w-4" />
-              </button>
+              {/* Users/presence — not yet implemented */}
             </div>
 
             <div className="relative" data-export-menu-root>
