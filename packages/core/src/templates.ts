@@ -621,11 +621,11 @@ const NON_MERMAID_TEMPLATES: FlowchartTemplate[] = [
         { id: "shape:tp3", type: "text", x: 408, y: 160, props: { text: "Wizard\nFirst diagram", color: "black", size: "s", font: "sans" } },
         { id: "shape:tp4", type: "text", x: 588, y: 160, props: { text: "Share link\nExport PNG", color: "black", size: "s", font: "sans" } },
         { id: "shape:tp5", type: "text", x: 768, y: 160, props: { text: "Upgrade to Pro\nTeam invite", color: "black", size: "s", font: "sans" } },
-        { id: "shape:em1", type: "geo", x: 68, y: 248, props: { geo: "ellipse", w: 48, h: 48, text: "😐", color: "grey", fill: "semi", size: "s", font: "sans" } },
-        { id: "shape:em2", type: "geo", x: 248, y: 248, props: { geo: "ellipse", w: 48, h: 48, text: "🙂", color: "blue", fill: "semi", size: "s", font: "sans" } },
-        { id: "shape:em3", type: "geo", x: 428, y: 248, props: { geo: "ellipse", w: 48, h: 48, text: "😊", color: "green", fill: "semi", size: "s", font: "sans" } },
-        { id: "shape:em4", type: "geo", x: 608, y: 248, props: { geo: "ellipse", w: 48, h: 48, text: "😄", color: "yellow", fill: "semi", size: "s", font: "sans" } },
-        { id: "shape:em5", type: "geo", x: 788, y: 248, props: { geo: "ellipse", w: 48, h: 48, text: "🤩", color: "orange", fill: "semi", size: "s", font: "sans" } }
+        { id: "shape:em1", type: "geo", x: 68, y: 248, props: { geo: "ellipse", w: 58, h: 36, text: "Low", color: "grey", fill: "semi", size: "s", font: "sans" } },
+        { id: "shape:em2", type: "geo", x: 248, y: 248, props: { geo: "ellipse", w: 58, h: 36, text: "Okay", color: "blue", fill: "semi", size: "s", font: "sans" } },
+        { id: "shape:em3", type: "geo", x: 428, y: 248, props: { geo: "ellipse", w: 58, h: 36, text: "Good", color: "green", fill: "semi", size: "s", font: "sans" } },
+        { id: "shape:em4", type: "geo", x: 608, y: 248, props: { geo: "ellipse", w: 58, h: 36, text: "High", color: "yellow", fill: "semi", size: "s", font: "sans" } },
+        { id: "shape:em5", type: "geo", x: 788, y: 248, props: { geo: "ellipse", w: 70, h: 36, text: "Delight", color: "orange", fill: "semi", size: "s", font: "sans" } }
       ]
     }, null, 2),
     mermaid: "",

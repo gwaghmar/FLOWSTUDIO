@@ -1,8 +1,11 @@
 import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import { isConnectionRefusedError, isMockDbEnabled } from "./mode";
 
 type DB = PostgresJsDatabase<typeof schema>;
+type PromiseThen = Parameters<Promise<unknown[]>["then"]>[0];
+type DbCallable = (...args: unknown[]) => unknown;
 
 const g = globalThis as unknown as {
   __flowchartPostgres?: ReturnType<typeof postgres>;
@@ -11,25 +14,34 @@ const g = globalThis as unknown as {
 
 // Simple Mock DB to allow UI prototyping without a real Postgres instance.
 // It supports basic chainable Drizzle patterns used in the app.
+function mockRowsQuery(rows: unknown[] = []) {
+  const query = Promise.resolve(rows);
+  return Object.assign(query, {
+    orderBy: () => Promise.resolve(rows),
+    limit: () => Promise.resolve(rows),
+    returning: () => Promise.resolve(rows),
+  });
+}
+
 const mockDb = {
   select: () => ({
     from: () => ({
       where: () => ({
         orderBy: () => Promise.resolve([]),
         limit: () => Promise.resolve([]),
-        then: (cb: any) => Promise.resolve([]).then(cb),
+        then: (cb: PromiseThen) => Promise.resolve([]).then(cb),
       }),
       orderBy: () => Promise.resolve([]),
       limit: () => Promise.resolve([]),
-      then: (cb: any) => Promise.resolve([]).then(cb),
+      then: (cb: PromiseThen) => Promise.resolve([]).then(cb),
     }),
   }),
   insert: () => ({
-    values: () => Promise.resolve([{ id: "mock-id" }]),
+    values: () => mockRowsQuery([{ id: "mock-id" }]),
   }),
   update: () => ({
     set: () => ({
-      where: () => Promise.resolve(),
+      where: () => mockRowsQuery([{ id: "mock-id" }]),
     }),
   }),
   delete: () => ({
@@ -40,8 +52,11 @@ const mockDb = {
 function createSql() {
   const url = process.env.DATABASE_URL?.trim();
   if (!url) {
-    console.warn("DATABASE_URL is missing. Falling back to MOCK_DB mode.");
-    return null;
+    if (isMockDbEnabled()) {
+      console.warn("DATABASE_URL is missing. Falling back to MOCK_DB mode.");
+      return null;
+    }
+    throw new Error("DATABASE_URL is required unless MOCK_DB is enabled.");
   }
   
   const isLocal = url.includes("localhost") || url.includes("127.0.0.1");
@@ -56,7 +71,7 @@ function createSql() {
 }
 
 function ensureDb(): DB {
-  if (process.env.MOCK_DB === "true") {
+  if (isMockDbEnabled()) {
     return mockDb;
   }
   if (!g.__flowchartDb) {
@@ -82,31 +97,32 @@ export const db = new Proxy({} as DB, {
     const value = Reflect.get(real as object, prop, receiver);
     
     if (typeof value === "function") {
-      return (...args: any[]) => {
+      const fn = value as DbCallable;
+      return (...args: unknown[]) => {
         try {
-          const result = value.apply(real, args);
+          const result = fn.apply(real, args);
           
           // If the result is a query object with a 'then' method, it might fail later.
-          if (result && typeof result.then === "function") {
-            return result.catch((err: any) => {
-              if (err?.code === "ECONNREFUSED" || err?.message?.includes("connection refused")) {
+          if (result instanceof Promise) {
+            return result.catch((err: unknown) => {
+              if (isMockDbEnabled() && isConnectionRefusedError(err)) {
                 console.warn(`DB connection refused for ${String(prop)}. Falling back to mock data.`);
                 // Fallback: call the same method on the mockDb
-                const mockFunc = (mockDb as any)[prop];
+                const mockFunc = (mockDb as unknown as Record<PropertyKey, unknown>)[prop];
                 if (typeof mockFunc === "function") {
-                  return mockFunc.apply(mockDb, args);
+                  return (mockFunc as DbCallable).apply(mockDb, args);
                 }
               }
               throw err;
             });
           }
           return result;
-        } catch (err: any) {
-          if (err?.code === "ECONNREFUSED" || err?.message?.includes("connection refused")) {
+        } catch (err: unknown) {
+          if (isMockDbEnabled() && isConnectionRefusedError(err)) {
             console.warn(`DB operation ${String(prop)} failed immediately. Falling back to mock.`);
-            const mockFunc = (mockDb as any)[prop];
+            const mockFunc = (mockDb as unknown as Record<PropertyKey, unknown>)[prop];
             if (typeof mockFunc === "function") {
-              return mockFunc.apply(mockDb, args);
+              return (mockFunc as DbCallable).apply(mockDb, args);
             }
           }
           throw err;

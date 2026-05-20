@@ -38,14 +38,14 @@ export default async function AppLayout({
         </div>
       ) : null}
       <HeaderWrapper>
-        <header className="shrink-0 border-b border-slate-200 bg-white px-6 py-3">
-          <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <Link href="/app" className="flex items-center gap-2 font-semibold text-slate-900">
+        <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Link href="/app" className="flex items-center gap-2 text-sm font-semibold text-slate-900 sm:text-base">
               <Logo className="h-6 w-6 shadow-sm rounded shadow-orange-500/20" />
               <span>Flowchart Studio</span>
             </Link>
-            <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
-              <Link href="/" className="hover:text-slate-900">
+            <nav className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600 sm:justify-end sm:text-sm">
+              <Link href="/" className="hidden hover:text-slate-900 sm:inline">
                 Home
               </Link>
               <Link href="/app" className="font-medium text-slate-800 hover:text-slate-900">
@@ -60,11 +60,11 @@ export default async function AppLayout({
                 </span>
               ) : null}
               {showAdmin ? (
-                <Link href="/app/admin" className="hover:text-slate-900">
+                <Link href="/app/admin" className="hidden hover:text-slate-900 sm:inline">
                   Admin
                 </Link>
               ) : null}
-              <Link href="/app/billing" className="hover:text-slate-900">
+              <Link href="/app/billing" className="hidden hover:text-slate-900 sm:inline">
                 Billing
               </Link>
               <Link href="/app/settings" className="hover:text-slate-900">

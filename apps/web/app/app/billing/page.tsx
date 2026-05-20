@@ -6,6 +6,7 @@ import { getPlanForEmail } from "@/lib/entitlements";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { BadgeCheck, CheckCircle2 } from "lucide-react";
 
 export default async function BillingPage({
   searchParams,
@@ -28,8 +29,9 @@ export default async function BillingPage({
       <h1 className="text-2xl font-semibold text-slate-900">Billing</h1>
 
       {sp.billing === "success" && (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          🎉 Welcome to Pro! Your plan has been updated.
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <BadgeCheck className="h-4 w-4" />
+          <span>Welcome to Pro. Your plan has been updated.</span>
         </div>
       )}
       {sp.billing === "cancel" && (
@@ -74,11 +76,18 @@ export default async function BillingPage({
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="text-base font-medium text-slate-900">Pro features included</h2>
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
-            <li>✓ Server-side PNG, SVG &amp; PDF export</li>
-            <li>✓ Batch ZIP with social presets</li>
-            <li>✓ Unlimited AI generations</li>
-            <li>✓ Higher API rate limits</li>
-            <li>✓ No watermarks</li>
+            {[
+              "Server-side PNG, SVG & PDF export",
+              "Batch ZIP with social presets",
+              "Unlimited AI generations",
+              "Higher API rate limits",
+              "No watermarks",
+            ].map((feature) => (
+              <li key={feature} className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>{feature}</span>
+              </li>
+            ))}
           </ul>
         </div>
       )}

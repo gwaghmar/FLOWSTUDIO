@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { getMockSession, isMockAuthEnabled } from "@/lib/auth-mode";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -28,16 +29,8 @@ export type AuthSession = {
  * Works in Server Components, Server Actions, and Route Handlers.
  */
 export async function auth(): Promise<AuthSession> {
-  // Mock user for development
-  return {
-    user: {
-      id: "dev-user-id",
-      email: "dev@example.com",
-      name: "Developer",
-      image: null,
-    },
-  };
-  /*
+  if (isMockAuthEnabled()) return getMockSession();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,7 +52,6 @@ export async function auth(): Promise<AuthSession> {
         null,
     },
   };
-  */
 }
 
 /**
@@ -67,6 +59,10 @@ export async function auth(): Promise<AuthSession> {
  * Use in Server Actions.
  */
 export async function signOut() {
+  if (isMockAuthEnabled()) {
+    redirect("/");
+  }
+
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
