@@ -11,6 +11,7 @@ import {
   ArrowUp,
   Bot,
   Undo,
+  Redo,
   Share2,
   Settings2,
   Play,
@@ -110,6 +111,7 @@ const FONT_OPTIONS: FontOption[] = [
 ];
 
 const UI_META_PREFIX = "%% ui:";
+const UNDO_LIMIT = 50;
 
 function parseUiFromSource(raw: string): { source: string; ui: UiState } {
   const lines = raw.split("\n");
@@ -251,17 +253,15 @@ export function EditorClient({
       ]);
     },
     onFinish: (message) => {
-      // If it's a normal message (not just tool calls), we try to extract code from it
       if (message.content.trim()) {
-         const cleaned = cleanModelOutput(message.content);
-         if (cleaned && cleaned.trim() !== source.trim()) {
-            previousSourceRef.current = source;
-            setSource(cleaned);
-         }
+        const cleaned = cleanModelOutput(message.content);
+        if (cleaned && cleaned.trim() !== source.trim()) {
+          recordUndo(source);
+          setSource(cleaned);
+        }
       }
-      
       setAgentTasks((prev) => prev.map(t => t.id === "generate" ? { ...t, status: "completed" } : t));
-      showToast("Diagram updated · ↩ to undo");
+      showToast("Diagram updated · ⌘Z to undo");
     },
   });
 
@@ -270,44 +270,59 @@ export function EditorClient({
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.toolInvocations) return;
 
+    // Snapshot once before any tool mutates source
+    const snapshotBeforeTools = sourceRef.current;
+    let mutated = false;
+
     lastMessage.toolInvocations.forEach(tool => {
       if (tool.state !== 'result') return;
       const result = tool.result;
       if (!result || !result.success) return;
 
       if (tool.toolName === 'update_diagram' && result.sourceCode) {
-         setSource(result.sourceCode);
+        mutated = true;
+        setSource(result.sourceCode);
       }
 
       if (tool.toolName === 'apply_patch' && result.find && result.replace) {
-         setSource(prev => {
-           if (prev.includes(result.find)) {
-             return prev.replace(result.find, result.replace);
-           }
-           return prev;
-         });
+        setSource(prev => {
+          if (prev.includes(result.find)) {
+            mutated = true;
+            return prev.replace(result.find, result.replace);
+          }
+          return prev;
+        });
       }
 
       if (tool.toolName === 'update_node' && diagramType === 'reactflow') {
-         try {
-           const parsed = JSON.parse(source);
-           const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
-           const updatedNodes = nodes.map((n) => {
-             if (n.id === result.id) {
-               return {
-                 ...n,
-                 data: result.data ? { ...n.data, ...result.data } : n.data,
-                 style: result.style ? { ...n.style, ...result.style } : n.style
-               };
-             }
-             return n;
-           });
-           setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
-         } catch (e) {
-           console.error("Failed to update node surgically", e);
-         }
+        try {
+          const parsed = JSON.parse(sourceRef.current);
+          const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+          const updatedNodes = nodes.map((n) => {
+            if (n.id === result.id) {
+              return {
+                ...n,
+                data: result.data ? { ...n.data, ...result.data } : n.data,
+                style: result.style ? { ...n.style, ...result.style } : n.style
+              };
+            }
+            return n;
+          });
+          mutated = true;
+          setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
+        } catch (e) {
+          console.error("Failed to update node surgically", e);
+        }
       }
     });
+
+    if (mutated) {
+      setUndoStack(prev => {
+        if (prev[prev.length - 1] === snapshotBeforeTools) return prev;
+        return [...prev.slice(-(UNDO_LIMIT - 1)), snapshotBeforeTools];
+      });
+      setRedoStack([]);
+    }
   }, [messages, diagramType]);
 
   // Handle incoming data stream (replacing experimental_onData)
@@ -345,6 +360,52 @@ export function EditorClient({
     }
   }, [messages, aiLoading]);
 
+  // Keep sourceRef current so tool effects can read latest source without stale closures.
+  useEffect(() => { sourceRef.current = source; }, [source]);
+
+  const recordUndo = useCallback((snapshot: string) => {
+    setUndoStack(prev => {
+      if (prev[prev.length - 1] === snapshot) return prev;
+      return [...prev.slice(-(UNDO_LIMIT - 1)), snapshot];
+    });
+    setRedoStack([]);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (!prev.length) return prev;
+      const snapshot = prev[prev.length - 1];
+      setRedoStack(r => [sourceRef.current, ...r].slice(0, UNDO_LIMIT));
+      setSource(snapshot);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack(prev => {
+      if (!prev.length) return prev;
+      const snapshot = prev[0];
+      setUndoStack(u => [...u, sourceRef.current].slice(-UNDO_LIMIT));
+      setSource(snapshot);
+      return prev.slice(1);
+    });
+  }, []);
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z or Ctrl+Y = redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo(); else handleUndo();
+      }
+      if (e.key === "y") { e.preventDefault(); handleRedo(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleUndo, handleRedo]);
+
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -362,7 +423,9 @@ export function EditorClient({
   const mermaidViewportRef = useRef<HTMLDivElement>(null);
   const mermaidPanStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const chatListRef = useRef<HTMLDivElement>(null);
-  const previousSourceRef = useRef(source);
+  const sourceRef = useRef(source);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>([]);
   const sourceAutoExpandedRef = useRef(false);
   const sourceSuppressAutoExpandRef = useRef(false);
   const lastSavedSnapshot = useRef(
@@ -560,7 +623,7 @@ export function EditorClient({
 
   const handleSwitchType = useCallback((newType: DiagramType) => {
     if (newType === diagramType) { setShowTypePanel(false); return; }
-    previousSourceRef.current = source;
+    recordUndo(source);
     setDiagramType(newType);
     if (newType === "mermaid") {
       setMermaidSubtype("flowchart");
@@ -573,7 +636,7 @@ export function EditorClient({
     sourceAutoExpandedRef.current = false;
     setParseError(null);
     setAiError(null);
-  }, [diagramType, source]);
+  }, [diagramType, source, recordUndo]);
 
   const handleSwitchMermaidSubtype = useCallback((subtype: MermaidSubtype) => {
     if (subtype === mermaidSubtype) return;
@@ -768,9 +831,10 @@ export function EditorClient({
                     className="mt-2 flex items-center gap-4 px-2 text-slate-400"
                   >
                     <button
-                      onClick={() => { const prev = previousSourceRef.current; if (prev && prev !== source) { previousSourceRef.current = source; setSource(prev); } }}
-                      title="Undo last AI change"
-                      className="hover:text-slate-600 transition-colors"
+                      onClick={handleUndo}
+                      disabled={undoStack.length === 0}
+                      title="Undo (⌘Z)"
+                      className="hover:text-slate-600 transition-colors disabled:opacity-30"
                     >
                       <Undo className="h-3.5 w-3.5" />
                     </button>
@@ -924,13 +988,22 @@ export function EditorClient({
             <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
               <button
                 type="button"
-                onClick={() => { const prev = previousSourceRef.current; if (prev === source) return; previousSourceRef.current = source; setSource(prev); }}
-                title="Undo last AI change"
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                onClick={handleUndo}
+                disabled={undoStack.length === 0}
+                title="Undo (⌘Z)"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Undo className="h-4 w-4" />
               </button>
-              {/* Users/presence — not yet implemented */}
+              <button
+                type="button"
+                onClick={handleRedo}
+                disabled={redoStack.length === 0}
+                title="Redo (⌘⇧Z)"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Redo className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="relative" data-export-menu-root>
