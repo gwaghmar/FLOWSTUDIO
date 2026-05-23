@@ -42,7 +42,7 @@ Open http://localhost:3000. In dev, sign in with **Demo email** on `/login`.
 
 ## Status
 
-Milestones 1.0 and 1.1 are **complete**.
+Milestones 1.0, 1.1, and 1.2 are **complete**.
 
 ### Milestone 1.0 — AI Diagram Quality & Precision ✅
 
@@ -55,6 +55,11 @@ Milestones 1.0 and 1.1 are **complete**.
 - **Surgical AI Edits** — follow-up prompts patch the existing diagram instead of regenerating; "Regenerate" toggle forces a full rebuild
 - **Persistent Version History** — every save creates an auto-labeled revision; click the Clock icon in the toolbar to browse history and restore any prior version (history is preserved — restores stack on top)
 - **Public Share with OG Previews** — `/s/[token]` renders a read-only diagram with a branded 1200×630 OG image and proper 404 for expired/missing links
+
+### Milestone 1.2 — Brand & Distribution ✅
+
+- **Brand Kit** — set your workspace colors in Settings (primary, secondary, accent, background); the editor's Palette button applies them to any diagram in one click
+- **Iframe Embeds** — `/embed/[token]` serves a chromeless viewer; the editor's "Embed" button copies a paste-ready `<iframe>` snippet
 
 ---
 

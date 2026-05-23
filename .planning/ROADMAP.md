@@ -72,3 +72,12 @@ Detailed plan: `.planning/phases/MILESTONE-1.1.md`
 - [x] **Phase 4: Surgical AI Edits** â€” follow-up prompts patch the existing diagram; "Regenerate" toggle for full rebuild
 - [x] **Phase 5: Persistent Version History** â€” auto-labeled revisions surfaced as a History dropdown with click-to-restore
 - [x] **Phase 6: Public Share with OG Previews** â€” `/s/[token]` HTML viewer + branded 1200Ã—630 og:image + proper 404
+
+---
+
+# Milestone 1.2 â€” Brand & Distribution
+
+Detailed plan: `.planning/phases/MILESTONE-1.2.md`
+
+- [x] **Phase 7: Brand Kit** â€” workspace-scoped CRUD + settings UI; one-click apply in the editor writes the palette into the active diagram
+- [x] **Phase 8: Iframe Embeds** â€” chromeless `/embed/[token]` viewer + "Embed" button copies a paste-ready iframe snippet

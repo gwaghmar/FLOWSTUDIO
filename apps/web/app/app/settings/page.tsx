@@ -2,7 +2,9 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { createApiKey, deleteApiKey, listApiKeys, setPlan } from "@/app/actions/api-keys";
 import { getAiSettingsForUser } from "@/app/actions/ai-settings";
+import { getBrandKit } from "@/app/actions/brand-kit";
 import { AiSettingsPanel } from "@/components/settings/ai-settings-panel";
+import { BrandKitPanel } from "@/components/settings/brand-kit-panel";
 import type { AiProvider } from "@/lib/ai-providers";
 
 export default async function SettingsPage({
@@ -19,6 +21,7 @@ export default async function SettingsPage({
   const emailStr: string = email;
   const keys = await listApiKeys();
   const aiSettings = await getAiSettingsForUser();
+  const brandKit = await getBrandKit();
 
   const currentProvider = (aiSettings?.provider ?? "openai") as AiProvider;
 
@@ -86,6 +89,9 @@ export default async function SettingsPage({
             </a>
           </div>
         </section>
+
+        {/* Brand kit */}
+        <BrandKitPanel initialKit={brandKit} />
 
         {/* REST API Keys */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6">

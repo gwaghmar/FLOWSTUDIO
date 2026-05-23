@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: AI Iteration & Sharing
+milestone: v1.2
+milestone_name: Brand & Distribution
 status: All phases complete
-last_updated: "2026-05-23T01:00:00.000Z"
+last_updated: "2026-05-23T02:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
+  total_phases: 8
+  completed_phases: 8
   percent: 100
 ---
 
@@ -16,6 +16,7 @@ progress:
 
 **Milestone 1.0** — AI Diagram Quality & Precision — DONE
 **Milestone 1.1** — AI Iteration & Sharing — DONE
+**Milestone 1.2** — Brand & Distribution — DONE
 
 ## Phase Status
 
@@ -27,6 +28,8 @@ progress:
 | 4 | Surgical AI Edits | 1.1 | ✅ Complete |
 | 5 | Persistent Version History | 1.1 | ✅ Complete |
 | 6 | Public Share with OG Previews | 1.1 | ✅ Complete |
+| 7 | Brand Kit | 1.2 | ✅ Complete |
+| 8 | Iframe Embeds | 1.2 | ✅ Complete |
 
 ## Decisions
 

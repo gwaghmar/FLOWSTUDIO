@@ -21,6 +21,8 @@ import {
   ChevronDown,
   MessageSquare,
   Clock,
+  Palette,
+  Code2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -41,6 +43,7 @@ import {
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
+import { getBrandKit } from "@/app/actions/brand-kit";
 import { createShareLink } from "@/app/actions/share";
 import dynamic from "next/dynamic";
 import type { EChartsRendererHandle } from "@/components/diagrams/echarts-renderer";
@@ -242,6 +245,7 @@ export function EditorClient({
   const [revisions, setRevisions] = useState<{ id: string; label: string | null; createdAt: Date }[]>([]);
   const [revisionsDirty, setRevisionsDirty] = useState(0);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [applyingBrand, setApplyingBrand] = useState(false);
   const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
     api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
     body: {
@@ -499,6 +503,27 @@ export function EditorClient({
 
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
 
+  const handleApplyBrandKit = useCallback(async () => {
+    setApplyingBrand(true);
+    try {
+      const kit = await getBrandKit();
+      if (!kit || !kit.palette) {
+        showToast("No brand kit yet — set one in Settings");
+        return;
+      }
+      recordUndo(source);
+      setCustomAccent(kit.palette.primary);
+      if (kit.palette.background) setCustomBackground(kit.palette.background);
+      setPaletteId("brand");
+      showToast(`Applied "${kit.name}" · ⌘Z to undo`);
+    } catch (e) {
+      console.error("[brand-kit]", e);
+      showToast("Could not apply brand kit");
+    } finally {
+      setApplyingBrand(false);
+    }
+  }, [source, recordUndo, showToast]);
+
   const cleanModelOutput = (text: string) => {
     // Strip markdown code blocks
     let cleaned = text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "");
@@ -680,15 +705,35 @@ export function EditorClient({
     setIsSharing(true);
     try {
       let id = currentProjectId;
-      if (!id) { 
+      if (!id) {
         id = await createProject(title || "Untitled", sourceWithUi, themeId, diagramType);
-        setCurrentProjectId(id); 
-      } else { 
-        await saveProject(id, { source: sourceWithUi, themeId, title, diagramType }); 
+        setCurrentProjectId(id);
+      } else {
+        await saveProject(id, { source: sourceWithUi, themeId, title, diagramType });
       }
       const token = await createShareLink(id);
       await navigator.clipboard.writeText(`${window.location.origin}/s/${encodeURIComponent(token)}`);
       showToast("Share link copied!");
+    } finally {
+      setIsSharing(false);
+    }
+  }, [currentProjectId, sourceWithUi, themeId, title, diagramType, showToast]);
+
+  const handleCopyEmbed = useCallback(async () => {
+    setIsSharing(true);
+    try {
+      let id = currentProjectId;
+      if (!id) {
+        id = await createProject(title || "Untitled", sourceWithUi, themeId, diagramType);
+        setCurrentProjectId(id);
+      } else {
+        await saveProject(id, { source: sourceWithUi, themeId, title, diagramType });
+      }
+      const token = await createShareLink(id);
+      const url = `${window.location.origin}/embed/${encodeURIComponent(token)}`;
+      const snippet = `<iframe src="${url}" width="800" height="500" frameborder="0" style="border:1px solid #e2e8f0;border-radius:8px" allowfullscreen></iframe>`;
+      await navigator.clipboard.writeText(snippet);
+      showToast("Embed code copied!");
     } finally {
       setIsSharing(false);
     }
@@ -808,6 +853,14 @@ export function EditorClient({
              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
            >
              <Share2 className="h-3.5 w-3.5" /> {isSharing ? "Sharing…" : "Share"}
+           </button>
+           <button
+             onClick={() => void handleCopyEmbed()}
+             disabled={isSharing}
+             title="Copy <iframe> embed code"
+             className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
+           >
+             <Code2 className="h-3.5 w-3.5" /> Embed
            </button>
            <button
              onClick={() => void handleShare()}
@@ -1099,6 +1152,15 @@ export function EditorClient({
                 className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Redo className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyBrandKit}
+                disabled={applyingBrand}
+                title="Apply your brand kit colors (manage in Settings)"
+                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Palette className="h-4 w-4" />
               </button>
               <div className="relative" data-history-menu-root>
                 <button
