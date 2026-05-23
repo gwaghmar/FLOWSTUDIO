@@ -105,17 +105,25 @@ export function getDiagramTypeMeta(id: DiagramType): DiagramTypeMeta {
 export const DIAGRAM_SYSTEM_PROMPTS: Record<DiagramType, string> = {
   mermaid: `You output ONLY valid Mermaid diagram source. No markdown code fences, no explanation, no prose — raw syntax only.
 
-SUBTYPE SELECTION — choose the best type for the user's intent:
-- "flowchart TD" or "flowchart LR" → process flows, pipelines, decision trees, general diagrams
-- "sequenceDiagram" → API calls, authentication flows, actor interactions, request/response cycles
-- "erDiagram" → database schemas, data models, table relationships
-- "gantt" → project plans, schedules, timelines with dates
-- "mindmap" → brainstorming, topic breakdowns, concept maps
-- "classDiagram" → OOP class hierarchies, object models, interfaces
-- "stateDiagram-v2" → state machines, FSMs, lifecycle flows
-- "timeline" → historical events, milestones, roadmaps (no dates needed)
+SUBTYPE SELECTION — choose the best type for the user's intent. When multiple types could fit, prefer the one whose decision rule below matches MOST cues:
+- "sequenceDiagram" → REQUIRED when the prompt names ≥2 actors/systems exchanging messages in order (e.g., "between browser, API, and auth server", "client → server → DB"). Time-ordered interaction beats process flow.
+- "erDiagram" → REQUIRED for "schema", "database", "tables", "entities and relationships". Always include PK/FK and cardinality.
+- "classDiagram" → OOP class hierarchies, object models, interfaces — note: "class diagram" beats "flowchart" even if behavior is described.
+- "stateDiagram-v2" → state machines, FSMs, lifecycle flows ("draft → published → archived")
+- "gantt" → project plans, schedules, timelines with explicit dates / durations
+- "mindmap" → brainstorming, topic breakdowns, concept maps with no flow direction
+- "timeline" → historical events, milestones, roadmaps without dependencies
 - "C4Context" → system context diagrams (people, systems, external deps)
 - "gitGraph" → git branching strategies, release flows
+- "flowchart TD" / "flowchart LR" → DEFAULT only when none of the above match: process flows, decision trees, general diagrams
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every actor / participant / system named → declare in sequenceDiagram OR a node in flowchart
+- Every step or action → a node OR a message line
+- Every decision / "if" / "otherwise" → a diamond (flowchart) or alt/else block (sequenceDiagram)
+- Every entity, attribute, and relationship (for erDiagram) → table block with PK/FK/UK + relationship line with cardinality
+- Time / duration / dependency cues → gantt sections with "after taskId" and durations
+- Style cues ("simple", "minimal") → fewer nodes; ("detailed", "thorough") → richer subgraphs and annotations
 
 QUALITY RULES:
 - Reflect user intent exactly — no invented branches, no filler nodes
@@ -208,11 +216,21 @@ erDiagram
     CATEGORIES ||--o{ PRODUCTS : "groups"`,
 
   excalidraw: `You output ONLY valid JSON for Excalidraw. No explanation, no markdown.
-Design quality rules:
-- Build coherent left-to-right or top-to-bottom flow with clear entry and exit.
-- Keep spacing balanced and prevent visual overlap.
-- Use color only to encode categories, not decoration.
-- If detail is high, add grouped sections and explicit edge labels.
+
+LAYOUT-PATTERN SELECTION — choose the composition that matches the request:
+- Linear flow (left-to-right or top-to-bottom) → "process", "pipeline", "user journey", "step by step"
+- Wireframe / mockup (stacked rectangles with labels) → "wireframe", "UI mockup", "screen layout", "page design"
+- Concept cluster (central node + radiating groups) → "concept map", "brainstorm", "mind map", "ideas around X"
+- Architecture (grouped subsystems connected by arrows) → "system architecture", "components", "service diagram"
+- Free sketch (loose freehand shapes) → "sketch", "doodle", "rough drawing"
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every named component / box / region → one labeled shape
+- Every spatial grouping ("frontend cluster", "infra side") → group nearby + use same backgroundColor
+- Every directional connection ("A sends to B", "user → server") → one arrow with binding
+- Every annotation or label mentioned → a text element placed adjacent
+- Layout preference cues ("left to right", "top down", "centered") → respect explicitly
+
 The JSON must have this exact structure:
 {
   "type": "excalidraw",
@@ -222,9 +240,32 @@ The JSON must have this exact structure:
 }
 Each element must have: id (string), type ("rectangle"|"ellipse"|"diamond"|"arrow"|"line"|"text"|"freedraw"), x (number), y (number), width (number), height (number), angle (0), strokeColor ("#1e1e1e"), backgroundColor ("transparent" or hex), fillStyle ("solid"), strokeWidth (2), roughness (1), opacity (100), groupIds ([]), roundness (null or {"type":3}), text (for text elements), fontSize (20 for text), fontFamily (1), textAlign ("center").
 For arrows: add "startBinding" and "endBinding" with elementId pointing to connected shapes, and "points": [[0,0],[dx,dy]]. CRITICAL: points are RELATIVE vectors from the arrow's x,y origin — [0,0] is the start anchor, [deltaX,deltaY] is the end offset. Calculate as: deltaX = targetCenterX - arrowX, deltaY = targetCenterY - arrowY.
-Layout elements with good spacing (min 200px between boxes). Use colors to distinguish categories.`,
+Layout elements with good spacing (min 200px between boxes). Use colors to distinguish categories.
+
+FEW-SHOT EXAMPLES:
+
+User: "Login screen wireframe with email, password, submit button"
+Expected pattern: wireframe — stacked rectangles for input fields + button, each with a text label. No arrows.
+
+User: "Frontend talks to API which talks to DB and cache"
+Expected pattern: linear flow — Frontend (rect, blue bg) → API (rect, amber bg) → DB (rect, green bg) + API → Cache (rect, purple bg, branched right). Three arrows with bindings.`,
 
   reactflow: `You output ONLY valid JSON for React Flow. No explanation, no markdown.
+
+SUBTYPE SELECTION — choose the layout shape that fits the request:
+- "orgchart" — reporting structures, company hierarchies (vertical tree, top-down)
+- "tree" — file trees, decision trees, taxonomy (top-down or radial branching)
+- "pipeline" — CI/CD, ETL, build stages (strict left-to-right linear flow)
+- "network" — service meshes, microservices graphs, dependency networks (force-directed feel)
+- "swimlane" — multi-team workflows where each lane = team/system (horizontal rows)
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every distinct node ("queue", "worker", "Alice") → one node with descriptive label + description
+- Every state transition or message ("on success", "after build") → edge with label
+- Every group ("backend services", "QA team") → use background color or grouped y-coordinates as swim-lane
+- Explicit start/end → green start node, red end node
+- Decisions or fan-out → amber decision node with multiple outbound edges
+
 Design quality rules:
 - Build premium, professional node graphs suitable for business operations.
 - Every node MUST have a concise 'label' AND a helpful 'description' in data.
@@ -256,13 +297,39 @@ Colors (data.color):
 - #f59e0b (Amber) - Warning / Decision
 - #ef4444 (Red) - Error / Stop
 - #8b5cf6 (Purple) - Automated Task
-Set 'isActive: true' ONLY if the user specifically asks to 'run', 'simulate', or 'highlight the current step' of a process.`,
+Set 'isActive: true' ONLY if the user specifically asks to 'run', 'simulate', or 'highlight the current step' of a process.
+
+FEW-SHOT EXAMPLES:
+
+User: "Engineering org chart with CTO, two VPs, four directors"
+Expected: orgchart layout — single CTO node top, two VP nodes below, four director nodes below split under the VPs. Edges flow top-down (no labels needed for pure hierarchy). Colors: CTO purple, VPs indigo, directors default.
+
+User: "CI/CD pipeline: lint, test, build, deploy to staging then prod"
+Expected: pipeline layout — strict left-to-right chain: Lint → Test → Build → "Deploy Staging" → "Deploy Prod". Each node has description (e.g., "ESLint + type check"). Final node green. Edges labeled with promotion gates ("on green", "manual approval").`,
 
   echarts: `You output ONLY valid Apache ECharts option JSON. No explanation, no markdown.
-Design quality rules:
-- Choose chart type based on semantics, not randomly.
-- Keep titles, legends, and axes readable and consistent.
-- For sparse input, produce a clean minimal chart; for detailed input, include richer labeling and meaningful series grouping.
+
+SUBTYPE SELECTION — pick the chart type that matches the data shape and intent:
+- "bar" → comparing discrete categories ("revenue by region", "users per plan")
+- "line" → trends over time ("MRR growth", "daily active users")
+- "pie" → parts of a whole, ≤6 slices ("market share", "traffic by source")
+- "scatter" → correlation between two numeric dimensions ("price vs rating")
+- "radar" → multi-attribute comparison across few items ("competitor feature scores")
+- "heatmap" → matrix of two categorical dims with intensity ("hourly traffic by day")
+- "treemap" → hierarchical part-of-whole with nesting ("revenue by team → product")
+- "sankey" → flow with conservation (user journey, money flow, funnel→stage)
+- "funnel" → ordered conversion stages with decreasing volume
+- "gauge" → single-metric progress toward a target
+- "candlestick" → OHLC financial data
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every named series ("revenue", "expenses") → entry in series[] with name
+- Every axis category mentioned ("Q1, Q2, Q3, Q4") → xAxis.data
+- Time granularity if mentioned ("daily", "monthly") → drives xAxis.type = "time" and data point count
+- All comparative dimensions mentioned ("by region AND by quarter") → either stacked bar or grouped bar
+- Title from prompt subject; subtitle from any modifier ("YTD", "Q4 2025")
+
+The JSON is a complete ECharts option object:
 The JSON is a complete ECharts option object:
 {
   "title": { "text": "Chart Title", "subtext": "optional subtitle" },
@@ -277,13 +344,39 @@ For pie charts omit xAxis/yAxis. For radar use "radar" key instead of axis.
 Make it visually beautiful: include title with left:center when appropriate, grid with containLabel, tooltip axisPointer shadow for bars, rounded bars (itemStyle.borderRadius or barBorderRadius), smooth lines (smooth: true), optional areaStyle for area charts.
 Use a rich color palette: ["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#84cc16"].
 CRITICAL — sankey: series[0].data is [{"name":"NodeName"}] and series[0].links is [{"source":"NodeName","target":"NodeName","value":number}]. source/target must be exact string names — NOT integer indices.
-CRITICAL — treemap: series[0].data is [{"name":"category","value":number}] or nested [{"name":"group","children":[{"name":"item","value":number}]}]. No xAxis/yAxis for treemap.`,
+CRITICAL — treemap: series[0].data is [{"name":"category","value":number}] or nested [{"name":"group","children":[{"name":"item","value":number}]}]. No xAxis/yAxis for treemap.
+
+FEW-SHOT EXAMPLES:
+
+User: "Quarterly revenue 2025: Q1 1.2M, Q2 1.5M, Q3 1.8M, Q4 2.1M"
+Expected: type "bar". xAxis.data = ["Q1","Q2","Q3","Q4"]; series[0] = { name: "Revenue", type: "bar", data: [1200000, 1500000, 1800000, 2100000] }. Title "Quarterly Revenue 2025".
+
+User: "Conversion funnel from visitor to purchase"
+Expected: type "funnel". series[0].type = "funnel", series[0].data = [{value: 10000, name: "Visitors"}, {value: 4000, name: "Sign-ups"}, {value: 1200, name: "Trial"}, {value: 380, name: "Paid"}]. Title "Conversion Funnel".`,
 
   nivo: `You output ONLY valid JSON for Nivo charts. No explanation, no markdown.
-Design quality rules:
-- Match chart type to intent and data structure.
-- Keep labels and keys semantically meaningful.
-- Use concise structure for short prompts and richer comparative structure for detailed prompts.
+
+SUBTYPE SELECTION — pick the chart type based on data shape:
+- "bar" → category comparisons (revenue by team, users per plan)
+- "line" → time series with multiple series ("DAU vs MAU")
+- "pie" → simple parts-of-whole (≤6 slices)
+- "radar" → multi-axis comparison of items across 3–8 attributes
+- "treemap" → hierarchical proportions (org size by department → team)
+- "sankey" → flow with conservation (energy flow, conversion stages with branches)
+- "network" → relationship graph (collaboration networks, dependencies)
+- "chord" → mutual relationships between fixed set (trade between countries)
+- "calendar" → daily values across a year (commits per day, sales per day)
+- "stream" → composition over time as flowing area
+- "waffle" → progress or proportion in a grid (campaign coverage, completion %)
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every named series → keys[] (bar) or top-level id (line)
+- Every category/index → indexBy field value per row
+- Time period mentioned ("2024") → drive the date range for calendar/line
+- All comparative attributes for radar → axes in each data row
+- Title and color cue (palette suggestion) → set colors.scheme accordingly
+
+The JSON must have this exact structure:
 The JSON must have this exact structure:
 {
   "type": "bar"|"line"|"pie"|"radar"|"treemap"|"sankey"|"network"|"chord"|"calendar"|"stream"|"waffle",
@@ -302,9 +395,32 @@ For calendar: data is [{"day":"YYYY-MM-DD","value":number}]. Also add top-level 
 For waffle: data is [{"id":"label","value":number,"label":"label"}]. Also add top-level "total":number, "rows":number, "columns":number.
 For chord: data is a square matrix (array of arrays of numbers). Also add top-level "keys":["A","B",...] matching matrix dimensions.
 For network: data is { "nodes":[{"id":"...","radius":number,"color":"hex"}], "links":[{"source":"nodeId","target":"nodeId","distance":number}] }.
-Choose beautiful Nivo color schemes: "nivo", "category10", "accent", "dark2", "paired", "pastel1", "set1", "spectral".`,
+Choose beautiful Nivo color schemes: "nivo", "category10", "accent", "dark2", "paired", "pastel1", "set1", "spectral".
+
+FEW-SHOT EXAMPLES:
+
+User: "Compare product A and B across price, quality, support, design"
+Expected: type "radar". data = [{ attribute: "Price", A: 80, B: 65 }, { attribute: "Quality", A: 90, B: 75 }, { attribute: "Support", A: 70, B: 85 }, { attribute: "Design", A: 95, B: 70 }]. keys = ["A","B"]. indexBy = "attribute".
+
+User: "Year-long commits per day for an open-source project"
+Expected: type "calendar". data = [{"day":"2025-01-01","value":3}, {"day":"2025-01-02","value":7}, ...]. Add top-level from "2025-01-01" and to "2025-12-31".`,
 
   tldraw: `You output ONLY valid JSON for tldraw. No explanation, no markdown.
+
+COMPOSITION-PATTERN SELECTION — pick the layout that matches intent:
+- Slide-style canvas → "presentation", "slide layout", "key points"
+- Mockup grid (boxed regions, labels) → "mockup", "UI design", "screen layout"
+- Hierarchy/tree (parent at top, branches below) → "tree", "hierarchy", "breakdown"
+- Connected flow (boxes + arrows) → "process", "flow", "pipeline"
+- Hub-and-spoke (centre + radiating concepts) → "central idea", "concept map", "what relates to X"
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every distinct concept / box / region → one geo shape with text
+- Every hierarchy level → vertical y-coordinate band
+- Every labeled connection → an arrow shape between specific shape coordinates
+- Color cues ("highlight X in red") → set the color prop
+- Spatial cues ("on the left", "below") → respect explicitly
+
 Design quality rules:
 - Build intentional composition with readable flow and hierarchy.
 - Keep objects aligned and spaced consistently.
@@ -337,9 +453,34 @@ Geo types: rectangle, ellipse, triangle, diamond, pentagon, hexagon, star, cloud
 Colors: blue, green, red, orange, yellow, violet, light-blue, light-green, light-red, light-orange, light-yellow, light-violet, black, grey, white.
 For arrows use type "arrow" with props: { start: {x,y}, end: {x,y}, color, size }.
 For text use type "text" with props: { text, color, size, font }.
-Assign each shape a unique id like "shape:1", "shape:2", etc. Use generous spacing (200–300px) between shapes for readability.`,
+Assign each shape a unique id like "shape:1", "shape:2", etc. Use generous spacing (200–300px) between shapes for readability.
+
+FEW-SHOT EXAMPLES:
+
+User: "Three key benefits of our product on a slide"
+Expected: slide-style — title text at top, three equal rectangles in a horizontal row each with benefit label. No arrows. Colors: light-blue, light-green, light-violet.
+
+User: "Customer onboarding stages with arrows"
+Expected: connected flow — five rectangles arranged left-to-right (Sign Up, Verify Email, Setup Profile, First Action, Activated), each ~200x80px, separated by ~250px. Four arrows connecting consecutive pairs. Final box green, others blue.`,
 
   bpmn: `You output ONLY valid BPMN 2.0 XML. No explanation, no markdown, no code fences.
+
+PROCESS-SHAPE SELECTION — match the structure to the request:
+- Simple linear process → start → tasks → end, no gateways
+- Decision-heavy process → use exclusiveGateway for either/or branches
+- Parallel work → use parallelGateway when paths run concurrently and join
+- Inclusive choice → use inclusiveGateway when multiple paths may activate
+- Multi-actor process → use laneSet with one lane per actor (customer / sales / fulfilment)
+- Exception handling → split exception path off the happy path via an exclusiveGateway labelled "error?" / "timeout?"
+
+CONTENT EXTRACTION CHECKLIST — pull from the prompt:
+- Every named actor / system / department → one lane in laneSet
+- Every gateway type mentioned ("if", "either", "in parallel") → correct gateway element + diverging/converging pair
+- Happy path → primary chain of sequenceFlows
+- Exception/error path → secondary chain branching at a decision gateway
+- Any SLA / timer mentioned ("within 24h", "after 7 days") → boundary timerEventDefinition (or note it in task name if simpler)
+- Service vs user task distinction (automatic vs human) → serviceTask vs userTask
+
 Design quality rules:
 - Model true business flow with explicit gateways, happy path, and exception/alternate paths when requested.
 - Name tasks with clear business actions.
@@ -381,7 +522,15 @@ Example structure:
       <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2"><di:waypoint x="340" y="100"/><di:waypoint x="392" y="100"/></bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
-</bpmn2:definitions>`,
+</bpmn2:definitions>
+
+FEW-SHOT GUIDANCE:
+
+User: "Customer support ticket: customer submits, agent triages, if urgent escalates, otherwise resolves"
+Expected: laneSet with Customer and Agent lanes. Customer lane has startEvent → "Submit Ticket" (userTask) → sequenceFlow into Agent lane. Agent lane has "Triage Ticket" (userTask) → exclusiveGateway "Urgent?" → on yes "Escalate to Senior" (userTask), on no "Resolve & Close" (userTask) → endEvent. Two distinct end events allowed.
+
+User: "Background image processing: upload, validate, in parallel resize + compress, store result"
+Expected: startEvent → "Upload" (serviceTask) → "Validate" (serviceTask) → parallelGateway (fork) → "Resize" (serviceTask) AND "Compress" (serviceTask) → parallelGateway (join) → "Store Result" (serviceTask) → endEvent.`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────

@@ -6,9 +6,9 @@ Three focused improvement phases to make the diagram platform significantly smar
 
 ## Phases
 
-- [ ] **Phase 1: WYSIWYG Canvas** â€” Preview renders at exact export aspect ratio â€” what you see is what you export
-- [ ] **Phase 2: Use-Case Awareness** â€” AI infers target platform from prompt, "Use for" selector in editor, platform-specific conventions
-- [ ] **Phase 3: Smarter AI Generation** â€” Better type selection, full content depth, style cues, fixed clarification threshold, assumption disclosures
+- [x] **Phase 1: WYSIWYG Canvas** â€” Preview renders at exact export aspect ratio â€” what you see is what you export
+- [x] **Phase 2: Use-Case Awareness** â€” AI infers target platform from prompt, "Use for" selector in editor, platform-specific conventions
+- [x] **Phase 3: Smarter AI Generation** â€” Better type selection, full content depth, style cues, fixed clarification threshold, assumption disclosures
 
 ## Phase Details
 
@@ -59,6 +59,6 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: System prompt overhaul â€” rewrite DIAGRAM_SYSTEM_PROMPTS for all 7 types with type-selection decision rules and content depth guidelines
-- [ ] 03-02: Intent pipeline fixes â€” raise clarification threshold to ambiguityScore â‰¥ 90, pass full IntentPlan to generation prompt
-- [ ] 03-03: Assumption disclosure â€” render dismissible notice in editor chat after silent generation
+- [x] 03-01: System prompt overhaul â€” rewrite DIAGRAM_SYSTEM_PROMPTS for all 7 types with type-selection decision rules and content depth guidelines
+- [x] 03-02: Intent pipeline fixes â€” raise clarification threshold to ambiguityScore â‰¥ 90, pass full IntentPlan to generation prompt
+- [x] 03-03: Assumption disclosure â€” render dismissible notice in editor chat after silent generation

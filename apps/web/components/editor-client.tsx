@@ -325,10 +325,12 @@ export function EditorClient({
     }
   }, [messages, diagramType]);
 
+  const [assumptionBanner, setAssumptionBanner] = useState<string | null>(null);
+
   // Handle incoming data stream (replacing experimental_onData)
   useEffect(() => {
     if (!streamData || streamData.length === 0) return;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const meta = streamData[0] as any;
     if (!meta) return;
@@ -347,7 +349,25 @@ export function EditorClient({
     if (meta.assistantMessage) {
       setAiNotice(meta.assistantMessage);
     }
-  }, [streamData]);
+    // D-09/D-10: formatted "Generated as: …" banner after silent generation only
+    if (meta.needsClarification === false && meta.resolvedSubtype) {
+      const detail = typeof meta.detailLevel === "string"
+        ? meta.detailLevel.charAt(0).toUpperCase() + meta.detailLevel.slice(1)
+        : "Medium";
+      // Use newly inferred preset from this response if present, otherwise current state
+      const activePresetId: SocialPresetId | "custom" = meta.suggestedPresetId ?? presetId;
+      const activePreset = activePresetId === "custom" ? null : getPreset(activePresetId as SocialPresetId);
+      const presetLabel = activePreset?.label ?? "Custom";
+      setAssumptionBanner(`Generated as: ${meta.resolvedSubtype} · ${presetLabel} · ${detail} detail`);
+    }
+  }, [streamData, presetId]);
+
+  // D-12: auto-dismiss assumption banner after 8 seconds
+  useEffect(() => {
+    if (!assumptionBanner) return;
+    const t = setTimeout(() => setAssumptionBanner(null), 8000);
+    return () => clearTimeout(t);
+  }, [assumptionBanner]);
 
   // Sync source with streaming AI response
   useEffect(() => {
@@ -927,6 +947,18 @@ export function EditorClient({
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
           <span>{aiNotice}</span>
           <button type="button" onClick={() => setAiNotice(null)} className="rounded p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
+        </div>
+      )}
+      {/* AI-05: assumption disclosure banner — "Generated as: type · preset · detail" */}
+      {assumptionBanner && (
+        <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/80 px-3 text-xs text-slate-600">
+          <span className="truncate">{assumptionBanner}</span>
+          <button
+            type="button"
+            onClick={() => setAssumptionBanner(null)}
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            aria-label="Dismiss generation notice"
+          >×</button>
         </div>
       )}
       <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-1 justify-between">

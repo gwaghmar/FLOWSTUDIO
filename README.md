@@ -1,6 +1,6 @@
 # FlowStudio
 
-**FlowStudio** is a web app where you describe what you want in plain text and AI generates the right diagram for you � instantly.
+**FlowStudio** is a web app where you describe what you want in plain text and AI generates the right diagram for you � instantly.
 
 Supports **7 diagram types**: Mermaid, Excalidraw, ReactFlow, ECharts, Nivo, TLDraw, and BPMN. Export as PNG or SVG at exact sizes for any platform (presentations, social media, docs, etc.).
 
@@ -40,20 +40,20 @@ Open http://localhost:3000. In dev, sign in with **Demo email** on `/login`.
 
 ---
 
-## What is Pending
+## Status
 
-### Phase 1 � WYSIWYG Canvas (in progress)
-The preview canvas does not yet match the export size. When you pick "Landscape 16:9", the canvas should visually lock to that ratio so what you see is exactly what you export.
+Milestone 1.0 — AI Diagram Quality & Precision — **complete**.
 
-### Phase 2 � Use-Case Awareness (not started)
-AI does not yet infer your target platform from your words. Typing "for my pitch deck" should automatically switch to landscape 16:9. A "Use for" selector will let you manually override the inferred use-case.
+### Phase 1 — WYSIWYG Canvas ✅
+Preview canvas locks to the selected export aspect ratio (Landscape 16:9, Story 9:16, Square 1:1, Vertical 4:5, Link preview) and updates immediately on preset change.
 
-### Phase 3 � Smarter AI Generation (not started)
-- AI sometimes picks the wrong diagram type (flowchart instead of sequence diagram)
-- Does not always extract all entities and relationships from your description
-- Does not adapt density/style to cues like "simple" or "for a presentation"
-- Clarification questions trigger too often � should only ask when truly necessary
-- No "what I assumed" notice shown after silent generation
+### Phase 2 — Use-Case Awareness ✅
+AI infers the target platform from your words ("pitch deck" → Landscape 16:9, "LinkedIn post" → Square 1:1, etc.) and the editor surfaces a "Use for" selector you can override manually. Style conventions adapt to the use-case.
+
+### Phase 3 — Smarter AI Generation ✅
+- All 7 diagram-type system prompts now include type-selection rules, content extraction checklists, and few-shot examples
+- Clarification threshold raised to `ambiguityScore ≥ 90` — most prompts generate immediately with noted assumptions
+- After silent generation, a slim "Generated as: {subtype} · {preset} · {detail} detail" banner appears for 8 seconds
 
 ---
 

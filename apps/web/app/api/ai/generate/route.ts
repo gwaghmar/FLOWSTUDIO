@@ -524,6 +524,7 @@ Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
 - If request is detailed, detailLevel should be high and shouldAskClarification false.
 - Keep arrays compact and practical.
+- Set \`shouldAskClarification: true\` ONLY when a critical actor, entity, or structure is completely absent from the prompt AND you cannot make a reasonable assumption. Most requests — even vague ones — should generate immediately with assumptions noted in \`assumptions\`. Do NOT ask for clarification if the user's intent is clear enough to produce a useful diagram. Prefer producing something and noting assumptions over blocking on questions.
 - suggestedPresetId rules (STRICT - default to null when unsure):
   - "pitch deck", "presentation", "slides", "keynote", "16:9", "widescreen" -> "landscape"
   - "LinkedIn", "LinkedIn post", "Twitter", "X post", "Facebook post", "square", "1:1" -> "square_feed"
@@ -609,6 +610,8 @@ Quality requirements:
           assumptions: intentPlan.assumptions,
           assistantMessage: assumptionNote,
           detailLevel: intentPlan.detailLevel,
+          resolvedSubtype:
+            (intentPlan as { suggestedSubtype?: string }).suggestedSubtype ?? effectiveDiagramType,
           typeSwitched,
           suggestedPresetId: intentPlan.suggestedPresetId ?? null,
           intentFallback: Boolean(intentPlan._fallback),
