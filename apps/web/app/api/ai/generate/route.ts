@@ -435,6 +435,7 @@ export async function POST(req: Request) {
     title?: string;
     compact?: boolean;
     useCaseId?: UseCaseId;
+    mode?: "patch" | "create";
   };
 
   const promptText = (reqBody.prompt || reqBody.messages?.[reqBody.messages.length - 1]?.content)?.trim();
@@ -449,6 +450,13 @@ export async function POST(req: Request) {
   const compact = Boolean(reqBody.compact);
   const useCaseId: UseCaseId = reqBody.useCaseId ?? "custom";
   const useCaseStyleBlock = USE_CASE_STYLE_INSTRUCTIONS[useCaseId] ?? "";
+  // Patch mode: user is iterating on an existing diagram. Honor an explicit
+  // `mode` flag, otherwise infer from whether currentSource is non-empty.
+  const hasExistingSource = Boolean(reqBody.currentSource?.trim());
+  const generationMode: "patch" | "create" =
+    reqBody.mode === "patch" && hasExistingSource ? "patch"
+    : reqBody.mode === "create" ? "create"
+    : hasExistingSource ? "patch" : "create";
 
   const userProvider = (user.aiProvider ?? "google") as AiProvider;
   const provider: AiProvider = (keySource === "env" && detectedProvider) ? detectedProvider : userProvider;
@@ -583,7 +591,16 @@ Rules:
             : 3500;
     const maxTokens = compact ? Math.max(900, Math.round(baseMaxOutputTokens * 0.7)) : baseMaxOutputTokens;
 
-    const generationInstruction = `Intent plan:
+    const patchDirective = generationMode === "patch"
+      ? `PATCH MODE — the user is iterating on an existing diagram. Apply ONLY the changes implied by the user's latest message. Strict rules:
+- Preserve every node / actor / entity / series / shape that the user did NOT ask to remove or modify.
+- Preserve all existing IDs, labels, and structural relationships unless the user explicitly asks to rename or restructure them.
+- Do NOT regenerate the diagram from scratch. Do NOT switch diagram type unless the user explicitly asks.
+- If the user asks to "add", insert new elements alongside the existing ones; if they ask to "remove", delete only the named element; if they ask to "rename", change only the label; if they ask to "simplify", remove only filler/leaf nodes the user wouldn't miss.
+- Output the FULL new source (still emit a complete diagram), but the diff from the current source should be minimal and surgical.
+`
+      : "";
+    const generationInstruction = `${patchDirective}Intent plan:
 ${JSON.stringify(intentPlan, null, 2)}
 ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype ? `\nUse diagram subtype: ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype}` : ""}
 Quality requirements:
@@ -598,9 +615,11 @@ Quality requirements:
     const switchedTypeLabel = typeSwitched ? getDiagramTypeMeta(effectiveDiagramType).label : null;
     const assumptionNote = typeSwitched
       ? `Switched to ${switchedTypeLabel} — better fit for your prompt.${intentPlan.assumptions.length > 0 ? ` Assumptions: ${intentPlan.assumptions.slice(0, 2).join("; ")}.` : ""}`
-      : intentPlan.assumptions.length > 0
-        ? `Assumptions used: ${intentPlan.assumptions.slice(0, 3).join("; ")}.`
-        : "Updated with explicit structure from your request.";
+      : generationMode === "patch"
+        ? `Patched existing diagram${intentPlan.assumptions.length > 0 ? `. Assumptions: ${intentPlan.assumptions.slice(0, 2).join("; ")}.` : "."}`
+        : intentPlan.assumptions.length > 0
+          ? `Assumptions used: ${intentPlan.assumptions.slice(0, 3).join("; ")}.`
+          : "Updated with explicit structure from your request.";
 
     return createDataStreamResponse({
       execute: async (dataStream) => {
@@ -615,6 +634,7 @@ Quality requirements:
           typeSwitched,
           suggestedPresetId: intentPlan.suggestedPresetId ?? null,
           intentFallback: Boolean(intentPlan._fallback),
+          generationMode,
         });
 
         const result = await streamText({

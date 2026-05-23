@@ -55,12 +55,13 @@ export async function createProject(
 
 export async function saveProject(
   id: string,
-  patch: { source?: string; themeId?: string; title?: string; diagramType?: DiagramType }
+  patch: { source?: string; themeId?: string; title?: string; diagramType?: DiagramType },
+  revisionLabel?: string
 ) {
   const session = await auth();
   const email = session?.user?.email;
   if (!email) throw new Error("Unauthorized");
-  const { workspace } = await ensureUserAndWorkspace(email);
+  const { workspace, user } = await ensureUserAndWorkspace(email);
   const [p] = await db
     .select()
     .from(projects)
@@ -77,11 +78,71 @@ export async function saveProject(
       id: crypto.randomUUID(),
       projectId: id,
       source: patch.source,
+      label: revisionLabel ?? "Manual edit",
       createdAt: now,
+      createdBy: user.id,
     });
   }
   revalidatePath("/app");
   revalidatePath(`/app/editor`);
+}
+
+export async function listRevisions(projectId: string, limit = 50) {
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) return [];
+  const { workspace } = await ensureUserAndWorkspace(email);
+  const [p] = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!p || p.workspaceId !== workspace.id) return [];
+  const rows = await db
+    .select({
+      id: revisions.id,
+      label: revisions.label,
+      createdAt: revisions.createdAt,
+    })
+    .from(revisions)
+    .where(eq(revisions.projectId, projectId))
+    .orderBy(desc(revisions.createdAt))
+    .limit(limit);
+  return rows;
+}
+
+export async function restoreRevision(projectId: string, revisionId: string) {
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) throw new Error("Unauthorized");
+  const { workspace, user } = await ensureUserAndWorkspace(email);
+  const [p] = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!p || p.workspaceId !== workspace.id) throw new Error("Not found");
+  const [rev] = await db
+    .select()
+    .from(revisions)
+    .where(eq(revisions.id, revisionId))
+    .limit(1);
+  if (!rev || rev.projectId !== projectId) throw new Error("Revision not found");
+  const now = new Date();
+  await db
+    .update(projects)
+    .set({ source: rev.source, updatedAt: now })
+    .where(eq(projects.id, projectId));
+  await db.insert(revisions).values({
+    id: crypto.randomUUID(),
+    projectId,
+    source: rev.source,
+    label: `Restored revision from ${rev.createdAt.toISOString().slice(0, 16).replace("T", " ")}`,
+    createdAt: now,
+    createdBy: user.id,
+  });
+  revalidatePath(`/app/editor`);
+  return { source: rev.source };
 }
 
 export async function deleteProject(id: string) {

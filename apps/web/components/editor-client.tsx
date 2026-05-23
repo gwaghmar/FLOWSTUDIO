@@ -19,7 +19,8 @@ import {
   Circle,
   Loader2,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -39,7 +40,7 @@ import {
 } from "@flowchart/core";
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
-import { saveProject, createProject } from "@/app/actions/project";
+import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
 import { createShareLink } from "@/app/actions/share";
 import dynamic from "next/dynamic";
 import type { EChartsRendererHandle } from "@/components/diagrams/echarts-renderer";
@@ -235,6 +236,12 @@ export function EditorClient({
   const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
   const [compactAiContext, setCompactAiContext] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(false);
+  const [forceCreateNext, setForceCreateNext] = useState(false);
+  const [pendingRevisionLabel, setPendingRevisionLabel] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [revisions, setRevisions] = useState<{ id: string; label: string | null; createdAt: Date }[]>([]);
+  const [revisionsDirty, setRevisionsDirty] = useState(0);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
     api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
     body: {
@@ -244,6 +251,7 @@ export function EditorClient({
       diagramSummary: summarizeDiagramSource(diagramType, source),
       compact: compactAiContext,
       useCaseId,
+      mode: forceCreateNext || !source.trim() ? "create" : "patch",
     },
     onResponse: () => {
       setAgentTasks([
@@ -262,6 +270,14 @@ export function EditorClient({
       }
       setAgentTasks((prev) => prev.map(t => t.id === "generate" ? { ...t, status: "completed" } : t));
       showToast("Diagram updated · ⌘Z to undo");
+      // Tag the next save as AI-sourced (patch vs create), then reset force flag
+      const lastUserInput = messages.filter((m) => m.role === "user").slice(-1)[0]?.content?.trim() ?? "";
+      const promptSnippet = lastUserInput.slice(0, 60);
+      const aiLabel = forceCreateNext
+        ? `AI regenerated${promptSnippet ? `: ${promptSnippet}` : ""}`
+        : `AI patched${promptSnippet ? `: ${promptSnippet}` : ""}`;
+      setPendingRevisionLabel(aiLabel);
+      if (forceCreateNext) setForceCreateNext(false);
     },
   });
 
@@ -504,17 +520,20 @@ export function EditorClient({
     setSaving(true);
     try {
       const sourceToSave = diagramType === "mermaid" ? embedUiInSource(source, uiState) : source;
-      if (currentProjectId) { 
-        await saveProject(currentProjectId, { source: sourceToSave, themeId, title, diagramType }); 
+      const label = pendingRevisionLabel ?? undefined;
+      if (currentProjectId) {
+        await saveProject(currentProjectId, { source: sourceToSave, themeId, title, diagramType }, label);
       }
-      else { 
-        const newId = await createProject(title || "Untitled", sourceToSave, themeId, diagramType); 
-        setCurrentProjectId(newId); 
+      else {
+        const newId = await createProject(title || "Untitled", sourceToSave, themeId, diagramType);
+        setCurrentProjectId(newId);
       }
       lastSavedSnapshot.current = JSON.stringify({ source: sourceToSave, themeId, title });
+      setPendingRevisionLabel(null);
+      setRevisionsDirty((v) => v + 1);
       showToast("Project saved");
     } finally { setSaving(false); }
-  }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast]);
+  }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast, pendingRevisionLabel]);
 
   const handleUseCaseChange = useCallback((id: UseCaseId) => {
     setUseCaseId(id);
@@ -524,13 +543,47 @@ export function EditorClient({
     // "documentation" and "custom" do not change the preset
   }, []);
 
-  const downloadBlob = (blob: Blob, name: string) => { 
-    const a = document.createElement("a"); 
-    a.href = URL.createObjectURL(blob); 
-    a.download = name; 
-    a.click(); 
-    URL.revokeObjectURL(a.href); 
+  const downloadBlob = (blob: Blob, name: string) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
+
+  // Fetch revisions when history opens or after a save/restore mutates them
+  useEffect(() => {
+    if (!historyOpen || !currentProjectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listRevisions(currentProjectId);
+        if (!cancelled) setRevisions(rows.map((r) => ({ ...r, createdAt: new Date(r.createdAt) })));
+      } catch (e) {
+        console.error("[revisions]", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [historyOpen, currentProjectId, revisionsDirty]);
+
+  const handleRestore = useCallback(async (revisionId: string) => {
+    if (!currentProjectId) return;
+    setRestoringId(revisionId);
+    try {
+      const { source: restored } = await restoreRevision(currentProjectId, revisionId);
+      recordUndo(source);
+      const cleanedSource = diagramType === "mermaid" ? parseUiFromSource(restored).source : restored;
+      setSource(cleanedSource);
+      setRevisionsDirty((v) => v + 1);
+      showToast("Revision restored · ⌘Z to undo");
+      setHistoryOpen(false);
+    } catch (e) {
+      console.error("[restore]", e);
+      showToast("Could not restore revision");
+    } finally {
+      setRestoringId(null);
+    }
+  }, [currentProjectId, source, diagramType, recordUndo, showToast]);
 
   const handleExport = useCallback(async (format: "png" | "svg" | "zip") => {
     setIsExporting(true);
@@ -910,14 +963,25 @@ export function EditorClient({
               <div className="flex items-center justify-between px-2 pb-1">
                 <div className="flex items-center gap-1">
                   {/* Visual edits — placeholder, not yet implemented */}
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setIsAgentMode(!isAgentMode)}
                     className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-sm transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
                   >
                     <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
                     Agent Mode
                   </button>
+                  {source.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setForceCreateNext((v) => !v)}
+                      title="Next message will regenerate the diagram from scratch instead of patching the existing one"
+                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-sm transition-all ${forceCreateNext ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 ${forceCreateNext ? 'text-amber-600' : 'text-slate-500'}`} />
+                      {forceCreateNext ? "Will regenerate" : "Regenerate"}
+                    </button>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -1036,6 +1100,49 @@ export function EditorClient({
               >
                 <Redo className="h-4 w-4" />
               </button>
+              <div className="relative" data-history-menu-root>
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  disabled={!currentProjectId}
+                  title={currentProjectId ? "Version history" : "Save first to see history"}
+                  className="flex items-center gap-1 px-2 py-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-expanded={historyOpen}
+                >
+                  <Clock className="h-4 w-4" />
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {historyOpen && currentProjectId && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-80 max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
+                    <div className="sticky top-0 border-b border-slate-100 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                      Version history
+                    </div>
+                    {revisions.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-400">Loading…</div>
+                    ) : (
+                      <ul className="divide-y divide-slate-100">
+                        {revisions.map((r) => (
+                          <li key={r.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(r.id)}
+                              disabled={restoringId === r.id}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              <div className="text-xs font-medium text-slate-700 truncate">
+                                {r.label ?? "Manual edit"}
+                              </div>
+                              <div className="text-[11px] text-slate-400 tabular-nums">
+                                {r.createdAt.toLocaleString()}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="relative" data-export-menu-root>

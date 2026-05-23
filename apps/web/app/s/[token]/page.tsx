@@ -1,9 +1,33 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ShareViewer } from "@/components/share-viewer";
 import { db } from "@/lib/db";
 import { shareLinks, projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sha256Hex } from "@/lib/crypto";
+
+const TYPE_LABELS: Record<string, string> = {
+  mermaid: "Text flowchart", excalidraw: "Whiteboard", reactflow: "Node graph",
+  echarts: "Chart", nivo: "Chart", tldraw: "Canvas", bpmn: "BPMN process",
+};
+
+async function resolveShare(token: string) {
+  try {
+    const tokenHash = sha256Hex(token);
+    const [link] = await db.select().from(shareLinks).where(eq(shareLinks.tokenHash, tokenHash)).limit(1);
+    if (!link) return { kind: "missing" as const };
+    if (link.expiresAt && link.expiresAt < new Date()) return { kind: "expired" as const };
+    const [p] = await db
+      .select({ title: projects.title, diagramType: projects.diagramType })
+      .from(projects)
+      .where(eq(projects.id, link.projectId))
+      .limit(1);
+    if (!p) return { kind: "missing" as const };
+    return { kind: "ok" as const, title: p.title, diagramType: p.diagramType };
+  } catch {
+    return { kind: "missing" as const };
+  }
+}
 
 export async function generateMetadata({
   params,
@@ -11,42 +35,33 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
-  try {
-    const tokenHash = sha256Hex(token);
-    const [link] = await db.select().from(shareLinks).where(eq(shareLinks.tokenHash, tokenHash)).limit(1);
-    if (!link || (link.expiresAt && link.expiresAt < new Date())) {
-      return { title: "Shared Diagram — Flowchart Studio" };
-    }
-    const [p] = await db.select({ title: projects.title, diagramType: projects.diagramType })
-      .from(projects).where(eq(projects.id, link.projectId)).limit(1);
-    if (!p) return { title: "Shared Diagram — Flowchart Studio" };
-
-    const TYPE_LABELS: Record<string, string> = {
-      mermaid: "Text flowchart", excalidraw: "Whiteboard", reactflow: "Node graph",
-      echarts: "Chart", nivo: "Chart", tldraw: "Canvas", bpmn: "BPMN process",
-    };
-    const typeLabel = TYPE_LABELS[p.diagramType] ?? "Diagram";
-    const title = p.title ? `${p.title} — Flowchart Studio` : "Shared Diagram — Flowchart Studio";
-    const description = `View this ${typeLabel} created with Flowchart Studio.`;
-
-    return {
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-        type: "website",
-        siteName: "Flowchart Studio",
-      },
-      twitter: {
-        card: "summary",
-        title,
-        description,
-      },
-    };
-  } catch {
+  const result = await resolveShare(token);
+  if (result.kind !== "ok") {
     return { title: "Shared Diagram — Flowchart Studio" };
   }
+
+  const typeLabel = TYPE_LABELS[result.diagramType] ?? "Diagram";
+  const title = result.title ? `${result.title} — Flowchart Studio` : "Shared Diagram — Flowchart Studio";
+  const description = `View this ${typeLabel} created with Flowchart Studio.`;
+  const ogImageUrl = `/s/${encodeURIComponent(token)}/og`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "Flowchart Studio",
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+  };
 }
 
 export default async function SharePage({
@@ -55,6 +70,7 @@ export default async function SharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const result = await resolveShare(token);
+  if (result.kind === "missing") notFound();
   return <ShareViewer token={token} />;
 }
-

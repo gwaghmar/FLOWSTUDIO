@@ -62,3 +62,13 @@ Plans:
 - [x] 03-01: System prompt overhaul â€” rewrite DIAGRAM_SYSTEM_PROMPTS for all 7 types with type-selection decision rules and content depth guidelines
 - [x] 03-02: Intent pipeline fixes â€” raise clarification threshold to ambiguityScore â‰¥ 90, pass full IntentPlan to generation prompt
 - [x] 03-03: Assumption disclosure â€” render dismissible notice in editor chat after silent generation
+
+---
+
+# Milestone 1.1 â€” AI Iteration & Sharing
+
+Detailed plan: `.planning/phases/MILESTONE-1.1.md`
+
+- [x] **Phase 4: Surgical AI Edits** â€” follow-up prompts patch the existing diagram; "Regenerate" toggle for full rebuild
+- [x] **Phase 5: Persistent Version History** â€” auto-labeled revisions surfaced as a History dropdown with click-to-restore
+- [x] **Phase 6: Public Share with OG Previews** â€” `/s/[token]` HTML viewer + branded 1200Ã—630 og:image + proper 404

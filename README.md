@@ -42,18 +42,19 @@ Open http://localhost:3000. In dev, sign in with **Demo email** on `/login`.
 
 ## Status
 
-Milestone 1.0 — AI Diagram Quality & Precision — **complete**.
+Milestones 1.0 and 1.1 are **complete**.
 
-### Phase 1 — WYSIWYG Canvas ✅
-Preview canvas locks to the selected export aspect ratio (Landscape 16:9, Story 9:16, Square 1:1, Vertical 4:5, Link preview) and updates immediately on preset change.
+### Milestone 1.0 — AI Diagram Quality & Precision ✅
 
-### Phase 2 — Use-Case Awareness ✅
-AI infers the target platform from your words ("pitch deck" → Landscape 16:9, "LinkedIn post" → Square 1:1, etc.) and the editor surfaces a "Use for" selector you can override manually. Style conventions adapt to the use-case.
+- **WYSIWYG Canvas** — preview locks to the selected export aspect ratio and updates immediately on preset change
+- **Use-Case Awareness** — AI infers the target platform from your words; "Use for" selector lets you override; style conventions adapt
+- **Smarter AI Generation** — all 7 prompts include type-selection rules, extraction checklists, and few-shot examples; clarification threshold raised to `ambiguityScore ≥ 90`; silent generations surface a "Generated as: …" banner
 
-### Phase 3 — Smarter AI Generation ✅
-- All 7 diagram-type system prompts now include type-selection rules, content extraction checklists, and few-shot examples
-- Clarification threshold raised to `ambiguityScore ≥ 90` — most prompts generate immediately with noted assumptions
-- After silent generation, a slim "Generated as: {subtype} · {preset} · {detail} detail" banner appears for 8 seconds
+### Milestone 1.1 — AI Iteration & Sharing ✅
+
+- **Surgical AI Edits** — follow-up prompts patch the existing diagram instead of regenerating; "Regenerate" toggle forces a full rebuild
+- **Persistent Version History** — every save creates an auto-labeled revision; click the Clock icon in the toolbar to browse history and restore any prior version (history is preserved — restores stack on top)
+- **Public Share with OG Previews** — `/s/[token]` renders a read-only diagram with a branded 1200×630 OG image and proper 404 for expired/missing links
 
 ---
 
