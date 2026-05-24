@@ -24,6 +24,7 @@ import {
   Palette,
   Code2,
   Wand2,
+  Paintbrush,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -249,6 +250,7 @@ export function EditorClient({
   const [revisionsDirty, setRevisionsDirty] = useState(0);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [applyingBrand, setApplyingBrand] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
     api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
     body: {
@@ -706,6 +708,17 @@ export function EditorClient({
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [historyOpen]);
+
+  // Close the Theme dropdown when clicking outside it
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-theme-menu-root]")) setThemeMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [themeMenuOpen]);
 
   const handleRestore = useCallback(async (revisionId: string) => {
     if (!currentProjectId) return;
@@ -1353,6 +1366,69 @@ export function EditorClient({
               >
                 <Palette className="h-4 w-4" />
               </button>
+              {diagramType === "mermaid" && (
+                <div className="relative" data-theme-menu-root>
+                  <button
+                    type="button"
+                    onClick={() => setThemeMenuOpen((v) => !v)}
+                    title={`Theme: ${theme.name}`}
+                    className="flex items-center gap-1 px-2 py-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                    aria-expanded={themeMenuOpen}
+                  >
+                    <Paintbrush className="h-4 w-4" />
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  {themeMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-50 w-56 max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
+                      <div className="sticky top-0 border-b border-slate-100 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                        Mermaid theme
+                      </div>
+                      <ul className="divide-y divide-slate-100">
+                        {THEMES.map((t) => {
+                          const active = t.id === themeId;
+                          const swatch =
+                            t.themeVariables.primaryColor ?? "#6366f1";
+                          const bg = t.themeVariables.background ?? "#f8fafc";
+                          return (
+                            <li key={t.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (t.id !== themeId) {
+                                    recordUndo(source);
+                                    setThemeId(t.id);
+                                    showToast(`Theme: ${t.name} · ⌘Z to undo`);
+                                  }
+                                  setThemeMenuOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 ${active ? "bg-indigo-50" : ""}`}
+                              >
+                                <span
+                                  className="h-5 w-5 shrink-0 rounded border border-slate-200"
+                                  style={{ background: bg }}
+                                >
+                                  <span
+                                    className="block h-full w-full rounded"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${swatch} 0 50%, transparent 50% 100%)`,
+                                    }}
+                                  />
+                                </span>
+                                <span className="text-xs font-medium text-slate-700 truncate">
+                                  {t.name}
+                                </span>
+                                {active && (
+                                  <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-indigo-600" />
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
               {diagramType === "reactflow" && (
                 <button
                   type="button"
