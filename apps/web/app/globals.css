@@ -32,3 +32,14 @@ body {
   border-radius: 9999px;
   animation: ai-slide 1.4s ease-in-out infinite;
 }
+
+/* Source editor syntax highlight tokens.
+   The textarea sits transparent on top of a <pre> rendering these spans. */
+.hl-keyword   { color: #7c3aed; font-weight: 600; }   /* violet-600 */
+.hl-direction { color: #2563eb; }                     /* blue-600 */
+.hl-arrow     { color: #db2777; }                     /* pink-600 */
+.hl-string    { color: #059669; }                     /* emerald-600 */
+.hl-comment   { color: #94a3b8; font-style: italic; } /* slate-400 */
+.hl-key       { color: #2563eb; }                     /* blue-600 */
+.hl-number    { color: #d97706; }                     /* amber-600 */
+.hl-literal   { color: #7c3aed; }                     /* violet-600 */

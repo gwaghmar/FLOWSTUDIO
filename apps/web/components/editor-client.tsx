@@ -43,6 +43,7 @@ import {
 } from "@flowchart/core";
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
+import { highlightSource } from "@/lib/source-highlight";
 import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
 import { getBrandKit } from "@/app/actions/brand-kit";
 import { createShareLink } from "@/app/actions/share";
@@ -474,6 +475,7 @@ export function EditorClient({
   const echartsRef = useRef<EChartsRendererHandle>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const mermaidViewportRef = useRef<HTMLDivElement>(null);
+  const sourceScrollRef = useRef<HTMLDivElement>(null);
   const mermaidPanStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const chatListRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef(source);
@@ -1621,17 +1623,37 @@ export function EditorClient({
                   ×
                 </button>
               </div>
-              <textarea
-                value={source}
-                onChange={(e) => {
-                  recordUndo(source);
-                  setSource(e.target.value);
+              <div
+                ref={sourceScrollRef}
+                className="relative flex-1 overflow-auto"
+                onScroll={(e) => {
+                  const target = e.currentTarget;
+                  const pre = target.querySelector("pre.hl-pre") as HTMLPreElement | null;
+                  if (pre) {
+                    pre.style.transform = `translate(${-target.scrollLeft}px, ${-target.scrollTop}px)`;
+                  }
                 }}
-                spellCheck={false}
-                wrap="off"
-                className="flex-1 w-full resize-none bg-transparent px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800 focus:outline-none"
-                placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
-              />
+              >
+                <pre
+                  aria-hidden
+                  className="hl-pre pointer-events-none absolute left-0 top-0 m-0 w-full whitespace-pre px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800"
+                  dangerouslySetInnerHTML={{
+                    __html: source ? highlightSource(source, diagramType) : "",
+                  }}
+                />
+                <textarea
+                  value={source}
+                  onChange={(e) => {
+                    recordUndo(source);
+                    setSource(e.target.value);
+                  }}
+                  spellCheck={false}
+                  wrap="off"
+                  className="relative h-full w-full resize-none bg-transparent px-4 py-3 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-none"
+                  style={{ minHeight: "100%" }}
+                  placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
+                />
+              </div>
               <div className="border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
                 ⌘Z to undo · Changes apply live to the preview
               </div>
