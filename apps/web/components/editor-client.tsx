@@ -507,15 +507,28 @@ export function EditorClient({
   const uiState = useMemo(() => ({ showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern }), [showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern]);
   const sourceWithUi = useMemo(() => diagramType === "mermaid" ? embedUiInSource(source, uiState) : source, [source, uiState, diagramType]);
 
-  // Initialize Mermaid once per theme change — not on every render.
+  // Initialize Mermaid when theme OR brand-applied palette changes. Brand-kit
+  // colors override the active theme's primary/background so applying a brand
+  // kit visually changes the Mermaid diagram, not just the canvas background.
   useEffect(() => {
     if (diagramType !== "mermaid") return;
+    const base = buildMermaidConfig(theme);
+    const brandOverrides =
+      paletteId !== "default"
+        ? {
+            primaryColor: customAccent,
+            primaryBorderColor: customAccent,
+            lineColor: customAccent,
+            background: customBackground,
+          }
+        : {};
     mermaid.initialize({
-      ...buildMermaidConfig(theme),
+      ...base,
+      themeVariables: { ...base.themeVariables, ...brandOverrides },
       startOnLoad: false,
       suppressErrorRendering: true,
     });
-  }, [theme, diagramType]);
+  }, [theme, diagramType, paletteId, customAccent, customBackground]);
 
   const [mermaidRenderError, setMermaidRenderError] = useState<string | null>(null);
 
@@ -564,7 +577,7 @@ export function EditorClient({
       })();
     }, delay);
     return () => clearTimeout(t);
-  }, [source, diagramType, aiLoading, theme]);
+  }, [source, diagramType, aiLoading, theme, paletteId, customAccent, customBackground]);
   // When loading an existing project, lastSavedSnapshot starts as "" — treat that as "saved" so we don't show "Unsaved" before any changes.
   const isDirty = useMemo(() => {
     if (lastSavedSnapshot.current === "" && projectId !== null) return false;
