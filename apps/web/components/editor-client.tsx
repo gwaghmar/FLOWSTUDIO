@@ -235,6 +235,7 @@ export function EditorClient({
   const [mermaidSubtype, setMermaidSubtype] = useState<MermaidSubtype>("flowchart");
   /** Tools / chat column — hide for focus on diagram (persisted). */
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
   const [compactAiContext, setCompactAiContext] = useState(false);
@@ -505,6 +506,18 @@ export function EditorClient({
   const uiState = useMemo(() => ({ showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern }), [showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern]);
   const sourceWithUi = useMemo(() => diagramType === "mermaid" ? embedUiInSource(source, uiState) : source, [source, uiState, diagramType]);
 
+  // Initialize Mermaid once per theme change — not on every render.
+  useEffect(() => {
+    if (diagramType !== "mermaid") return;
+    mermaid.initialize({
+      ...buildMermaidConfig(theme),
+      startOnLoad: false,
+      suppressErrorRendering: true,
+    });
+  }, [theme, diagramType]);
+
+  const [mermaidRenderError, setMermaidRenderError] = useState<string | null>(null);
+
   // Live Mermaid preview — renders the active source into the preview canvas.
   // Streaming-aware: validates with mermaid.parse() before rendering, and on
   // parse failure (common during AI streaming) it keeps the last good render
@@ -517,6 +530,7 @@ export function EditorClient({
     if (!trimmed) {
       node.innerHTML = "";
       lastGoodSvgRef.current = null;
+      setMermaidRenderError(null);
       return;
     }
     // Debounce while AI is actively streaming to avoid re-rendering on every
@@ -526,11 +540,6 @@ export function EditorClient({
     const t = setTimeout(() => {
       void (async () => {
         try {
-          mermaid.initialize({
-            ...buildMermaidConfig(theme),
-            startOnLoad: false,
-            suppressErrorRendering: true,
-          });
           // Cheap validity check first — avoids the expensive render+throw cycle
           // on partial streamed source.
           await mermaid.parse(trimmed);
@@ -538,20 +547,23 @@ export function EditorClient({
           if (seq !== renderSeqRef.current) return;
           lastGoodSvgRef.current = svg;
           node.innerHTML = svg;
-        } catch {
-          // Likely incomplete source mid-stream. Keep last good render so the
-          // canvas stays stable while the AI types more.
+          setMermaidRenderError(null);
+        } catch (e) {
           if (seq !== renderSeqRef.current) return;
-          if (!lastGoodSvgRef.current) {
-            // Nothing to fall back on — leave empty so the user sees the source
-            // pane is the source of truth right now.
-            node.innerHTML = "";
+          const msg = e instanceof Error ? e.message.split("\n")[0] : "Invalid Mermaid syntax";
+          // Mid-stream: keep last good silently. Otherwise surface the error so
+          // the user knows their manual edit broke parsing.
+          if (aiLoading) {
+            if (!lastGoodSvgRef.current) node.innerHTML = "";
+          } else {
+            setMermaidRenderError(msg);
+            if (!lastGoodSvgRef.current) node.innerHTML = "";
           }
         }
       })();
     }, delay);
     return () => clearTimeout(t);
-  }, [source, theme, diagramType, aiLoading]);
+  }, [source, diagramType, aiLoading, theme]);
   // When loading an existing project, lastSavedSnapshot starts as "" — treat that as "saved" so we don't show "Unsaved" before any changes.
   const isDirty = useMemo(() => {
     if (lastSavedSnapshot.current === "" && projectId !== null) return false;
@@ -1205,6 +1217,15 @@ export function EditorClient({
             <MessageSquare className="h-4 w-4" />
             <span className="text-xs font-semibold pr-1">AI Chat</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setSourcePanelOpen(!sourcePanelOpen)}
+            className={`flex items-center gap-2 rounded-lg border border-slate-200 p-1.5 transition-all ${sourcePanelOpen ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-inner' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            title="Toggle Source editor"
+          >
+            <Code2 className="h-4 w-4" />
+            <span className="text-xs font-semibold pr-1 hidden md:inline">Source</span>
+          </button>
             
             {/* Zoom */}
             <div className="hidden lg:flex shrink-0 items-center gap-0.5">
@@ -1454,6 +1475,15 @@ export function EditorClient({
                       <Sparkles className="h-3 w-3 animate-pulse" /> Streaming
                     </div>
                   )}
+                  {!aiLoading && mermaidRenderError && (
+                    <div
+                      data-no-export
+                      className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur-sm"
+                    >
+                      <span className="font-medium">Mermaid syntax: </span>
+                      <span className="font-mono">{mermaidRenderError}</span>
+                    </div>
+                  )}
                   {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with Flowchart Studio</div>}
                 </div>
               </div>
@@ -1503,6 +1533,50 @@ export function EditorClient({
           )}
         </div>
       </div>
+
+      <AnimatePresence mode="wait">
+        {sourcePanelOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 380, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 220 }}
+            className="relative z-30 flex flex-col overflow-hidden pr-4 py-3"
+          >
+            <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Code2 className="h-3.5 w-3.5 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-700">Source</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wide">{diagramType}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSourcePanelOpen(false)}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                  aria-label="Close source editor"
+                >
+                  ×
+                </button>
+              </div>
+              <textarea
+                value={source}
+                onChange={(e) => {
+                  recordUndo(source);
+                  setSource(e.target.value);
+                }}
+                spellCheck={false}
+                wrap="off"
+                className="flex-1 w-full resize-none bg-transparent px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800 focus:outline-none"
+                placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
+              />
+              <div className="border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
+                ⌘Z to undo · Changes apply live to the preview
+              </div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
       </div>
 
       {toast && (

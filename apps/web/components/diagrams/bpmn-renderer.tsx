@@ -123,7 +123,7 @@ export function BpmnRenderer({ source, onChange, readOnly = false }: Props) {
           hasBoundChangeListenerRef.current = true;
         }
 
-        const result = await viewer.importXML(sourceRef.current);
+        await viewer.importXML(sourceRef.current);
         lastImportedSourceRef.current = sourceRef.current;
         fitToViewport();
         setParseError(null);
@@ -156,7 +156,7 @@ export function BpmnRenderer({ source, onChange, readOnly = false }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const result = await viewer.importXML(source);
+        await viewer.importXML(source);
         lastImportedSourceRef.current = source;
         if (cancelled) return;
         fitToViewport(true);
@@ -175,16 +175,15 @@ export function BpmnRenderer({ source, onChange, readOnly = false }: Props) {
 
   return (
     <div className="relative h-full w-full bg-white">
+      <div ref={containerRef} className="h-full w-full" />
       {parseError ? (
-        <div className="flex h-full items-center justify-center p-8">
-          <div className="w-full max-w-lg rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <p className="font-medium">BPMN parse error</p>
-            <p className="mt-1 font-mono text-xs break-words">{parseError}</p>
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
+          <div className="pointer-events-auto max-w-lg rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 shadow-sm">
+            <span className="font-medium">BPMN parse error: </span>
+            <span className="font-mono">{parseError}</span>
           </div>
         </div>
-      ) : (
-        <div ref={containerRef} className="h-full w-full" />
-      )}
+      ) : null}
     </div>
   );
 }

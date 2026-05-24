@@ -57,9 +57,12 @@ function parseSource(source: string): ReactFlowData {
   try {
     const data = JSON.parse(source) as ReactFlowData;
     return {
-      nodes: (data.nodes ?? []).map((n) => ({
+      nodes: (data.nodes ?? []).map((n, i) => ({
         ...n,
         type: "custom", // Force use of CustomNode
+        // React Flow crashes on nodes without a `position`. Fall back to a
+        // gentle staircase so AI-generated source missing positions still renders.
+        position: n.position ?? { x: 100 + (i % 4) * 220, y: 80 + Math.floor(i / 4) * 140 },
         data: { ...n.data, isActive: (n.data as Record<string, unknown>)?.isActive ?? false },
       })),
       edges: (data.edges ?? []).map((e) => ({
