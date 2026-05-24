@@ -283,6 +283,13 @@ export function EditorClient({
       setPendingRevisionLabel(aiLabel);
       if (forceCreateNext) setForceCreateNext(false);
     },
+    onError: (err) => {
+      console.error("[ai-chat]", err);
+      setAgentTasks([]);
+      // Reset one-shot flags so the user doesn't unknowingly carry them over
+      if (forceCreateNext) setForceCreateNext(false);
+      showToast("Could not update diagram — see console");
+    },
   });
 
   // Handle Tool Results surgically
@@ -369,8 +376,9 @@ export function EditorClient({
     if (meta.assistantMessage) {
       setAiNotice(meta.assistantMessage);
     }
-    // D-09/D-10: formatted "Generated as: …" banner after silent generation only
-    if (meta.needsClarification === false && meta.resolvedSubtype) {
+    // D-09/D-10: formatted "Generated as: …" banner after silent generation only.
+    // Skip the banner for patch responses — assistantMessage already says "Patched existing diagram".
+    if (meta.needsClarification === false && meta.resolvedSubtype && meta.generationMode !== "patch") {
       const detail = typeof meta.detailLevel === "string"
         ? meta.detailLevel.charAt(0).toUpperCase() + meta.detailLevel.slice(1)
         : "Medium";
@@ -591,14 +599,40 @@ export function EditorClient({
     return () => { cancelled = true; };
   }, [historyOpen, currentProjectId, revisionsDirty]);
 
+  // Close the History dropdown when clicking outside it
+  useEffect(() => {
+    if (!historyOpen) return;
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-history-menu-root]")) setHistoryOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [historyOpen]);
+
   const handleRestore = useCallback(async (revisionId: string) => {
     if (!currentProjectId) return;
     setRestoringId(revisionId);
     try {
       const { source: restored } = await restoreRevision(currentProjectId, revisionId);
       recordUndo(source);
-      const cleanedSource = diagramType === "mermaid" ? parseUiFromSource(restored).source : restored;
-      setSource(cleanedSource);
+      const parsed = diagramType === "mermaid"
+        ? parseUiFromSource(restored)
+        : { source: restored, ui: {} as UiState };
+      setSource(parsed.source);
+      // Also restore UI metadata (palette, accent, font, etc.) so the diagram
+      // visually matches the snapshot, not just structurally.
+      if (diagramType === "mermaid") {
+        const ui = parsed.ui;
+        if (typeof ui.showGrid === "boolean") setShowGrid(ui.showGrid);
+        if (ui.fontId) setFontId(ui.fontId);
+        if (ui.paletteId) setPaletteId(ui.paletteId);
+        if (ui.customBackground) setCustomBackground(ui.customBackground);
+        if (ui.customAccent) setCustomAccent(ui.customAccent);
+        if (ui.backgroundPattern) {
+          setBackgroundPattern(ui.backgroundPattern as "none" | "dots" | "grid" | "lines");
+        }
+      }
       setRevisionsDirty((v) => v + 1);
       showToast("Revision restored · ⌘Z to undo");
       setHistoryOpen(false);
