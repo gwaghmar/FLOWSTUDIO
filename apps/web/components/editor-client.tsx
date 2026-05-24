@@ -912,6 +912,15 @@ export function EditorClient({
     setAiError(null);
   }, [mermaidSubtype]);
 
+  const handleResetView = useCallback(() => {
+    setZoom(1);
+    const vp = mermaidViewportRef.current;
+    if (vp) {
+      const targetLeft = Math.max(0, (vp.scrollWidth - vp.clientWidth) / 2);
+      vp.scrollTo({ left: targetLeft, top: 0, behavior: "smooth" });
+    }
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
@@ -921,6 +930,10 @@ export function EditorClient({
       if ((e.metaKey || e.ctrlKey) && e.key === "b") {
         e.preventDefault();
         setLeftPanelOpen((p) => !p);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "0") {
+        e.preventDefault();
+        handleResetView();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1251,7 +1264,14 @@ export function EditorClient({
               <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
               <span className="w-11 text-center text-xs tabular-nums text-slate-600">{Math.round(zoom * 100)}%</span>
               <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
-              <button type="button" onClick={() => setZoom(1)} className="rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100" title="Reset zoom">↺</button>
+              <button
+                type="button"
+                onClick={handleResetView}
+                className="rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100"
+                title="Reset zoom & pan (⌘0)"
+              >
+                ↺
+              </button>
             </div>
             
             <div className="hidden lg:block h-4 w-px shrink-0 bg-slate-200" />
