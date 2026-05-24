@@ -1705,14 +1705,24 @@ export function EditorClient({
                 onScroll={(e) => {
                   const target = e.currentTarget;
                   const pre = target.querySelector("pre.hl-pre") as HTMLPreElement | null;
+                  const gutter = target.querySelector("pre.hl-gutter") as HTMLPreElement | null;
                   if (pre) {
-                    pre.style.transform = `translate(${-target.scrollLeft}px, ${-target.scrollTop}px)`;
+                    pre.style.transform = `translateX(${-target.scrollLeft}px)`;
+                  }
+                  if (gutter) {
+                    gutter.style.transform = `translateX(${target.scrollLeft}px)`;
                   }
                 }}
               >
                 <pre
                   aria-hidden
-                  className="hl-pre pointer-events-none absolute left-0 top-0 m-0 w-full whitespace-pre px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800"
+                  className="hl-gutter pointer-events-none absolute left-0 top-0 z-10 m-0 w-10 select-none border-r border-slate-100 bg-slate-50/80 py-3 pr-2 text-right font-mono text-[11px] leading-relaxed text-slate-400"
+                >
+                  {Array.from({ length: Math.max(1, source.split("\n").length) }, (_, i) => i + 1).join("\n")}
+                </pre>
+                <pre
+                  aria-hidden
+                  className="hl-pre pointer-events-none absolute left-10 top-0 m-0 w-[calc(100%-2.5rem)] whitespace-pre px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800"
                   dangerouslySetInnerHTML={{
                     __html: source ? highlightSource(source, diagramType) : "",
                   }}
@@ -1762,7 +1772,7 @@ export function EditorClient({
                   }}
                   spellCheck={false}
                   wrap="off"
-                  className="relative h-full w-full resize-none bg-transparent px-4 py-3 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-none"
+                  className="relative h-full w-full resize-none bg-transparent py-3 pr-4 pl-14 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-none"
                   style={{ minHeight: "100%" }}
                   placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
                 />
