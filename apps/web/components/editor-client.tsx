@@ -1723,6 +1723,43 @@ export function EditorClient({
                     recordUndo(source);
                     setSource(e.target.value);
                   }}
+                  onKeyDown={(e) => {
+                    // Tab inserts two spaces instead of jumping focus.
+                    // Shift+Tab outdents the current line by up to two spaces.
+                    if (e.key !== "Tab") return;
+                    e.preventDefault();
+                    const ta = e.currentTarget;
+                    const { selectionStart: start, selectionEnd: end, value } = ta;
+                    if (!e.shiftKey && start === end) {
+                      // Simple insert at caret
+                      recordUndo(source);
+                      const next = value.slice(0, start) + "  " + value.slice(end);
+                      setSource(next);
+                      requestAnimationFrame(() => {
+                        ta.selectionStart = ta.selectionEnd = start + 2;
+                      });
+                      return;
+                    }
+                    // Indent / outdent across the selected line range
+                    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                    const lineEnd = end < value.length && value[end] === "\n"
+                      ? end
+                      : value.indexOf("\n", end) === -1
+                        ? value.length
+                        : value.indexOf("\n", end);
+                    const block = value.slice(lineStart, lineEnd);
+                    const updated = e.shiftKey
+                      ? block.replace(/^ {1,2}/gm, "")
+                      : block.replace(/^/gm, "  ");
+                    recordUndo(source);
+                    const next = value.slice(0, lineStart) + updated + value.slice(lineEnd);
+                    setSource(next);
+                    const delta = updated.length - block.length;
+                    requestAnimationFrame(() => {
+                      ta.selectionStart = lineStart;
+                      ta.selectionEnd = lineEnd + delta;
+                    });
+                  }}
                   spellCheck={false}
                   wrap="off"
                   className="relative h-full w-full resize-none bg-transparent px-4 py-3 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-none"
