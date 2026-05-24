@@ -1601,6 +1601,24 @@ export function EditorClient({
                   className="relative overflow-hidden rounded-xl shadow-xl"
                 >
                   <div ref={innerRef} className="flex min-h-full w-full items-center justify-center p-8 overflow-hidden" />
+                  {!source.trim() && !aiLoading && (
+                    <div
+                      data-no-export
+                      className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-500">
+                        <Sparkles className="h-6 w-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-slate-700">
+                          Describe your diagram in the AI chat
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          or open <span className="font-medium text-slate-700">Source</span> to type Mermaid yourself
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {aiLoading && (
                     <div
                       data-no-export
