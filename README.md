@@ -61,6 +61,13 @@ Milestones 1.0, 1.1, and 1.2 are **complete**.
 - **Brand Kit** — set your workspace colors in Settings (primary, secondary, accent, background); the editor's Palette button applies them to any diagram in one click
 - **Iframe Embeds** — `/embed/[token]` serves a chromeless viewer; the editor's "Embed" button copies a paste-ready `<iframe>` snippet
 
+### Milestone 1.3 — Legendary ✅
+
+- **Real OG Previews** — when you click Share or Embed, the editor captures a PNG of the actual diagram and stores it with the link; social unfurls (Slack, Twitter, LinkedIn) show the real diagram, not a generic card
+- **Streaming Live Preview** — the Mermaid canvas updates progressively as the AI generates, with a parse-gate so partial output doesn't flicker the diagram to empty; pulsing "Streaming" pill confirms the magic
+- **AI-aware Brand Kit** — once you set a brand kit, the AI honors those colors when generating color-sensitive diagrams (echarts, themed mermaid, reactflow)
+- **Templates Gallery** — `/app/templates` ships 6 hand-crafted starters (onboarding funnel, OAuth flow, architecture, revenue chart, blog ER, roadmap gantt); one click forks into your workspace
+
 ---
 
 ## Deploy

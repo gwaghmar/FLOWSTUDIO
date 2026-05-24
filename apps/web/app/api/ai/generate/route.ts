@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateText, streamText, createDataStreamResponse } from "ai";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { MermaidSourceSchema, DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta } from "@flowchart/core";
@@ -9,7 +9,7 @@ import type { ApiError } from "@flowchart/core";
 import { BpmnModdle } from "bpmn-moddle";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, brandKits } from "@/lib/db/schema";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
@@ -352,7 +352,35 @@ export async function POST(req: Request) {
     return NextResponse.json(body, { status: 401 });
   }
 
-  const { user } = await ensureUserAndWorkspace(email);
+  const { user, workspace } = await ensureUserAndWorkspace(email);
+
+  // Workspace brand kit (optional) — when present, give the AI a palette to
+  // honor for color-sensitive diagram types (echarts, mermaid theme overrides,
+  // reactflow node colors).
+  let brandDirective = "";
+  try {
+    const [brandRow] = await db
+      .select({ name: brandKits.name, paletteJson: brandKits.paletteJson })
+      .from(brandKits)
+      .where(eq(brandKits.workspaceId, workspace.id))
+      .orderBy(desc(brandKits.createdAt))
+      .limit(1);
+    if (brandRow?.paletteJson) {
+      const p = JSON.parse(brandRow.paletteJson) as {
+        primary?: string; secondary?: string; accent?: string; background?: string;
+      };
+      if (p.primary && p.secondary && p.accent) {
+        brandDirective = `BRAND PALETTE — the user's workspace defines a brand kit "${brandRow.name}". When the diagram type involves color choices (echarts color arrays, mermaid theme overrides, reactflow node fills), use these colors:
+- primary:   ${p.primary}
+- secondary: ${p.secondary}
+- accent:    ${p.accent}${p.background ? `\n- background: ${p.background}` : ""}
+Use the brand colors for the most prominent visual elements (main series, primary nodes). Do not introduce unrelated colors. If a diagram type is text-only (e.g. plain mermaid flowchart with default theme), ignore this directive.
+`;
+      }
+    }
+  } catch {
+    // ignore — brand directive is best-effort
+  }
 
   // Rate limiting — fixed per user
   const rl = rateLimit(`ai:${user.id}`, 60, 60_000);
@@ -600,7 +628,7 @@ Rules:
 - Output the FULL new source (still emit a complete diagram), but the diff from the current source should be minimal and surgical.
 `
       : "";
-    const generationInstruction = `${patchDirective}Intent plan:
+    const generationInstruction = `${brandDirective}${patchDirective}Intent plan:
 ${JSON.stringify(intentPlan, null, 2)}
 ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype ? `\nUse diagram subtype: ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype}` : ""}
 Quality requirements:

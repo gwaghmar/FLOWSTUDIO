@@ -15,7 +15,6 @@ import {
   FileText,
   LayoutGrid,
   Plus,
-  Search,
   Sparkles,
 } from "lucide-react";
 
@@ -174,10 +173,12 @@ export default async function DashboardPage() {
                 A sellable product needs instant examples for every common job.
               </p>
             </div>
-            <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 sm:flex">
-              <Search className="h-4 w-4" />
-              Search library soon
-            </div>
+            <Link
+              href="/app/templates"
+              className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 sm:flex"
+            >
+              Browse all templates →
+            </Link>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {featuredTemplates.map((template) => {

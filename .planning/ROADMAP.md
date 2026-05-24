@@ -88,4 +88,4 @@ Detailed plan: `.planning/phases/MILESTONE-1.2.md`
 
 - [x] **Phase 9: Real OG Previews** â€” client captures a PNG at share-create time; OG route serves the actual diagram, not a generic card
 - [x] **Phase 10: Streaming Live Preview** â€” added the missing Mermaid live preview AND made it streaming-aware (parse-gate, last-good fallback, debounce)
-- [ ] **Phase 11: AI-aware Brand Kit + Templates Gallery** â€” AI honors workspace palette; "Fork from public" diagram gallery
+- [x] **Phase 11: AI-aware Brand Kit + Templates Gallery** â€” AI injects workspace brand palette into generation prompts; `/app/templates` ships with 6 curated starters that fork into a new project on click
