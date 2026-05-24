@@ -23,6 +23,7 @@ import {
   Clock,
   Palette,
   Code2,
+  Wand2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -573,6 +574,24 @@ export function EditorClient({
   const saveState: "saved" | "saving" | "unsaved" = saving ? "saving" : isDirty ? "unsaved" : "saved";
 
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
+
+  const handleAutoLayout = useCallback(async () => {
+    if (diagramType !== "reactflow") return;
+    try {
+      const mod = await import("./diagrams/reactflow-renderer");
+      const next = await mod.autoLayoutReactFlow(source);
+      if (next === source) {
+        showToast("Layout unchanged");
+        return;
+      }
+      recordUndo(source);
+      setSource(next);
+      showToast("Auto-layout applied · ⌘Z to undo");
+    } catch (e) {
+      console.error("[auto-layout]", e);
+      showToast("Could not auto-layout");
+    }
+  }, [diagramType, source, recordUndo, showToast]);
 
   const handleApplyBrandKit = useCallback(async () => {
     setApplyingBrand(true);
@@ -1299,6 +1318,16 @@ export function EditorClient({
               >
                 <Palette className="h-4 w-4" />
               </button>
+              {diagramType === "reactflow" && (
+                <button
+                  type="button"
+                  onClick={() => void handleAutoLayout()}
+                  title="Auto-layout the node graph"
+                  className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <Wand2 className="h-4 w-4" />
+                </button>
+              )}
               <div className="relative" data-history-menu-root>
                 <button
                   type="button"
