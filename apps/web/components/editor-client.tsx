@@ -411,6 +411,9 @@ export function EditorClient({
   // Keep sourceRef current so tool effects can read latest source without stale closures.
   useEffect(() => { sourceRef.current = source; }, [source]);
 
+  const lastGoodSvgRef = useRef<string | null>(null);
+  const renderSeqRef = useRef(0);
+
   const recordUndo = useCallback((snapshot: string) => {
     setUndoStack(prev => {
       if (prev[prev.length - 1] === snapshot) return prev;
@@ -501,6 +504,54 @@ export function EditorClient({
   const accentColor = paletteId === "default" ? (theme.themeVariables.primaryColor ?? "#6366f1") : customAccent;
   const uiState = useMemo(() => ({ showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern }), [showGrid, fontId, paletteId, customBackground, customAccent, backgroundPattern]);
   const sourceWithUi = useMemo(() => diagramType === "mermaid" ? embedUiInSource(source, uiState) : source, [source, uiState, diagramType]);
+
+  // Live Mermaid preview — renders the active source into the preview canvas.
+  // Streaming-aware: validates with mermaid.parse() before rendering, and on
+  // parse failure (common during AI streaming) it keeps the last good render
+  // visible so the canvas doesn't flicker to empty between chunks.
+  useEffect(() => {
+    if (diagramType !== "mermaid") return;
+    const node = innerRef.current;
+    if (!node) return;
+    const trimmed = source.trim();
+    if (!trimmed) {
+      node.innerHTML = "";
+      lastGoodSvgRef.current = null;
+      return;
+    }
+    // Debounce while AI is actively streaming to avoid re-rendering on every
+    // chunk. Render immediately when not streaming so manual edits feel snappy.
+    const delay = aiLoading ? 120 : 0;
+    const seq = ++renderSeqRef.current;
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          mermaid.initialize({
+            ...buildMermaidConfig(theme),
+            startOnLoad: false,
+            suppressErrorRendering: true,
+          });
+          // Cheap validity check first — avoids the expensive render+throw cycle
+          // on partial streamed source.
+          await mermaid.parse(trimmed);
+          const { svg } = await mermaid.render(`m${seq}-${Math.floor(Math.random() * 1e9)}`, trimmed);
+          if (seq !== renderSeqRef.current) return;
+          lastGoodSvgRef.current = svg;
+          node.innerHTML = svg;
+        } catch {
+          // Likely incomplete source mid-stream. Keep last good render so the
+          // canvas stays stable while the AI types more.
+          if (seq !== renderSeqRef.current) return;
+          if (!lastGoodSvgRef.current) {
+            // Nothing to fall back on — leave empty so the user sees the source
+            // pane is the source of truth right now.
+            node.innerHTML = "";
+          }
+        }
+      })();
+    }, delay);
+    return () => clearTimeout(t);
+  }, [source, theme, diagramType, aiLoading]);
   // When loading an existing project, lastSavedSnapshot starts as "" — treat that as "saved" so we don't show "Unsaved" before any changes.
   const isDirty = useMemo(() => {
     if (lastSavedSnapshot.current === "" && projectId !== null) return false;
@@ -1389,6 +1440,20 @@ export function EditorClient({
                   className="relative overflow-hidden rounded-xl shadow-xl"
                 >
                   <div ref={innerRef} className="flex min-h-full w-full items-center justify-center p-8 overflow-hidden" />
+                  {aiLoading && (
+                    <div
+                      data-no-export
+                      className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-indigo-300/60 animate-pulse"
+                    />
+                  )}
+                  {aiLoading && (
+                    <div
+                      data-no-export
+                      className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-indigo-50/95 border border-indigo-200 px-2.5 py-1 text-[10px] font-medium text-indigo-700 shadow-sm backdrop-blur-sm"
+                    >
+                      <Sparkles className="h-3 w-3 animate-pulse" /> Streaming
+                    </div>
+                  )}
                   {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with Flowchart Studio</div>}
                 </div>
               </div>
