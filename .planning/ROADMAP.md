@@ -81,3 +81,11 @@ Detailed plan: `.planning/phases/MILESTONE-1.2.md`
 
 - [x] **Phase 7: Brand Kit** â€” workspace-scoped CRUD + settings UI; one-click apply in the editor writes the palette into the active diagram
 - [x] **Phase 8: Iframe Embeds** â€” chromeless `/embed/[token]` viewer + "Embed" button copies a paste-ready iframe snippet
+
+---
+
+# Milestone 1.3 â€” Legendary (in progress)
+
+- [x] **Phase 9: Real OG Previews** â€” client captures a PNG at share-create time; OG route serves the actual diagram, not a generic card
+- [ ] **Phase 10: Streaming Live Preview** â€” diagram renders progressively as the AI streams
+- [ ] **Phase 11: AI-aware Brand Kit + Templates Gallery** â€” AI honors workspace palette; "Fork from public" diagram gallery

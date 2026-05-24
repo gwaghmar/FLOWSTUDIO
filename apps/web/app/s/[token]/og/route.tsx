@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { shareLinks, projects } from "@/lib/db/schema";
@@ -16,15 +17,28 @@ const TYPE_LABELS: Record<string, string> = {
   bpmn: "BPMN process",
 };
 
+function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {
+  // Format: data:<mime>;base64,<payload>
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  try {
+    return { mime: match[1], bytes: Buffer.from(match[2], "base64") };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   let title = "Shared Diagram";
   let typeLabel = "Diagram";
+  let storedPreview: string | null = null;
 
   try {
     const tokenHash = sha256Hex(token);
     const [link] = await db.select().from(shareLinks).where(eq(shareLinks.tokenHash, tokenHash)).limit(1);
     if (link && (!link.expiresAt || link.expiresAt > new Date())) {
+      storedPreview = link.previewDataUrl ?? null;
       const [p] = await db
         .select({ title: projects.title, diagramType: projects.diagramType })
         .from(projects)
@@ -37,6 +51,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     }
   } catch {
     // fall through to defaults
+  }
+
+  // If we captured a real diagram preview at share-create time, serve it
+  // directly. This is the actual rendered diagram, not a generic card.
+  if (storedPreview) {
+    const decoded = decodeDataUrl(storedPreview);
+    if (decoded) {
+      const body = new Uint8Array(decoded.bytes);
+      return new NextResponse(body, {
+        headers: {
+          "Content-Type": decoded.mime,
+          "Cache-Control": "public, max-age=300, s-maxage=600",
+        },
+      });
+    }
   }
 
   return new ImageResponse(

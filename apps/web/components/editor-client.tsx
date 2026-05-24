@@ -735,6 +735,35 @@ export function EditorClient({
     }
   }, [diagramType, source, title, echartsUiTheme, pngScale, zipIncludeCustom, customExportWidth, customExportHeight, bgColor]);
 
+  /**
+   * Capture a 1200x630 PNG of the current diagram for OG previews. Best-effort:
+   * returns undefined on any failure so the OG route falls back to the
+   * branded card.
+   */
+  const captureSharePreview = useCallback(async (): Promise<string | undefined> => {
+    try {
+      const node = frameRef.current;
+      if (!node) return undefined;
+      const rect = node.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return undefined;
+      // Render at OG-card aspect (~1.91:1). Scale to keep file size reasonable.
+      const targetWidth = 1200;
+      const pixelRatio = Math.min(2, Math.max(1, targetWidth / Math.max(rect.width, 1)));
+      const dataUrl = await toPng(node, {
+        pixelRatio,
+        backgroundColor: bgColor,
+        filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export"),
+        cacheBust: true,
+      });
+      // Drop if it's too large to store (server enforces this too).
+      if (dataUrl.length > 380_000) return undefined;
+      return dataUrl;
+    } catch (e) {
+      console.warn("[share-preview]", e);
+      return undefined;
+    }
+  }, [bgColor]);
+
   const handleShare = useCallback(async () => {
     setIsSharing(true);
     try {
@@ -745,13 +774,14 @@ export function EditorClient({
       } else {
         await saveProject(id, { source: sourceWithUi, themeId, title, diagramType });
       }
-      const token = await createShareLink(id);
+      const preview = await captureSharePreview();
+      const token = await createShareLink(id, preview);
       await navigator.clipboard.writeText(`${window.location.origin}/s/${encodeURIComponent(token)}`);
-      showToast("Share link copied!");
+      showToast(preview ? "Share link copied · preview attached" : "Share link copied!");
     } finally {
       setIsSharing(false);
     }
-  }, [currentProjectId, sourceWithUi, themeId, title, diagramType, showToast]);
+  }, [currentProjectId, sourceWithUi, themeId, title, diagramType, captureSharePreview, showToast]);
 
   const handleCopyEmbed = useCallback(async () => {
     setIsSharing(true);
@@ -763,7 +793,8 @@ export function EditorClient({
       } else {
         await saveProject(id, { source: sourceWithUi, themeId, title, diagramType });
       }
-      const token = await createShareLink(id);
+      const preview = await captureSharePreview();
+      const token = await createShareLink(id, preview);
       const url = `${window.location.origin}/embed/${encodeURIComponent(token)}`;
       const snippet = `<iframe src="${url}" width="800" height="500" frameborder="0" style="border:1px solid #e2e8f0;border-radius:8px" allowfullscreen></iframe>`;
       await navigator.clipboard.writeText(snippet);
@@ -771,7 +802,7 @@ export function EditorClient({
     } finally {
       setIsSharing(false);
     }
-  }, [currentProjectId, sourceWithUi, themeId, title, diagramType, showToast]);
+  }, [currentProjectId, sourceWithUi, themeId, title, diagramType, captureSharePreview, showToast]);
 
   const handleSwitchType = useCallback((newType: DiagramType) => {
     if (newType === diagramType) { setShowTypePanel(false); return; }

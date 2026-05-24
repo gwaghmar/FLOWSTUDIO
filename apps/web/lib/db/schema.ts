@@ -92,6 +92,9 @@ export const shareLinks = pgTable("share_link", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
+  // PNG data URL captured client-side at share-create time, used by the OG
+  // image route to render a real preview of the diagram (vs a generic card).
+  previewDataUrl: text("preview_data_url"),
 }, (t) => [index("share_link_project_idx").on(t.projectId)]);
 
 export const apiKeys = pgTable("api_key", {
