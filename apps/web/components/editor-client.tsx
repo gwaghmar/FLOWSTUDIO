@@ -120,6 +120,25 @@ const FONT_OPTIONS: FontOption[] = [
 const UI_META_PREFIX = "%% ui:";
 const UNDO_LIMIT = 50;
 
+const BRACKET_PAIRS: Record<string, string> = {
+  "(": ")",
+  "[": "]",
+  "{": "}",
+  '"': '"',
+  "'": "'",
+  "`": "`",
+};
+const BRACKET_CLOSERS = new Set(Object.values(BRACKET_PAIRS));
+const BRACKET_OPENERS = new Set(Object.keys(BRACKET_PAIRS));
+
+function caretFromOffset(value: string, offset: number): { line: number; col: number } {
+  const before = value.slice(0, offset);
+  const newlineIdx = before.lastIndexOf("\n");
+  const line = (before.match(/\n/g)?.length ?? 0) + 1;
+  const col = offset - newlineIdx;
+  return { line, col };
+}
+
 function parseUiFromSource(raw: string): { source: string; ui: UiState } {
   const lines = raw.split("\n");
   const first = lines[0]?.trim() ?? "";
@@ -239,6 +258,7 @@ export function EditorClient({
   /** Tools / chat column — hide for focus on diagram (persisted). */
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
+  const [sourceCaret, setSourceCaret] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
   const [compactAiContext, setCompactAiContext] = useState(false);
@@ -478,6 +498,7 @@ export function EditorClient({
   const innerRef = useRef<HTMLDivElement>(null);
   const mermaidViewportRef = useRef<HTMLDivElement>(null);
   const sourceScrollRef = useRef<HTMLDivElement>(null);
+  const sourceTextareaRef = useRef<HTMLTextAreaElement>(null);
   const mermaidPanStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const chatListRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef(source);
@@ -1746,47 +1767,112 @@ export function EditorClient({
                   }}
                 />
                 <textarea
+                  ref={sourceTextareaRef}
                   value={source}
                   onChange={(e) => {
                     recordUndo(source);
                     setSource(e.target.value);
+                    setSourceCaret(caretFromOffset(e.target.value, e.target.selectionStart));
+                  }}
+                  onSelect={(e) => {
+                    const ta = e.currentTarget;
+                    setSourceCaret(caretFromOffset(ta.value, ta.selectionStart));
                   }}
                   onKeyDown={(e) => {
-                    // Tab inserts two spaces instead of jumping focus.
-                    // Shift+Tab outdents the current line by up to two spaces.
-                    if (e.key !== "Tab") return;
-                    e.preventDefault();
                     const ta = e.currentTarget;
                     const { selectionStart: start, selectionEnd: end, value } = ta;
-                    if (!e.shiftKey && start === end) {
-                      // Simple insert at caret
+
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      if (!e.shiftKey && start === end) {
+                        recordUndo(source);
+                        const next = value.slice(0, start) + "  " + value.slice(end);
+                        setSource(next);
+                        requestAnimationFrame(() => {
+                          ta.selectionStart = ta.selectionEnd = start + 2;
+                          setSourceCaret(caretFromOffset(next, start + 2));
+                        });
+                        return;
+                      }
+                      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                      const lineEnd = end < value.length && value[end] === "\n"
+                        ? end
+                        : value.indexOf("\n", end) === -1
+                          ? value.length
+                          : value.indexOf("\n", end);
+                      const block = value.slice(lineStart, lineEnd);
+                      const updated = e.shiftKey
+                        ? block.replace(/^ {1,2}/gm, "")
+                        : block.replace(/^/gm, "  ");
                       recordUndo(source);
-                      const next = value.slice(0, start) + "  " + value.slice(end);
+                      const next = value.slice(0, lineStart) + updated + value.slice(lineEnd);
                       setSource(next);
+                      const delta = updated.length - block.length;
                       requestAnimationFrame(() => {
-                        ta.selectionStart = ta.selectionEnd = start + 2;
+                        ta.selectionStart = lineStart;
+                        ta.selectionEnd = lineEnd + delta;
+                        setSourceCaret(caretFromOffset(next, lineEnd + delta));
                       });
                       return;
                     }
-                    // Indent / outdent across the selected line range
-                    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-                    const lineEnd = end < value.length && value[end] === "\n"
-                      ? end
-                      : value.indexOf("\n", end) === -1
-                        ? value.length
-                        : value.indexOf("\n", end);
-                    const block = value.slice(lineStart, lineEnd);
-                    const updated = e.shiftKey
-                      ? block.replace(/^ {1,2}/gm, "")
-                      : block.replace(/^/gm, "  ");
-                    recordUndo(source);
-                    const next = value.slice(0, lineStart) + updated + value.slice(lineEnd);
-                    setSource(next);
-                    const delta = updated.length - block.length;
-                    requestAnimationFrame(() => {
-                      ta.selectionStart = lineStart;
-                      ta.selectionEnd = lineEnd + delta;
-                    });
+
+                    if (e.key === "Backspace" && start === end && start > 0) {
+                      const prev = value[start - 1];
+                      const next = value[start];
+                      if (prev && BRACKET_PAIRS[prev] === next) {
+                        e.preventDefault();
+                        recordUndo(source);
+                        const updated = value.slice(0, start - 1) + value.slice(start + 1);
+                        setSource(updated);
+                        requestAnimationFrame(() => {
+                          ta.selectionStart = ta.selectionEnd = start - 1;
+                          setSourceCaret(caretFromOffset(updated, start - 1));
+                        });
+                        return;
+                      }
+                    }
+
+                    if (BRACKET_CLOSERS.has(e.key) && start === end && value[start] === e.key) {
+                      const prev = value[start - 1];
+                      if (!(prev && BRACKET_OPENERS.has(prev) && BRACKET_PAIRS[prev] === e.key && (e.key === '"' || e.key === "'" || e.key === "`"))) {
+                        e.preventDefault();
+                        requestAnimationFrame(() => {
+                          ta.selectionStart = ta.selectionEnd = start + 1;
+                          setSourceCaret(caretFromOffset(value, start + 1));
+                        });
+                        return;
+                      }
+                    }
+
+                    if (BRACKET_OPENERS.has(e.key)) {
+                      const close = BRACKET_PAIRS[e.key];
+                      if (start !== end) {
+                        e.preventDefault();
+                        recordUndo(source);
+                        const selected = value.slice(start, end);
+                        const updated = value.slice(0, start) + e.key + selected + close + value.slice(end);
+                        setSource(updated);
+                        requestAnimationFrame(() => {
+                          ta.selectionStart = start + 1;
+                          ta.selectionEnd = end + 1;
+                          setSourceCaret(caretFromOffset(updated, end + 1));
+                        });
+                        return;
+                      }
+                      const nextChar = value[start] ?? "";
+                      const canPair = nextChar === "" || /[\s)\]}>,;:]/.test(nextChar);
+                      if (canPair) {
+                        e.preventDefault();
+                        recordUndo(source);
+                        const updated = value.slice(0, start) + e.key + close + value.slice(end);
+                        setSource(updated);
+                        requestAnimationFrame(() => {
+                          ta.selectionStart = ta.selectionEnd = start + 1;
+                          setSourceCaret(caretFromOffset(updated, start + 1));
+                        });
+                        return;
+                      }
+                    }
                   }}
                   spellCheck={false}
                   wrap="off"
@@ -1795,8 +1881,11 @@ export function EditorClient({
                   placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
                 />
               </div>
-              <div className="border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
-                ⌘Z to undo · Changes apply live to the preview
+              <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
+                <span>⌘Z to undo · Changes apply live</span>
+                <span className="tabular-nums">
+                  Ln {sourceCaret.line}, Col {sourceCaret.col}
+                </span>
               </div>
             </div>
           </motion.aside>
