@@ -25,6 +25,9 @@ import {
   Code2,
   Wand2,
   Paintbrush,
+  Search,
+  ChevronUp,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -259,6 +262,13 @@ export function EditorClient({
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
   const [sourceCaret, setSourceCaret] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+  const [searchActiveIdx, setSearchActiveIdx] = useState(0);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replaceQuery, setReplaceQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
   const [compactAiContext, setCompactAiContext] = useState(false);
@@ -464,6 +474,96 @@ export function EditorClient({
       setUndoStack(u => [...u, sourceRef.current].slice(-UNDO_LIMIT));
       setSource(snapshot);
       return prev.slice(1);
+    });
+  }, []);
+
+  const searchMatches = useMemo(() => {
+    if (!searchQuery) return [] as number[];
+    const hay = searchCaseSensitive ? source : source.toLowerCase();
+    const needle = searchCaseSensitive ? searchQuery : searchQuery.toLowerCase();
+    if (!needle) return [];
+    const out: number[] = [];
+    let i = 0;
+    while (i <= hay.length - needle.length) {
+      const idx = hay.indexOf(needle, i);
+      if (idx === -1) break;
+      out.push(idx);
+      i = idx + Math.max(1, needle.length);
+    }
+    return out;
+  }, [source, searchQuery, searchCaseSensitive]);
+
+  useEffect(() => {
+    if (searchActiveIdx >= searchMatches.length && searchMatches.length > 0) {
+      setSearchActiveIdx(0);
+    }
+  }, [searchMatches.length, searchActiveIdx]);
+
+  const focusMatch = useCallback((idx: number) => {
+    const ta = sourceTextareaRef.current;
+    if (!ta || searchMatches.length === 0) return;
+    const safe = ((idx % searchMatches.length) + searchMatches.length) % searchMatches.length;
+    const start = searchMatches[safe];
+    const end = start + searchQuery.length;
+    setSearchActiveIdx(safe);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start, end);
+      const before = source.slice(0, start);
+      const line = (before.match(/\n/g)?.length ?? 0) + 1;
+      const lineHeight = 20;
+      const scroller = sourceScrollRef.current;
+      if (scroller) {
+        const target = (line - 1) * lineHeight - 60;
+        if (target < scroller.scrollTop || target > scroller.scrollTop + scroller.clientHeight - 80) {
+          scroller.scrollTop = Math.max(0, target);
+        }
+      }
+      setSourceCaret(caretFromOffset(source, end));
+    });
+  }, [searchMatches, searchQuery, source]);
+
+  const replaceCurrent = useCallback(() => {
+    if (searchMatches.length === 0) return;
+    const start = searchMatches[searchActiveIdx] ?? searchMatches[0];
+    const end = start + searchQuery.length;
+    recordUndo(source);
+    const next = source.slice(0, start) + replaceQuery + source.slice(end);
+    setSource(next);
+    requestAnimationFrame(() => {
+      const ta = sourceTextareaRef.current;
+      if (!ta) return;
+      const caret = start + replaceQuery.length;
+      ta.focus();
+      ta.setSelectionRange(caret, caret);
+      setSourceCaret(caretFromOffset(next, caret));
+    });
+  }, [searchMatches, searchActiveIdx, searchQuery, replaceQuery, source, recordUndo]);
+
+  const replaceAll = useCallback(() => {
+    if (searchMatches.length === 0) return;
+    recordUndo(source);
+    let next = "";
+    let cursor = 0;
+    for (const start of searchMatches) {
+      next += source.slice(cursor, start) + replaceQuery;
+      cursor = start + searchQuery.length;
+    }
+    next += source.slice(cursor);
+    setSource(next);
+  }, [searchMatches, searchQuery, replaceQuery, source, recordUndo]);
+
+  const openSearch = useCallback(() => {
+    setSourcePanelOpen(true);
+    setSearchOpen(true);
+    const ta = sourceTextareaRef.current;
+    if (ta && ta.selectionStart !== ta.selectionEnd) {
+      const selected = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+      if (selected && !selected.includes("\n")) setSearchQuery(selected);
+    }
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
     });
   }, []);
 
@@ -984,10 +1084,14 @@ export function EditorClient({
         e.preventDefault();
         handleResetView();
       }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        openSearch();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave]);
+  }, [handleSave, handleResetView, openSearch]);
 
   const preset = useMemo(() => presetId === "custom" ? null : getPreset(presetId), [presetId]);
   const frameW = preset?.width ?? customExportWidth;
@@ -1729,15 +1833,147 @@ export function EditorClient({
                   <span className="text-xs font-semibold text-slate-700">Source</span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wide">{diagramType}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSourcePanelOpen(false)}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
-                  aria-label="Close source editor"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={openSearch}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    aria-label="Find in source (⌘F)"
+                    title="Find (⌘F)"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSourcePanelOpen(false)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    aria-label="Close source editor"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
+              {searchOpen && (
+                <div className="border-b border-slate-100 bg-slate-50/50 px-3 py-2 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Search className="h-3 w-3 shrink-0 text-slate-400" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          setSearchOpen(false);
+                          sourceTextareaRef.current?.focus();
+                          return;
+                        }
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (searchMatches.length === 0) return;
+                          focusMatch(searchActiveIdx + (e.shiftKey ? -1 : 1));
+                        }
+                      }}
+                      placeholder="Find"
+                      className="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                    />
+                    <span className="shrink-0 text-[10px] tabular-nums text-slate-400 w-12 text-right">
+                      {searchQuery
+                        ? searchMatches.length === 0
+                          ? "0/0"
+                          : `${searchActiveIdx + 1}/${searchMatches.length}`
+                        : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchCaseSensitive((v) => !v)}
+                      title="Match case"
+                      className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${searchCaseSensitive ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                    >
+                      Aa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => focusMatch(searchActiveIdx - 1)}
+                      disabled={searchMatches.length === 0}
+                      title="Previous match (⇧⏎)"
+                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => focusMatch(searchActiveIdx + 1)}
+                      disabled={searchMatches.length === 0}
+                      title="Next match (⏎)"
+                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReplaceOpen((v) => !v)}
+                      title="Toggle replace"
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${replaceOpen ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                    >
+                      ⇄
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        sourceTextareaRef.current?.focus();
+                      }}
+                      title="Close (Esc)"
+                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {replaceOpen && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-[10px] text-slate-400 w-3 text-center">↳</span>
+                      <input
+                        type="text"
+                        value={replaceQuery}
+                        onChange={(e) => setReplaceQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            replaceCurrent();
+                          }
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            setSearchOpen(false);
+                            sourceTextareaRef.current?.focus();
+                          }
+                        }}
+                        placeholder="Replace"
+                        className="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={replaceCurrent}
+                        disabled={searchMatches.length === 0}
+                        title="Replace current"
+                        className="shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                      >
+                        Replace
+                      </button>
+                      <button
+                        type="button"
+                        onClick={replaceAll}
+                        disabled={searchMatches.length === 0}
+                        title="Replace all matches"
+                        className="shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                      >
+                        All
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div
                 ref={sourceScrollRef}
                 className="relative flex-1 overflow-auto"
