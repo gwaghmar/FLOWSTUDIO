@@ -671,14 +671,65 @@ Quality requirements:
           messages,
           temperature: 0.3,
           maxTokens,
-          onFinish: async () => {
-            if (user.plan === "free" && !skipCredits) {
-              await tryDecrementCredit(user.id);
-            }
-          },
         });
 
         result.mergeIntoDataStream(dataStream);
+
+        let creditCharged = false;
+        try {
+          const finalText = await result.text;
+          const validation = await validateAndRepairOutput(effectiveDiagramType, finalText);
+
+          if (!validation.ok) {
+            const correctiveInstruction = `Your previous ${effectiveDiagramType} output failed validation: ${validation.reason}
+
+Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanation, no markdown fences. Preserve the intent and structure of your previous attempt; fix only what is broken.`;
+
+            try {
+              const corrective = await generateText({
+                model: languageModel,
+                system: effectiveSystemPrompt,
+                messages: [
+                  ...messages,
+                  { role: "assistant", content: finalText },
+                  { role: "user", content: correctiveInstruction },
+                ],
+                temperature: 0.1,
+                maxTokens,
+              });
+              const recheck = await validateAndRepairOutput(effectiveDiagramType, corrective.text);
+              if (recheck.ok) {
+                dataStream.writeData({
+                  correctedSource: recheck.source,
+                  validationRepaired: true,
+                  validationReason: validation.reason,
+                });
+              } else {
+                console.warn("[AI generate] Corrective pass also failed:", recheck.reason);
+                dataStream.writeData({
+                  validationFailed: true,
+                  validationReason: validation.reason,
+                });
+              }
+            } catch (e) {
+              console.warn("[AI generate] Corrective pass errored:", e);
+              dataStream.writeData({
+                validationFailed: true,
+                validationReason: validation.reason,
+              });
+            }
+          }
+
+          if (user.plan === "free" && !skipCredits) {
+            await tryDecrementCredit(user.id);
+            creditCharged = true;
+          }
+        } catch (e) {
+          console.error("[AI generate] post-stream validation error:", e);
+          if (!creditCharged && user.plan === "free" && !skipCredits) {
+            await tryDecrementCredit(user.id);
+          }
+        }
       },
     });
   } catch (e) {

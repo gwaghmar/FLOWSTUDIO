@@ -432,6 +432,27 @@ export function EditorClient({
     return () => clearTimeout(t);
   }, [assumptionBanner]);
 
+  // Server-side validation may emit a corrected source after the stream
+  // ends (when the model's first attempt fails structural checks). Apply
+  // it, replacing the in-progress streamed text.
+  useEffect(() => {
+    if (!streamData || streamData.length === 0) return;
+    for (const entry of streamData) {
+      const e = entry as { correctedSource?: string; validationRepaired?: boolean; validationFailed?: boolean; validationReason?: string };
+      if (e?.validationRepaired && typeof e.correctedSource === "string" && e.correctedSource.length > 5) {
+        setSource(e.correctedSource);
+        setToast("AI output had a structural issue — automatically repaired.");
+        setTimeout(() => setToast(null), 3000);
+        break;
+      }
+      if (e?.validationFailed && e?.validationReason) {
+        setToast(`AI output may be invalid: ${e.validationReason.slice(0, 80)}`);
+        setTimeout(() => setToast(null), 3000);
+        break;
+      }
+    }
+  }, [streamData]);
+
   // Sync source with streaming AI response
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
