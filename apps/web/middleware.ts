@@ -1,13 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { isMockAuthEnabled } from "@/lib/auth-mode";
+import { isMockAuthEnabled, hasSupabaseConfig } from "@/lib/auth-mode";
 
 export async function middleware(request: NextRequest) {
-  if (isMockAuthEnabled()) {
+  if (isMockAuthEnabled() || !hasSupabaseConfig()) {
     return NextResponse.next({ request });
   }
 
-  const { response, user } = await updateSession(request);
+  let user = null;
+  let response: NextResponse;
+  try {
+    const result = await updateSession(request);
+    response = result.response;
+    user = result.user;
+  } catch (e) {
+    console.error("Middleware: updateSession failed, passing through.", e);
+    return NextResponse.next({ request });
+  }
 
   if (
     !user &&
