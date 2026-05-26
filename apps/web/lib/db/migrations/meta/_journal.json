@@ -15,6 +15,13 @@
       "when": 1779840000000,
       "tag": "0001_share_preview",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779950000000,
+      "tag": "0002_ai_events",
+      "breakpoints": true
     }
   ]
 }

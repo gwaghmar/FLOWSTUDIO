@@ -9,7 +9,7 @@ import type { ApiError } from "@flowchart/core";
 import { BpmnModdle } from "bpmn-moddle";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users, brandKits } from "@/lib/db/schema";
+import { users, brandKits, aiEvents } from "@/lib/db/schema";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
@@ -344,7 +344,16 @@ async function validateAndRepairOutput(diagramType: DiagramType, raw: string): P
   return { ok: false, reason: "Unsupported diagram type" };
 }
 
+async function recordAiEvent(row: typeof aiEvents.$inferInsert): Promise<void> {
+  try {
+    await db.insert(aiEvents).values(row);
+  } catch (e) {
+    console.warn("[ai-event] insert failed:", e instanceof Error ? e.message : e);
+  }
+}
+
 export async function POST(req: Request) {
+  const requestStart = Date.now();
   const session = await auth();
   const email = session?.user?.email;
   if (!email) {
@@ -579,6 +588,7 @@ Rules:
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
   - "flowchart", "sequence diagram", "ERD", "database schema", "class diagram", "Gantt", "mindmap" → "mermaid"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
+    const intentStart = Date.now();
     const { text: intentText } = await generateText({
       model: languageModel,
       system: "You are a diagram intent analyzer. Extract structure from user requests accurately.",
@@ -589,6 +599,7 @@ Rules:
       temperature: 0.1,
       maxTokens: compact ? 500 : 800,
     });
+    const intentLatencyMs = Date.now() - intentStart;
     const intentPlan = parseIntentPlan(intentText, promptText);
     const shouldClarify = intentPlan.shouldAskClarification && intentPlan.ambiguityScore >= 90;
     if (shouldClarify) {
@@ -665,6 +676,7 @@ Quality requirements:
           generationMode,
         });
 
+        const genStart = Date.now();
         const result = await streamText({
           model: languageModel,
           system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
@@ -676,11 +688,26 @@ Quality requirements:
         result.mergeIntoDataStream(dataStream);
 
         let creditCharged = false;
+        let validationStatus: "ok" | "repaired" | "failed_after_retry" | "error" = "ok";
+        let retryAttempted = false;
+        let inputTokens: number | undefined;
+        let outputTokens: number | undefined;
+        let genLatencyMs: number | undefined;
+        let errorMessage: string | undefined;
+
         try {
           const finalText = await result.text;
+          genLatencyMs = Date.now() - genStart;
+          try {
+            const usage = await result.usage;
+            inputTokens = usage?.promptTokens;
+            outputTokens = usage?.completionTokens;
+          } catch {}
+
           const validation = await validateAndRepairOutput(effectiveDiagramType, finalText);
 
           if (!validation.ok) {
+            retryAttempted = true;
             const correctiveInstruction = `Your previous ${effectiveDiagramType} output failed validation: ${validation.reason}
 
 Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanation, no markdown fences. Preserve the intent and structure of your previous attempt; fix only what is broken.`;
@@ -699,12 +726,14 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
               });
               const recheck = await validateAndRepairOutput(effectiveDiagramType, corrective.text);
               if (recheck.ok) {
+                validationStatus = "repaired";
                 dataStream.writeData({
                   correctedSource: recheck.source,
                   validationRepaired: true,
                   validationReason: validation.reason,
                 });
               } else {
+                validationStatus = "failed_after_retry";
                 console.warn("[AI generate] Corrective pass also failed:", recheck.reason);
                 dataStream.writeData({
                   validationFailed: true,
@@ -712,6 +741,7 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
                 });
               }
             } catch (e) {
+              validationStatus = "failed_after_retry";
               console.warn("[AI generate] Corrective pass errored:", e);
               dataStream.writeData({
                 validationFailed: true,
@@ -725,11 +755,34 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
             creditCharged = true;
           }
         } catch (e) {
-          console.error("[AI generate] post-stream validation error:", e);
+          validationStatus = "error";
+          errorMessage = e instanceof Error ? e.message : String(e);
+          console.error("[AI generate] post-stream error:", e);
           if (!creditCharged && user.plan === "free" && !skipCredits) {
             await tryDecrementCredit(user.id);
           }
         }
+
+        void recordAiEvent({
+          userId: user.id,
+          diagramType,
+          effectiveDiagramType,
+          typeSwitched,
+          mode: generationMode,
+          provider,
+          model,
+          promptLength: promptText.length,
+          sourceLength: sourceSnippet.length,
+          intentLatencyMs,
+          genLatencyMs,
+          totalLatencyMs: Date.now() - requestStart,
+          inputTokens,
+          outputTokens,
+          validationStatus,
+          retryAttempted,
+          intentFallback: Boolean(intentPlan._fallback),
+          error: errorMessage ?? null,
+        });
       },
     });
   } catch (e) {

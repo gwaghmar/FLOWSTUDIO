@@ -3,6 +3,7 @@ import {
   text,
   integer,
   timestamp,
+  boolean,
   index,
   check,
 } from "drizzle-orm/pg-core";
@@ -127,6 +128,38 @@ export const brandKits = pgTable("brand_kit", {
     .notNull()
     .defaultNow(),
 }, (t) => [index("brand_kit_workspace_idx").on(t.workspaceId)]);
+
+export const aiEvents = pgTable("ai_event", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+  diagramType: text("diagram_type").notNull(),
+  effectiveDiagramType: text("effective_diagram_type").notNull(),
+  typeSwitched: boolean("type_switched").notNull().default(false),
+  mode: text("mode").notNull(),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  promptLength: integer("prompt_length").notNull().default(0),
+  sourceLength: integer("source_length").notNull().default(0),
+  intentLatencyMs: integer("intent_latency_ms"),
+  genLatencyMs: integer("gen_latency_ms"),
+  totalLatencyMs: integer("total_latency_ms").notNull(),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  validationStatus: text("validation_status").notNull(),
+  retryAttempted: boolean("retry_attempted").notNull().default(false),
+  intentFallback: boolean("intent_fallback").notNull().default(false),
+  error: text("error"),
+}, (t) => [
+  index("ai_event_user_idx").on(t.userId),
+  index("ai_event_created_idx").on(t.createdAt),
+  check("ai_event_mode_chk", sql`mode IN ('patch', 'create')`),
+  check("ai_event_validation_chk", sql`validation_status IN ('ok', 'repaired', 'failed_after_retry', 'error')`),
+]);
 
 export const exportJobs = pgTable("export_job", {
   id: text("id")

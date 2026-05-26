@@ -4,6 +4,7 @@ import {
   adminSetPlan,
 } from "@/app/actions/admin";
 import { getDeploymentReadiness } from "@/lib/deployment-readiness";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,20 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold text-slate-900">Users</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Adjust credits and plans for support. AI keys are never shown here.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Users</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Adjust credits and plans for support. AI keys are never shown here.
+          </p>
+        </div>
+        <Link
+          href="/app/admin/ai-events"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+        >
+          AI events →
+        </Link>
+      </div>
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
