@@ -48,6 +48,7 @@ import {
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
+import { usePresence, presenceColor } from "@/lib/use-presence";
 import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
 import { getBrandKit } from "@/app/actions/brand-kit";
 import { createShareLink } from "@/app/actions/share";
@@ -212,6 +213,8 @@ type Props = {
   isExample?: boolean;
   creditsBalance?: number;
   initialPrompt?: string | null;
+  userEmail?: string;
+  userName?: string;
 };
 
 export function EditorClient({
@@ -225,6 +228,8 @@ export function EditorClient({
   isExample = false,
   creditsBalance,
   initialPrompt,
+  userEmail = "user@example.com",
+  userName = "You",
 }: Props) {
   const parsedInitial = useMemo(() => parseUiFromSource(initialSource), [initialSource]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId);
@@ -281,6 +286,7 @@ export function EditorClient({
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [applyingBrand, setApplyingBrand] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
     api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
     body: {
@@ -1179,7 +1185,7 @@ export function EditorClient({
            </button>
         </div>
 
-        {/* Right: Share, Publish, User avatar */}
+        {/* Right: Share, Publish, Presence avatars, User avatar */}
         <div className="flex items-center gap-2">
            <button
              onClick={() => void handleShare()}
@@ -1203,8 +1209,27 @@ export function EditorClient({
            >
              Publish
            </button>
-           <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold ml-2 cursor-pointer border border-indigo-200">
-             {(title || "F").charAt(0).toUpperCase()}
+           {presenceOthers.length > 0 && (
+             <div className="flex items-center" style={{ marginLeft: 4 }}>
+               {presenceOthers.slice(0, 4).map((u) => (
+                 <div
+                   key={u.email}
+                   title={u.name || u.email}
+                   className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white -ml-2 first:ml-0 cursor-default shadow-sm"
+                   style={{ background: presenceColor(u.email) }}
+                 >
+                   {(u.name || u.email).charAt(0).toUpperCase()}
+                 </div>
+               ))}
+               {presenceOthers.length > 4 && (
+                 <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold border-2 border-white -ml-2 shadow-sm">
+                   +{presenceOthers.length - 4}
+                 </div>
+               )}
+             </div>
+           )}
+           <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold ml-2 cursor-pointer border border-indigo-200" title={userName}>
+             {(userName || userEmail || "U").charAt(0).toUpperCase()}
            </div>
         </div>
       </header>

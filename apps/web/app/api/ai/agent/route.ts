@@ -113,11 +113,17 @@ Current source code:
 ${currentSource || "No source provided"}
 \`\`\`
 
+TOOLS:
+- update_diagram: full rewrite of diagram source
+- apply_patch: surgical find-and-replace on existing source
+- update_node: React Flow only — update a node's label/style by ID
+- fetch_external_data: fetch JSON from a URL or generate contextual sample data by keyword
+
 STRATEGY:
-1. For small changes (color, text, adding 1-2 nodes), use 'apply_patch' or 'update_node' (React Flow only) for surgical edits.
+1. For small changes (color, text, 1-2 nodes), prefer 'apply_patch' or 'update_node'.
 2. For large changes or new diagrams, use 'update_diagram' with the full code.
-3. If the user asks for chart data, use 'fetch_external_data' to load sample rows, then incorporate them.
-4. Always explain what you are doing before calling a tool.`,
+3. For chart/data diagrams, call 'fetch_external_data' first, then build the diagram from the returned rows.
+4. Always briefly explain what you are doing before calling a tool.`,
       tools: {
         update_diagram: tool({
           description: "Update or create the diagram source code (Full rewrite).",
@@ -152,20 +158,82 @@ STRATEGY:
           },
         }),
         fetch_external_data: tool({
-          description: "Fetch data from an external source (Excel, JSON, Database mock).",
+          description: "Fetch data from an external URL (JSON) or generate contextual sample data by keyword.",
           parameters: z.object({
-            sourceName: z.string().describe("Name of the source (e.g., 'sales_data.csv')"),
+            sourceName: z.string().describe("A URL (https://...) or a descriptive name like 'sales_data.csv'"),
           }),
           execute: async ({ sourceName }) => {
-             return { 
-               success: true, 
-               data: [
-                 { category: "A", value: 100 },
-                 { category: "B", value: 250 },
-                 { category: "C", value: 180 }
-               ],
-               summary: "Retrieved 3 rows of data from " + sourceName 
-             };
+            // Real URL → fetch with SSRF guard
+            if (sourceName.startsWith("http://") || sourceName.startsWith("https://")) {
+              try {
+                const url = new URL(sourceName);
+                if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url.hostname)) {
+                  return { success: false, error: "Private/internal URLs are not allowed." };
+                }
+                const res = await fetch(sourceName, { signal: AbortSignal.timeout(6_000) });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const ct = res.headers.get("content-type") ?? "";
+                if (ct.includes("json")) {
+                  const raw = await res.json() as unknown;
+                  const rows = Array.isArray(raw) ? (raw as unknown[]).slice(0, 50) : [raw];
+                  return { success: true, data: rows, summary: `Fetched ${rows.length} rows from ${sourceName}` };
+                }
+                const text = await res.text();
+                return { success: true, data: [{ content: text.slice(0, 2000) }], summary: `Fetched text from ${sourceName}` };
+              } catch (e) {
+                return { success: false, error: e instanceof Error ? e.message : "Fetch failed" };
+              }
+            }
+
+            // Keyword-based contextual sample data
+            const n = sourceName.toLowerCase();
+            let data: Record<string, unknown>[];
+
+            if (/sales|revenue|financial/.test(n)) {
+              data = [
+                { quarter: "Q1", revenue: 420000, costs: 210000, profit: 210000 },
+                { quarter: "Q2", revenue: 510000, costs: 245000, profit: 265000 },
+                { quarter: "Q3", revenue: 480000, costs: 230000, profit: 250000 },
+                { quarter: "Q4", revenue: 620000, costs: 290000, profit: 330000 },
+              ];
+            } else if (/user|customer|signup/.test(n)) {
+              data = [
+                { month: "Jan", users: 1200, churn: 80, net: 1120 },
+                { month: "Feb", users: 1450, churn: 95, net: 1355 },
+                { month: "Mar", users: 1700, churn: 110, net: 1590 },
+                { month: "Apr", users: 1950, churn: 120, net: 1830 },
+                { month: "May", users: 2100, churn: 100, net: 2000 },
+              ];
+            } else if (/traffic|visit|page/.test(n)) {
+              data = [
+                { page: "/home", visits: 12400, bounce: "48%", avg_time: "2:10" },
+                { page: "/pricing", visits: 5200, bounce: "35%", avg_time: "3:45" },
+                { page: "/docs", visits: 3800, bounce: "22%", avg_time: "5:20" },
+                { page: "/blog", visits: 2900, bounce: "55%", avg_time: "1:50" },
+              ];
+            } else if (/product|inventory|stock/.test(n)) {
+              data = [
+                { product: "Plan A", units: 450, revenue: 22500, margin: "40%" },
+                { product: "Plan B", units: 290, revenue: 43500, margin: "55%" },
+                { product: "Plan C", units: 80, revenue: 32000, margin: "65%" },
+              ];
+            } else if (/task|project|sprint/.test(n)) {
+              data = [
+                { task: "Design", status: "done", estimate: 8, actual: 9 },
+                { task: "Backend", status: "in_progress", estimate: 20, actual: 14 },
+                { task: "Frontend", status: "in_progress", estimate: 15, actual: 8 },
+                { task: "Testing", status: "todo", estimate: 10, actual: 0 },
+                { task: "Deploy", status: "todo", estimate: 4, actual: 0 },
+              ];
+            } else {
+              data = [
+                { category: "A", value: 100 },
+                { category: "B", value: 250 },
+                { category: "C", value: 180 },
+              ];
+            }
+
+            return { success: true, data, summary: `Generated ${data.length} rows for "${sourceName}"` };
           },
         }),
       },

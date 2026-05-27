@@ -60,6 +60,7 @@ export default async function EditorPage({
 
   const plan = await getPlanForEmail(email);
   const showWatermark = plan !== "pro";
+  const userName = session?.user?.name ?? email.split("@")[0];
 
   // Fetch credits balance for upgrade nudge
   // const [userData] = await db.select({ creditsBalance: users.creditsBalance }).from(users).where(eq(users.email, email)).limit(1);
@@ -83,6 +84,8 @@ export default async function EditorPage({
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
         initialPrompt={initialPrompt}
+        userEmail={email}
+        userName={userName}
       />
     );
   }
@@ -100,6 +103,8 @@ export default async function EditorPage({
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
         initialPrompt={initialPrompt}
+        userEmail={email}
+        userName={userName}
       />
     );
   }
@@ -137,6 +142,8 @@ export default async function EditorPage({
         aiAssistantHint={aiAssistantHint}
         isExample={true}
         initialPrompt={initialPrompt}
+        userEmail={email}
+        userName={userName}
       />
     );
   }
@@ -156,6 +163,8 @@ export default async function EditorPage({
       creditsBalance={creditsBalance}
       aiAssistantHint={aiAssistantHint}
       initialPrompt={initialPrompt}
+      userEmail={email}
+      userName={userName}
     />
   );
 }

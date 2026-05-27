@@ -1,5 +1,7 @@
 ﻿import Link from "next/link";
+import { redirect } from "next/navigation";
 import { signInWithPassword, signUpWithPassword } from "@/app/actions/login";
+import { isMockAuthEnabled } from "@/lib/auth-mode";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "Incorrect email or password.",
@@ -18,6 +20,7 @@ export default async function LoginPage({
   const cb = sp.callbackUrl ?? "/app/editor";
   const isSignUp = sp.mode === "signup";
   const errorMsg = sp.error ? (ERROR_MESSAGES[sp.error] ?? "Something went wrong. Please try again.") : null;
+  const isMock = isMockAuthEnabled();
 
   return (
     <div className="min-h-screen dot-grid-bg">
@@ -32,6 +35,28 @@ export default async function LoginPage({
 
       <div className="mx-auto flex max-w-md flex-col px-6 pb-16 pt-12">
         <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm sm:p-7">
+
+          {isMock && (
+            <form
+              action={async (formData: FormData) => {
+                "use server";
+                const email = (formData.get("email") as string | null)?.trim() || "dev@example.com";
+                void email;
+                redirect(cb);
+              }}
+              className="mb-5 flex flex-col gap-3"
+            >
+              <input name="email" type="email" placeholder="dev@example.com"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <button type="submit"
+                className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+              >
+                Demo sign-in
+              </button>
+              <p className="text-center text-xs text-slate-400">Dev mode — no password required</p>
+            </form>
+          )}
 
           <div className="flex rounded-lg border border-slate-200 p-1 text-sm font-medium">
             <Link
