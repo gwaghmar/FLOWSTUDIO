@@ -48,6 +48,8 @@ import {
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
+import { TEMPLATES } from "@/lib/templates";
+import type { Template } from "@/lib/templates";
 import { usePresence, presenceColor } from "@/lib/use-presence";
 import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
 import { getBrandKit } from "@/app/actions/brand-kit";
@@ -202,6 +204,25 @@ export type AiAssistantHint =
   | { kind: "server" }
   | { kind: "none" };
 
+const TEMPLATE_KEYWORDS: { id: string; keywords: string[] }[] = [
+  { id: "oauth-sequence",      keywords: ["oauth", "auth", "login", "sign in", "identity", "sso", "saml"] },
+  { id: "onboarding-funnel",   keywords: ["funnel", "onboarding", "signup", "sign up", "activation", "user flow"] },
+  { id: "system-architecture", keywords: ["architecture", "system design", "stack", "infra", "infrastructure", "backend"] },
+  { id: "quarterly-revenue",   keywords: ["revenue", "quarterly", "bar chart", "kpi", "financial", "sales chart"] },
+  { id: "blog-erd",            keywords: ["schema", "database", "erd", "entity", "relations", "table", "data model"] },
+  { id: "release-roadmap",     keywords: ["roadmap", "gantt", "timeline", "sprint", "milestone", "release plan"] },
+];
+
+function matchTemplate(prompt: string): Template | null {
+  const lower = prompt.toLowerCase();
+  for (const { id, keywords } of TEMPLATE_KEYWORDS) {
+    if (keywords.some((k) => lower.includes(k))) {
+      return TEMPLATES.find((t) => t.id === id) ?? null;
+    }
+  }
+  return null;
+}
+
 type Props = {
   initialSource: string;
   initialThemeId: string;
@@ -286,6 +307,8 @@ export function EditorClient({
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [applyingBrand, setApplyingBrand] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [suggestedTemplate, setSuggestedTemplate] = useState<Template | null>(null);
+  const [pendingSuggestInput, setPendingSuggestInput] = useState<string>("");
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
     api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
@@ -321,6 +344,7 @@ export function EditorClient({
       const aiLabel = forceCreateNext
         ? `AI regenerated${promptSnippet ? `: ${promptSnippet}` : ""}`
         : `AI patched${promptSnippet ? `: ${promptSnippet}` : ""}`;
+      setSuggestedTemplate(null);
       setPendingRevisionLabel(aiLabel);
       void handleSave();
       if (forceCreateNext) setForceCreateNext(false);
@@ -820,6 +844,23 @@ export function EditorClient({
       setSaving(false);
     }
   }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast, pendingRevisionLabel, saving]);
+
+  const handleChatSubmit = useCallback((e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent) => {
+    if (!input.trim() || aiLoading) return;
+    const match = matchTemplate(input);
+    if (match && !suggestedTemplate) {
+      setPendingSuggestInput(input);
+      setSuggestedTemplate(match);
+      setInput("");
+      return;
+    }
+    if ("key" in e) {
+      void append({ role: "user", content: input });
+      setInput("");
+    } else {
+      handleSubmit(e as React.FormEvent<HTMLFormElement>);
+    }
+  }, [input, aiLoading, suggestedTemplate, handleSubmit, append, setInput]);
 
   const handleUseCaseChange = useCallback((id: UseCaseId) => {
     setUseCaseId(id);
@@ -1358,10 +1399,54 @@ export function EditorClient({
               </div>
             )}
             
-            <form 
+            {suggestedTemplate && (
+              <div className="mx-3 mb-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 text-sm">📌</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-indigo-900">{suggestedTemplate.title}</p>
+                    <p className="mt-0.5 text-xs text-indigo-700">{suggestedTemplate.description}</p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => {
+                          recordUndo(source);
+                          setSource(suggestedTemplate.source);
+                          setDiagramType(suggestedTemplate.diagramType);
+                          setThemeId(suggestedTemplate.themeId);
+                          setTitle(suggestedTemplate.title);
+                          setSuggestedTemplate(null);
+                          setPendingSuggestInput("");
+                        }}
+                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
+                      >
+                        Use template
+                      </button>
+                      <button
+                        onClick={() => {
+                          void append({ role: "user", content: pendingSuggestInput });
+                          setSuggestedTemplate(null);
+                          setPendingSuggestInput("");
+                        }}
+                        className="rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                      >
+                        Generate anyway
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setSuggestedTemplate(null); setPendingSuggestInput(""); }}
+                    className="text-indigo-400 hover:text-indigo-600 text-xs"
+                    aria-label="Dismiss suggestion"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSubmit(e);
+                handleChatSubmit(e);
               }}
               className="group relative flex flex-col gap-2 rounded-[24px] border border-slate-200/80 bg-white p-2 shadow-lg shadow-slate-200/30 focus-within:border-indigo-500/50 transition-all"
             >
@@ -1374,7 +1459,7 @@ export function EditorClient({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    e.currentTarget.form?.requestSubmit();
+                    handleChatSubmit(e);
                   }
                 }}
               />
