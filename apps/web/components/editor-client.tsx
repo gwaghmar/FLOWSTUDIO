@@ -322,6 +322,7 @@ export function EditorClient({
         ? `AI regenerated${promptSnippet ? `: ${promptSnippet}` : ""}`
         : `AI patched${promptSnippet ? `: ${promptSnippet}` : ""}`;
       setPendingRevisionLabel(aiLabel);
+      void handleSave();
       if (forceCreateNext) setForceCreateNext(false);
     },
     onError: (err) => {
@@ -797,6 +798,7 @@ export function EditorClient({
 
   // Keyboard shortcuts
   const handleSave = useCallback(async () => {
+    if (saving) return;
     setSaving(true);
     try {
       const sourceToSave = diagramType === "mermaid" ? embedUiInSource(source, uiState) : source;
@@ -812,8 +814,12 @@ export function EditorClient({
       setPendingRevisionLabel(null);
       setRevisionsDirty((v) => v + 1);
       showToast("Project saved");
-    } finally { setSaving(false); }
-  }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast, pendingRevisionLabel]);
+    } catch {
+      showToast("Save failed — check your connection");
+    } finally {
+      setSaving(false);
+    }
+  }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast, pendingRevisionLabel, saving]);
 
   const handleUseCaseChange = useCallback((id: UseCaseId) => {
     setUseCaseId(id);
