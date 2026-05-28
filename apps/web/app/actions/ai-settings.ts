@@ -26,16 +26,6 @@ export async function getAiSettingsForUser(): Promise<AiSettingsState | null> {
   const session = await auth();
   const email = session?.user?.email;
   if (!email) return null;
-  // Mock for development
-  return {
-    hasKey: false,
-    keyLast4: null,
-    baseUrl: null,
-    model: null,
-    provider: "openai",
-    encryptionReady: true,
-  };
-  /*
   const { user } = await ensureUserAndWorkspace(email);
   return {
     hasKey: Boolean(user.aiApiKeyCipher),
@@ -45,7 +35,6 @@ export async function getAiSettingsForUser(): Promise<AiSettingsState | null> {
     provider: (user.aiProvider as AiProvider) ?? "openai",
     encryptionReady: isAiKeyEncryptionConfigured(),
   };
-  */
 }
 
 export async function saveAiSettings(formData: FormData) {
