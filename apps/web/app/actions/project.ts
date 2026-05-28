@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { db } from "@/lib/db";
 import { projects, revisions } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { DiagramType } from "@flowchart/core";
 
@@ -82,6 +82,24 @@ export async function saveProject(
       createdAt: now,
       createdBy: user.id,
     });
+    // Prune: keep only the 50 most recent revisions for this project
+    const kept = await db
+      .select({ id: revisions.id, createdAt: revisions.createdAt })
+      .from(revisions)
+      .where(eq(revisions.projectId, id))
+      .orderBy(desc(revisions.createdAt))
+      .limit(50);
+    if (kept.length === 50) {
+      const oldestKept = kept[kept.length - 1];
+      await db
+        .delete(revisions)
+        .where(
+          and(
+            eq(revisions.projectId, id),
+            lt(revisions.createdAt, oldestKept.createdAt)
+          )
+        );
+    }
   }
   revalidatePath("/app");
   revalidatePath(`/app/editor`);
