@@ -28,15 +28,6 @@ const spec = {
         },
       },
     },
-    "/api/v1/export": {
-      post: {
-        summary: "Queue or run server-side export (Pro)",
-        responses: {
-          "200": { description: "PNG or job id" },
-          "402": { description: "Pro required" },
-        },
-      },
-    },
     "/api/ai/generate": {
       post: {
         summary: "Generate diagram text from prompt (BYOK or server key)",

@@ -1,157 +1,185 @@
-# CLAUDE.md
+# CLAUDE.md — FlowStudio working notes
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> Read this first. It captures the shape of the project, what's been built, and
+> the conventions to follow. Update it as state changes.
 
-## Commands
+---
 
-All commands run from the monorepo root unless noted.
+## What this is
 
+**FlowStudio** — an AI-powered diagram editor. Plain-text prompt in → rendered
+diagram out. Aimed at solo creators (founders, indie hackers, technical writers)
+who need diagrams for decks, blog posts, docs, social posts, and embeds.
+
+URL pattern: prompt → AI picks diagram type → editor renders → user iterates →
+share / embed / export.
+
+## Stack
+
+- **Next.js 15** (App Router) + TypeScript + Tailwind CSS
+- **Drizzle ORM** on Postgres (Supabase)
+- **Vercel AI SDK** (`ai`, `@ai-sdk/react`) — multi-provider (OpenAI / Anthropic / Google / Groq / Mistral)
+- **Auth.js** (Supabase) — mock-auth mode for local
+- Monorepo (pnpm): `apps/web` (Next app) + `packages/core` (shared types, prompts, themes)
+- Mermaid + Excalidraw + ReactFlow (@xyflow) + ECharts + Nivo + tldraw + bpmn-js for diagram rendering
+
+## Diagram types supported (7)
+
+| Type | What it's for | Editing model |
+|---|---|---|
+| `mermaid` | Text grammar — flowchart, sequence, ER, gantt, mindmap, journey, pie, class, state (~13 subtypes) | source text |
+| `excalidraw` | Whiteboard sketches | visual canvas + source |
+| `reactflow` | Custom node graphs | drag-to-edit + source |
+| `echarts` | Production charts | JSON source |
+| `nivo` | Polished chart variants | JSON source (read-only) |
+| `tldraw` | Free-form canvas | visual canvas + source |
+| `bpmn` | BPMN 2.0 business process | visual modeler + XML source |
+
+All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. Editor is
+`apps/web/components/editor-client.tsx` (one big file — every diagram type
+branches inside its render section).
+
+## Status — what's shipped
+
+### Milestone 1.0 — AI Diagram Quality & Precision ✅
+- WYSIWYG canvas (preview locks to export aspect ratio)
+- Use-case awareness (AI infers presentation / social / docs / custom)
+- Smarter AI generation (type-selection rules, ambiguityScore ≥ 90 to clarify, assumption banner)
+
+### Milestone 1.1 — AI Iteration & Sharing ✅
+- Surgical AI edits (`mode: "patch" | "create"`)
+- Persistent version history (Clock icon dropdown, click to restore, history preserved)
+- Public share + OG previews (`/s/[token]` page, branded 1200×630 og:image)
+
+### Milestone 1.2 — Brand & Distribution ✅
+- Brand kit (`brand_kit` table + Settings panel + Palette button)
+- Iframe embeds (`/embed/[token]` chromeless viewer + copy `<iframe>` snippet)
+
+### Milestone 1.3 — Legendary ✅
+- **Real OG previews** — client captures a PNG at share-create time → stored on `share_link.preview_data_url` → og route serves the actual diagram
+- **Streaming live preview** — Mermaid renders progressively as the AI types; `mermaid.parse()` gate + last-good-svg fallback prevents flicker on partial source; pulsing "Streaming" pill
+- **AI-aware brand kit** — `/api/ai/generate` injects a BRAND PALETTE directive when a kit exists; AI uses those colors for echarts/mermaid theme overrides
+- **Templates gallery** — `/app/templates` with 6 curated starters (onboarding funnel, OAuth, web arch, revenue chart, blog ER, roadmap gantt)
+
+### Editor polish pass (post-1.3) ✅
+- Full audit of all 7 renderers — fixed 5 real bugs (BPMN/ECharts couldn't recover from parse errors, ReactFlow crashed on AI nodes without positions, Mermaid re-init on every render, silent failure on broken hand edits)
+- Added the missing **Source code editor** — right-side panel with monospaced textarea (the editor had no manual-edit surface before)
+- **ReactFlow auto-layout** button (Wand2 icon)
+- **Reset zoom + pan** (⌘0)
+- Brand-kit colors now actually reach the Mermaid theme variables
+- **Syntax highlighting** in the Source panel (zero-dep — textarea over highlighted `<pre>`)
+- **Mermaid theme picker** dropdown (11 themes, all hidden previously)
+- **Tab key** indents (instead of stealing focus); **line numbers** gutter; friendly **empty-state CTA**
+
+## Key files
+
+### Editor
+- `apps/web/components/editor-client.tsx` — the main editor (~1700 lines, one big component). Holds all state: source, themeId, paletteId, customBackground/Accent, fontId, undoStack, redoStack, AI message state via `useChat`. Branches on `diagramType` in render.
+- `apps/web/components/diagrams/*-renderer.tsx` — one renderer per diagram type. Common contract: `{ source: string, onChange?: (s: string) => void, readOnly?: boolean }`.
+- `apps/web/lib/source-highlight.tsx` — tiny syntax highlighter used by the Source panel (Mermaid + JSON grammars).
+
+### AI pipeline
+- `apps/web/app/api/ai/generate/route.ts` — main generation route. Two-pass (intent → generation). Honors `mode` (patch / create) and injects brand-kit palette when present.
+- `apps/web/app/api/ai/agent/route.ts` — alternate "Agent Mode" pipeline with tool calls.
+- `packages/core/src/diagram-types.ts` — `DIAGRAM_SYSTEM_PROMPTS` (one per type, each with type-selection rules + few-shot).
+- `packages/core/src/use-cases.ts` — `USE_CASE_STYLE_INSTRUCTIONS` (presentation / social / documentation / custom).
+
+### Server actions
+- `apps/web/app/actions/project.ts` — `createProject`, `saveProject`, `listProjects`, `getProject`, `deleteProject`, `listRevisions`, `restoreRevision`
+- `apps/web/app/actions/share.ts` — `createShareLink(projectId, previewDataUrl?)`, `updateSharePreview`
+- `apps/web/app/actions/brand-kit.ts` — `getBrandKit`, `saveBrandKit`
+- `apps/web/app/actions/templates.ts` — `forkTemplate(id)`
+
+### Public pages
+- `/s/[token]` — public share viewer (HTML + branded OG)
+- `/s/[token]/og` — serves real diagram PNG if captured, else branded card
+- `/embed/[token]` — chromeless viewer for iframes
+- `/app/templates` — gallery of starter diagrams
+
+### Schema
+- `apps/web/lib/db/schema.ts` — drizzle tables: `users`, `workspaces`, `projects`, `revisions`, `shareLinks` (with `previewDataUrl`), `brandKits`, `apiKeys`, `exportJobs`
+- Migrations under `apps/web/lib/db/migrations/`. Add new ones via `pnpm --filter @flowchart/web db:generate` (or hand-write + journal entry).
+
+## Conventions
+
+### Branching / commits
+- **Work directly on `master`** — the user authorized this in the "make it legendary" session. Push after each completed phase / fix.
+- Commit messages: `feat(scope): subject` / `fix(scope): subject` / `chore(scope): subject`. Body explains the *why*, not just the *what*.
+- Never use `--no-verify` or `--no-gpg-sign`. Never force-push master.
+- `claude/loving-brown-MphvU` is the legacy feature branch — fully merged into master, can be deleted whenever.
+
+### Code style
+- **No emojis** in code or commits unless explicitly requested.
+- **No comments explaining what code does** — only WHY when non-obvious. Identifiers carry the meaning.
+- **No multi-line docstrings.** One-line max.
+- **No backwards-compat shims** for code that wasn't shipped publicly.
+- **No new validation / error handling** for impossible cases. Trust internal callers.
+- Default `text-` color is `slate-*`. Indigo for primary accents. Amber for warnings/streaming. Red for errors.
+
+### State patterns (in editor-client.tsx)
+- Undo: `recordUndo(source)` before any mutating change. 50-step capped via `UNDO_LIMIT`.
+- Source vs source-with-UI: `source` is the diagram body. `sourceWithUi` (mermaid only) prepends `%% ui:{json}` for persisting palette/font/etc. Use `parseUiFromSource()` to split back.
+- Streaming: `aiLoading` from `useChat`. The Mermaid render effect debounces 120 ms while loading, 0 ms otherwise, and uses `mermaid.parse()` to keep the last-good SVG visible on partial input.
+
+### Verification
+- After every fix: `pnpm --filter @flowchart/web exec tsc --noEmit` (filter `.test.ts` errors, those are pre-existing).
+- After every UI change: `pnpm --filter @flowchart/web build` (catches issues tsc misses).
+- `pnpm test:unit` — 14 tests across 5 suites. Should stay green.
+
+### Lint warnings to ignore
+There are ~41 pre-existing `@typescript-eslint/no-unused-vars` warnings in `editor-client.tsx` from old state that was never wired (e.g. `setShowTypePanel`, `setEchartsUiTheme`, `setShowStylePanel`). Don't fix unless explicitly asked — could break implicit dependencies.
+
+## Planning docs
+
+- `.planning/STATE.md` — current milestone / phase status
+- `.planning/ROADMAP.md` — high-level roadmap with checkboxes
+- `.planning/phases/MILESTONE-*.md` — milestone-level plans
+- `.planning/phases/NN-name/NN-SUMMARY.md` — per-phase summary after completion
+
+When starting a new phase, create the folder + a `NN-CONTEXT.md` if you need
+planning notes; write the `NN-SUMMARY.md` at the end. Don't create planning
+docs the user didn't ask for.
+
+## Open polish list (not yet shipped)
+
+If the user says "keep going" without specifying:
+1. Bracket auto-pair in the source editor (`{`, `[`, `"`)
+2. Search/replace in the source panel (⌘F)
+3. Line/column indicator in the source-panel footer
+4. Dark mode for the editor chrome (themes exist for diagrams only)
+5. Auto-layout buttons for BPMN / Excalidraw (they have built-in layout, no UI trigger)
+6. AI-suggested templates ("we recommend the OAuth template for that prompt")
+7. Public profile pages — `/u/[handle]` showing a user's published diagrams
+
+## Things to NOT do
+
+- **Don't merge the legacy branch back.** `claude/loving-brown-MphvU` is dead — its work is all on master.
+- **Don't push to a non-master branch** without explicit ask.
+- **Don't add CodeMirror / Monaco** for the source editor. The current zero-dep highlighter is intentional. Only revisit if the user asks for autocomplete or multi-cursor.
+- **Don't render planning/docs files unless asked.** No `README.md` or `*.md` creation by default.
+- **Don't add headless browser infra** for OG image generation. The client-capture approach in Phase 9 is the deliberate trade-off.
+- **Don't try to use `gh` CLI** — this environment only has the GitHub MCP server. Repository scope is `gwaghmar/flowstudio` only.
+
+## Quick how-tos
+
+### Add a new diagram type
+1. Add it to `DiagramType` union in `packages/core/src/diagram-types.ts`
+2. Add a system prompt in `DIAGRAM_SYSTEM_PROMPTS`
+3. Create `apps/web/components/diagrams/<type>-renderer.tsx` with `{ source, onChange?, readOnly? }` contract
+4. Dynamic-import it in `editor-client.tsx`
+5. Add a render branch in the canvas section (search "diagramType ===")
+6. Add label to `TYPE_LABELS` in `/s/[token]/page.tsx` and `/og/route.tsx`
+7. Add support in `share-viewer.tsx` and `embed-viewer.tsx`
+
+### Add a new server action
+- Drop in `apps/web/app/actions/<name>.ts`
+- Start with `"use server"`
+- Use `auth()` + `ensureUserAndWorkspace(email)` for the auth pattern
+- `revalidatePath()` what changed
+
+### Run the app locally
 ```bash
-pnpm install                   # install all workspace deps; also builds @flowchart/core
-pnpm dev                       # start web app at localhost:3040 (Turbopack)
-pnpm build                     # build core then web
-pnpm lint                      # run ESLint across all packages
-pnpm test                      # Playwright e2e tests (root-level)
-
-# Database (run from apps/web or via root alias)
-pnpm db:push                   # push schema to Postgres (Drizzle)
-pnpm db:studio                 # open Drizzle Studio
-pnpm db:generate               # generate migration files
-
-# MCP server
-pnpm mcp:dev                   # run packages/mcp-server in dev mode
-
-# Core package (must rebuild after changes)
-cd packages/core && pnpm build
+pnpm install
+pnpm --filter @flowchart/web dev
 ```
-
-## Monorepo Structure
-
-```
-apps/web          — Next.js 15 App Router app (@flowchart/web)
-packages/core     — Shared types, schemas, templates (@flowchart/core, ESM-only)
-packages/mcp-server — MCP server exposing diagram tools
-e2e/              — Playwright tests (root-level)
-```
-
-`@flowchart/core` is a local workspace package. After modifying it, run `pnpm build` in `packages/core` — the web app won't pick up changes otherwise.
-
-## Web App Architecture (`apps/web`)
-
-### Route layout
-
-```
-app/
-  layout.tsx            # root layout
-  page.tsx              # public landing page
-  (app routes)/app/     # auth-gated editor and dashboard
-    editor/             # diagram editor (canvas + AI chat)
-    billing/            # upgrade / plan management
-    settings/           # user settings (AI keys, provider)
-    admin/              # admin panel
-  api/
-    ai/agent/           # streaming AI agent endpoint (tool-calling loop)
-    ai/generate/        # simple one-shot generation
-    ai/list-models/     # enumerate available models for the configured provider
-    auth/               # Supabase OAuth callback + legacy nextauth stub
-    billing/checkout    # Stripe checkout session
-    billing/portal      # Stripe customer portal
-    billing/webhooks    # Stripe webhook handler
-    mcp/                # MCP server mounted as Next.js route
-    v1/                 # public REST API (export, validate)
-    share/              # shared diagram viewer token resolution
-    health/             # health check
-  actions/              # Next.js Server Actions
-    project.ts          # CRUD for projects
-    ai-settings.ts      # save/load BYOK AI keys
-    api-keys.ts         # public API key management
-    share.ts            # share link creation
-    admin.ts            # admin operations
-    login.ts            # auth helpers
-  login/                # public sign-in page
-  pricing/              # public pricing page
-  s/[token]/            # public share viewer
-components/
-  diagrams/             # per-renderer components:
-    bpmn-renderer.tsx, echarts-renderer.tsx, excalidraw-renderer.tsx,
-    nivo-renderer.tsx, reactflow-renderer.tsx, tldraw-renderer.tsx
-lib/
-  db/schema.ts          # Drizzle ORM schema (PostgreSQL)
-  db/index.ts           # DB client
-  supabase/             # Supabase client/server/middleware helpers
-  ai-providers.ts       # provider registry + LanguageModel factory
-  ai-key-crypto.ts      # AES encrypt/decrypt for BYOK keys
-  entitlements.ts       # plan-based feature gates
-  rate-limit.ts         # in-memory rate limiter
-  user-sync.ts          # ensure user+workspace row on first AI call
-auth.ts                 # auth() helper — mock in dev (MOCK_AUTH=true), real Supabase in prod
-middleware.ts           # enforces /app/* auth; redirects to /login when MOCK_AUTH is off
-```
-
-### Auth
-
-`auth.ts` exports `auth()` which branches on the `MOCK_AUTH` env var. In local dev (no `MOCK_AUTH` set) it returns a mock user automatically. Set `MOCK_AUTH=false` to test real Supabase auth locally. In production `MOCK_AUTH` is ignored unless `ALLOW_MOCK_AUTH_IN_PRODUCTION=true` is also set. Route protection in `middleware.ts` is active and enforces `/app/*` — unauthenticated users are redirected to `/login?callbackUrl=...`.
-
-### AI Pipeline
-
-The agent endpoint (`/api/ai/agent`) uses **Vercel AI SDK** (`ai@4.1.45`, `@ai-sdk/react@1.1.20` — pinned; do not bump without testing). It:
-1. Resolves the API key: `x-openai-key` header → BYOK cipher stored in DB → `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENAI_API_KEY` / `AI_GATEWAY_KEY` env
-2. Calls `streamText` with tool-calling enabled (tools: `apply_patch`, `update_node`, `add_node`)
-3. Streams the response back via Vercel AI SDK's data-stream protocol
-
-Supported providers: OpenAI, Anthropic, Google Gemini, Mistral, Groq, Ollama, custom OpenAI-compatible.
-
-### Data Model (Drizzle schema)
-
-Key tables in `lib/db/schema.ts`:
-- `user` — auth identity, `plan` (`free`/`pro`), `credits_balance`, BYOK key cipher
-- `workspace` — belongs to a user (auto-created on first AI call via `user-sync.ts`)
-- `project` — belongs to a workspace; stores `source` (diagram markup), `diagramType`, `themeId`
-- `revision` — point-in-time snapshots of `project.source`
-- `share_link` — tokenised read-only share URLs
-- `api_key` — hashed keys for the public v1 REST API
-
-### Diagram Renderers
-
-Each `diagramType` maps to a renderer component in `components/diagrams/`:
-- `mermaid` — default; text-based flowcharts
-- `reactflow` — node-based editor via `@xyflow/react`
-- `excalidraw` — freehand canvas via `@excalidraw/excalidraw`
-- `tldraw` — whiteboard via `tldraw`
-- `bpmn` — business process via `bpmn-js`
-- `echarts` / `nivo` — data visualisation charts
-
-`@flowchart/core` exports the canonical `diagramType` enum, theme list, and Zod schemas shared by web and MCP server.
-
-## Key Environment Variables
-
-Set in `apps/web/.env.local` (copy from `.env.example`):
-
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string (Supabase pooler in prod) |
-| `AI_KEY_ENCRYPTION_SECRET` | AES key for BYOK cipher storage (min 16 chars) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Default hosted AI key (Gemini) |
-| `OPENAI_API_KEY` | Default hosted AI key (OpenAI) |
-| `OPENAI_MODEL` / `GOOGLE_MODEL` | Override default model per provider |
-| `AI_GATEWAY_KEY` | Optional AI proxy/gateway bearer token |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Billing |
-| `STRIPE_PRICE_PRO_MONTHLY` / `_ANNUAL` | Stripe price IDs |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client config |
-| `ADMIN_EMAILS` | Comma-separated emails promoted to `role=admin` on sign-in |
-
-## Dev State / Known Mocks
-
-- **Auth**: `auth()` in `auth.ts` branches on `MOCK_AUTH` env var (default: mock in dev, real Supabase in prod). Real Supabase OAuth is wired and enforced when `MOCK_AUTH` is unset/false.
-- **DB**: `lib/db/index.ts` uses a Proxy that intercepts all Drizzle calls. If `DATABASE_URL` is absent or the connection is refused (`ECONNREFUSED`), it returns an in-memory mock (not SQLite). Set `MOCK_DB=true` to force mock mode explicitly.
-- **Plan**: `getPlanForEmail()` in `lib/entitlements.ts` reads from the real DB. Free users see watermarks and credit limits; Pro users are unlimited.
-- **Route protection**: `middleware.ts` enforces `/app/*` auth when `MOCK_AUTH` is not active — redirects to `/login?callbackUrl=...`.
-- **AI tools**: `web_search` in `/api/ai/agent` is removed; `fetch_external_data` returns sample rows for demo purposes.
-- **Admin panel** (`/app/admin`) shows a live Production Readiness section — use it to verify env config before deploying.
-
-## Coding Conventions
-
-- `@/` path alias points to `apps/web/` root
-- Server Actions are in `app/actions/`; use them for mutations rather than API routes where possible
-- API routes return typed `ApiError` (`{ error, code, details? }`) from `@flowchart/core` on failure
-- Tailwind with custom tokens (`bg-background`, `text-text-main`, `text-primary`, etc.) — see `tailwind.config.ts`
+DB is mock by default. To connect Supabase, set `DATABASE_URL` and `pnpm --filter @flowchart/web db:push`.

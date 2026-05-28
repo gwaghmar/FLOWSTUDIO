@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/krystonschwarze/coolicons@v4.1/Webfont/coolicons.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --gray-50: #fafafa;
+    --gray-100: #f4f4f4;
+    --gray-200: #e5e5e5;
+    --gray-400: #a3a3a3;
+    --gray-600: #525252;
+    --mint: #6ee7b7;
+    --mint-dark: #059669;
+    --mint-bg: #d1fae5;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--white);
+    color: var(--black);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 0;
+    background: var(--white);
+    z-index: 100;
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    text-decoration: none;
+    color: var(--black);
+  }
+  .nav-logo-icon {
+    width: 28px; height: 28px;
+    background: var(--black);
+    border-radius: 6px;
+    display: grid; place-items: center;
+  }
+  .nav-logo-icon svg { width: 16px; height: 16px; }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 14px;
+    color: var(--gray-600);
+  }
+  .nav-links a { text-decoration: none; color: inherit; }
+  .nav-links a:hover { color: var(--black); }
+  .nav-cta { display: flex; align-items: center; gap: 12px; }
+  .btn-outline {
+    padding: 8px 20px;
+    border: 1.5px solid var(--black);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--black);
+  }
+  .btn-outline:hover { background: var(--black); color: var(--white); }
+  .btn-solid {
+    padding: 8px 20px;
+    background: var(--black);
+    border: 1.5px solid var(--black);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-solid:hover { background: #222; }
+
+  /* HERO */
+  .hero-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+  .hero {
+    padding: 48px 0 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 40px;
+  }
+  .hero-title {
+    font-size: clamp(64px, 8vw, 112px);
+    font-weight: 800;
+    letter-spacing: -4px;
+    line-height: 0.92;
+    color: var(--black);
+  }
+  .hero-tagline {
+    max-width: 320px;
+    padding-top: 8px;
+  }
+  .hero-tagline p {
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--black);
+    letter-spacing: -0.3px;
+  }
+  .hero-sub {
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.6;
+  }
+  .hero-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+  }
+
+  /* PRODUCT CARD */
+  .product-card {
+    margin: 36px 0 0;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .product-card-inner { display: flex; }
+  .product-card-sidebar {
+    width: 36px;
+    background: var(--gray-100);
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+    flex-shrink: 0;
+  }
+  .product-card-sidebar span {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    font-weight: 500;
+  }
+  .product-card-body { flex: 1; padding: 40px 40px 32px; position: relative; }
+  .product-card-logo {
+    position: absolute;
+    top: 16px; left: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+  }
+  .product-card-logo-dot {
+    width: 18px; height: 18px;
+    background: var(--black);
+    border-radius: 4px;
+    display: grid; place-items: center;
+  }
+  .product-card-logo-dot::after {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--white);
+    border-radius: 2px;
+  }
+  .product-card-labels {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 16px;
+  }
+  .product-card-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    font-weight: 600;
+  }
+
+  /* STATS */
+  .stats-bar {
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 36px;
+    margin-top: 64px;
+  }
+  .stats-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .stat-item {
+    text-align: center;
+    padding: 0 24px;
+    border-right: 1px solid var(--gray-200);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    color: var(--black);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: 8px;
+  }
+
+  /* SECTIONS */
+  .section {
+    padding: 76px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .section-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 52px;
+    align-items: center;
+  }
+  .section-title {
+    font-size: clamp(36px, 4vw, 56px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    color: var(--black);
+  }
+  .section-body {
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--gray-600);
+    margin-top: 16px;
+  }
+  .section-link {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--black);
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--black);
+    padding-bottom: 2px;
+  }
+
+  /* DIAGRAM TYPE CARD */
+  .diagram-type-card {
+    background: var(--mint-bg);
+    border: 1px solid var(--mint);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .dtc-header {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--mint-dark);
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--mint);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dtc-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+  }
+  .dtc-row:last-child { border-bottom: none; }
+  .dtc-icon {
+    width: 36px; height: 36px;
+    background: var(--white);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-size: 18px;
+    color: var(--black);
+  }
+  .dtc-info { flex: 1; }
+  .dtc-name { font-weight: 600; color: var(--black); font-size: 14px; }
+  .dtc-desc { font-size: 12px; color: var(--mint-dark); margin-top: 2px; }
+  .dtc-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--mint);
+    color: var(--mint-dark);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  /* AI SECTION */
+  .ai-section {
+    background: var(--black);
+    color: var(--white);
+    padding: 76px 48px;
+  }
+  .ai-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+  .ai-title {
+    font-size: clamp(40px, 5vw, 64px);
+    font-weight: 800;
+    letter-spacing: -2.5px;
+    line-height: 0.95;
+  }
+  .ai-body {
+    font-size: 17px;
+    color: #a3a3a3;
+    margin-top: 16px;
+    line-height: 1.65;
+  }
+  .ai-link {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--white);
+    padding-bottom: 2px;
+  }
+  .ai-chat-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .ai-chat-bar {
+    background: #111;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .dot-red { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+  .dot-yellow { width: 10px; height: 10px; border-radius: 50%; background: #febc2e; }
+  .dot-green { width: 10px; height: 10px; border-radius: 50%; background: #28c840; }
+  .ai-chat-msgs { padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg-user {
+    align-self: flex-end;
+    background: #2a2a2a;
+    color: #e5e5e5;
+    padding: 10px 14px;
+    border-radius: 12px 12px 2px 12px;
+    font-size: 13px;
+    max-width: 80%;
+  }
+  .msg-ai {
+    align-self: flex-start;
+    background: #0d2818;
+    border: 1px solid #166534;
+    color: #d1fae5;
+    padding: 10px 14px;
+    border-radius: 12px 12px 12px 2px;
+    font-size: 12px;
+    max-width: 90%;
+    font-family: monospace;
+    line-height: 1.6;
+  }
+  .ai-input {
+    margin: 0 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .ai-input span { font-size: 12px; color: #525252; flex: 1; }
+  .ai-input button {
+    background: var(--mint);
+    color: var(--black);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* USE CASES */
+  .use-cases {
+    padding: 76px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .use-cases-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 52px;
+    margin-bottom: 48px;
+    align-items: end;
+  }
+  .use-cases-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--gray-200);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .use-case-card {
+    background: var(--white);
+    padding: 24px 22px;
+  }
+  .use-case-card:hover { background: var(--gray-50); }
+  .uc-icon {
+    font-size: 24px;
+    color: var(--black);
+    margin-bottom: 12px;
+    display: block;
+    line-height: 1;
+  }
+  .uc-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+  }
+  .uc-desc {
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.6;
+  }
+
+  /* CTA */
+  .cta-section {
+    padding: 96px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+    border-top: 1px solid var(--gray-200);
+  }
+  .cta-title {
+    font-size: clamp(48px, 5vw, 72px);
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 0.95;
+  }
+  .cta-body {
+    font-size: 17px;
+    color: var(--gray-600);
+    line-height: 1.65;
+    margin-bottom: 28px;
+  }
+  .cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--gray-200);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+  footer a { color: inherit; text-decoration: none; }
+  footer a:hover { color: var(--black); }
+  .footer-links { display: flex; gap: 24px; }
+
+  .full-divider { border: none; border-top: 1px solid var(--gray-200); margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="5" height="5" rx="1.5" fill="white"/>
+        <rect x="9" y="2" width="5" height="5" rx="1.5" fill="white" opacity="0.5"/>
+        <rect x="2" y="9" width="5" height="5" rx="1.5" fill="white" opacity="0.5"/>
+        <rect x="9" y="9" width="5" height="5" rx="1.5" fill="white"/>
+      </svg>
+    </div>
+    Flow Studio
+  </a>
+  <div class="nav-links">
+    <a href="#">Product</a>
+    <a href="#">Pricing</a>
+    <a href="#">Docs</a>
+    <a href="#">Templates</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#" style="text-decoration:none;color:var(--gray-600);font-size:14px;">Sign in</a>
+    <a href="#" class="btn-outline">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero-wrap">
+  <div class="hero">
+    <div>
+      <h1 class="hero-title">Flow<br>Studio</h1>
+    </div>
+    <div class="hero-tagline">
+      <p>The AI-Powered<br>Diagram Platform<br>for Modern Teams</p>
+      <p class="hero-sub">Describe what you need in plain English. Flow Studio picks the right diagram type, draws it instantly, and exports in any format. No design skills required.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn-solid">Get started free</a>
+        <a href="#" class="btn-outline">View templates</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT SHOWCASE -->
+  <div class="product-card">
+    <div class="product-card-inner">
+      <div class="product-card-sidebar">
+        <span>Flow Studio — Powered by AI</span>
+      </div>
+      <div class="product-card-body">
+        <div class="product-card-logo">
+          <div class="product-card-logo-dot"></div>
+          <span>flow-studio / editor</span>
+        </div>
+        <div class="product-card-labels">
+          <span class="product-card-label">Mermaid</span>
+          <span class="product-card-label">ReactFlow</span>
+          <span class="product-card-label">ECharts</span>
+          <span class="product-card-label">Excalidraw</span>
+          <span class="product-card-label">BPMN</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:260px 1fr;background:var(--white);border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;min-height:280px;">
+          <!-- code editor pane -->
+          <div style="background:#1e1e2e;padding:20px;font-family:monospace;font-size:11px;line-height:1.7;border-right:1px solid #2a2a3a;">
+            <div style="color:#6e7681;margin-bottom:12px;font-size:10px;letter-spacing:1px;text-transform:uppercase;">source.md</div>
+            <div style="color:#79b8ff;">sequenceDiagram</div>
+            <div style="color:#e3e3e3;padding-left:12px;">participant <span style="color:#85e89d;">User</span></div>
+            <div style="color:#e3e3e3;padding-left:12px;">participant <span style="color:#85e89d;">API</span></div>
+            <div style="color:#e3e3e3;padding-left:12px;">participant <span style="color:#85e89d;">DB</span></div>
+            <div style="color:#e3e3e3;margin-top:6px;padding-left:12px;"><span style="color:#85e89d;">User</span><span style="color:#79b8ff;">->>+</span><span style="color:#85e89d;">API</span><span style="color:#e3e3e3;">: Login</span></div>
+            <div style="color:#e3e3e3;padding-left:12px;"><span style="color:#85e89d;">API</span><span style="color:#79b8ff;">->>+</span><span style="color:#85e89d;">DB</span><span style="color:#e3e3e3;">: Verify</span></div>
+            <div style="color:#e3e3e3;padding-left:12px;"><span style="color:#85e89d;">DB</span><span style="color:#79b8ff;">-->>-</span><span style="color:#85e89d;">API</span><span style="color:#e3e3e3;">: Token</span></div>
+            <div style="color:#e3e3e3;padding-left:12px;"><span style="color:#85e89d;">API</span><span style="color:#79b8ff;">-->>-</span><span style="color:#85e89d;">User</span><span style="color:#e3e3e3;">: Session</span></div>
+          </div>
+          <!-- diagram preview pane -->
+          <div style="background:var(--gray-50);display:flex;align-items:center;justify-content:center;padding:32px;">
+            <svg width="360" height="200" viewBox="0 0 360 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="10" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="50" y="27" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">User</text>
+              <rect x="150" y="10" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="180" y="27" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">API</text>
+              <rect x="280" y="10" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="310" y="27" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">DB</text>
+              <line x1="50" y1="36" x2="50" y2="195" stroke="#e5e5e5" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="180" y1="36" x2="180" y2="195" stroke="#e5e5e5" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="310" y1="36" x2="310" y2="195" stroke="#e5e5e5" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="50" y1="65" x2="175" y2="65" stroke="#0a0a0a" stroke-width="1.5"/>
+              <polygon points="175,61 184,65 175,69" fill="#0a0a0a"/>
+              <text x="110" y="58" text-anchor="middle" font-family="Inter" font-size="10" fill="#525252">Login</text>
+              <line x1="180" y1="90" x2="305" y2="90" stroke="#0a0a0a" stroke-width="1.5"/>
+              <polygon points="305,86 314,90 305,94" fill="#0a0a0a"/>
+              <text x="247" y="83" text-anchor="middle" font-family="Inter" font-size="10" fill="#525252">Verify</text>
+              <line x1="305" y1="120" x2="185" y2="120" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <polygon points="185,116 176,120 185,124" fill="#059669"/>
+              <text x="247" y="113" text-anchor="middle" font-family="Inter" font-size="10" fill="#059669">Token OK</text>
+              <line x1="175" y1="150" x2="55" y2="150" stroke="#059669" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <polygon points="55,146 46,150 55,154" fill="#059669"/>
+              <text x="110" y="143" text-anchor="middle" font-family="Inter" font-size="10" fill="#059669">Session OK</text>
+              <rect x="177" y="60" width="6" height="64" fill="#d1fae5" stroke="#059669" stroke-width="1"/>
+              <rect x="307" y="85" width="6" height="39" fill="#d1fae5" stroke="#059669" stroke-width="1"/>
+              <rect x="20" y="170" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="50" y="187" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">User</text>
+              <rect x="150" y="170" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="180" y="187" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">API</text>
+              <rect x="280" y="170" width="60" height="26" rx="4" fill="white" stroke="#d4d4d4" stroke-width="1.5"/>
+              <text x="310" y="187" text-anchor="middle" font-family="monospace" font-size="11" fill="#0a0a0a">DB</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">7</div>
+      <div class="stat-label">Diagram Types</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">40+</div>
+      <div class="stat-label">Templates</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">AI</div>
+      <div class="stat-label">Powered Generation</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">Free</div>
+      <div class="stat-label">To Get Started</div>
+    </div>
+  </div>
+</div>
+
+<hr class="full-divider">
+
+<!-- DIAGRAM ENGINE SECTION -->
+<div style="border-bottom:1px solid var(--gray-200);">
+  <div class="section">
+    <div class="section-label">The Diagram Engine</div>
+    <div class="section-split">
+      <div>
+        <h2 class="section-title">Seven ways<br>to visualise<br>anything.</h2>
+        <p class="section-body">From sequence diagrams to freehand whiteboards, Flow Studio renders every diagram type in a single editor. Switch types without losing your work.</p>
+        <a href="#" class="section-link">Explore all diagram types</a>
+      </div>
+      <div>
+        <div class="diagram-type-card">
+          <div class="dtc-header">
+            <span>Diagram Engine</span>
+            <span style="font-size:10px;font-weight:500;opacity:0.7;">Flow Studio</span>
+          </div>
+          <div class="dtc-row">
+            <div class="dtc-icon"><i class="ci-Chart_Line"></i></div>
+            <div class="dtc-info">
+              <div class="dtc-name">Mermaid</div>
+              <div class="dtc-desc">Flowcharts, sequences, Gantt charts</div>
+            </div>
+            <span class="dtc-badge">Default</span>
+          </div>
+          <div class="dtc-row">
+            <div class="dtc-icon"><i class="ci-More_Grid_Big"></i></div>
+            <div class="dtc-info">
+              <div class="dtc-name">ReactFlow</div>
+              <div class="dtc-desc">Node-based interactive graphs</div>
+            </div>
+          </div>
+          <div class="dtc-row">
+            <div class="dtc-icon"><i class="ci-Edit_Pencil_02"></i></div>
+            <div class="dtc-info">
+              <div class="dtc-name">Excalidraw</div>
+              <div class="dtc-desc">Freehand whiteboard sketches</div>
+            </div>
+          </div>
+          <div class="dtc-row">
+            <div class="dtc-icon"><i class="ci-Chart_Bar_Vertical_01"></i></div>
+            <div class="dtc-info">
+              <div class="dtc-name">ECharts / Nivo</div>
+              <div class="dtc-desc">Data visualisation and charts</div>
+            </div>
+          </div>
+          <div class="dtc-row">
+            <div class="dtc-icon"><i class="ci-Settings_Future"></i></div>
+            <div class="dtc-info">
+              <div class="dtc-name">BPMN</div>
+              <div class="dtc-desc">Business process notation</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI SECTION -->
+<div class="ai-section">
+  <div class="ai-inner">
+    <div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#525252;font-weight:600;margin-bottom:24px;">The AI Assistant</div>
+      <h2 class="ai-title">Describe it.<br>Get a diagram.</h2>
+      <p class="ai-body">Type what you want in plain English. The AI picks the right diagram type, generates the source, and renders it instantly. No syntax to learn, no blank-page friction.</p>
+      <a href="#" class="ai-link">Try the AI assistant</a>
+    </div>
+    <div class="ai-chat-card">
+      <div class="ai-chat-bar">
+        <div class="dot-red"></div>
+        <div class="dot-yellow"></div>
+        <div class="dot-green"></div>
+        <span style="font-size:11px;color:#525252;margin-left:8px;font-family:monospace;">AI Assistant</span>
+      </div>
+      <div class="ai-chat-msgs">
+        <div class="msg-user">Draw a system architecture for a SaaS app with auth, API, and database layers</div>
+        <div class="msg-ai">```mermaid
+graph TD
+  Browser["Browser"]
+  Auth["Auth Service"]
+  API["API Gateway"]
+  DB[("Postgres")]
+  Cache["Redis Cache"]
+
+  Browser -->|HTTPS| Auth
+  Browser -->|JWT| API
+  API --> DB
+  API --> Cache
+  Auth --> DB
+```
+<span style="color:#6ee7b7;">Rendered as flow diagram</span></div>
+      </div>
+      <div class="ai-input">
+        <span>Describe your diagram...</span>
+        <button>Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USE CASES -->
+<div class="use-cases">
+  <div class="use-cases-header">
+    <div>
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">Built for<br>every team.</h2>
+    </div>
+    <div>
+      <p style="font-size:17px;color:var(--gray-600);line-height:1.65;">From engineers documenting architecture to product managers mapping user flows, Flow Studio adapts to how your team thinks.</p>
+      <a href="#" class="section-link" style="margin-top:16px;display:inline-block;">See all templates</a>
+    </div>
+  </div>
+  <div class="use-cases-grid">
+    <div class="use-case-card">
+      <i class="uc-icon ci-Code"></i>
+      <div class="uc-title">Engineering</div>
+      <div class="uc-desc">System architecture, API flows, database schemas, deployment diagrams, sequence diagrams for code review.</div>
+    </div>
+    <div class="use-case-card">
+      <i class="uc-icon ci-Layers"></i>
+      <div class="uc-title">Product</div>
+      <div class="uc-desc">User journey maps, feature flows, roadmaps, sprint boards, stakeholder diagrams, and more.</div>
+    </div>
+    <div class="use-case-card">
+      <i class="uc-icon ci-Chart_Bar_Vertical_01"></i>
+      <div class="uc-title">Data and Analytics</div>
+      <div class="uc-desc">Live charts connected to your data, pipeline visualisations, metric dashboards, and trend graphs.</div>
+    </div>
+    <div class="use-case-card">
+      <i class="uc-icon ci-Settings"></i>
+      <div class="uc-title">Operations</div>
+      <div class="uc-desc">Business process diagrams, incident runbooks, on-call workflows, and escalation trees.</div>
+    </div>
+    <div class="use-case-card">
+      <i class="uc-icon ci-Edit_Pencil_01"></i>
+      <div class="uc-title">Design</div>
+      <div class="uc-desc">Freehand whiteboard sketches, wireframes, user flows, and interactive concept explorations.</div>
+    </div>
+    <div class="use-case-card">
+      <i class="uc-icon ci-File_Document"></i>
+      <div class="uc-title">Documentation</div>
+      <div class="uc-desc">Embed diagrams in Notion, Confluence, GitHub, or any docs platform. Export PNG, SVG, or PDF.</div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background:var(--gray-50);border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);">
+  <div class="cta-section">
+    <h2 class="cta-title">Start<br>diagramming<br>today.</h2>
+    <div>
+      <p class="cta-body">Free to start. No credit card required. Sign in, describe what you need, and export in under 60 seconds.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn-solid" style="padding:12px 28px;font-size:14px;">Get started free</a>
+        <a href="#" class="btn-outline" style="padding:12px 28px;font-size:14px;">View pricing</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="nav-logo" style="font-size:14px;">
+    <div class="nav-logo-icon" style="width:22px;height:22px;">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="5" height="5" rx="1.5" fill="white"/>
+        <rect x="9" y="9" width="5" height="5" rx="1.5" fill="white"/>
+      </svg>
+    </div>
+    Flow Studio
+  </a>
+  <div class="footer-links">
+    <a href="#">Pricing</a>
+    <a href="#">Docs</a>
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Status</a>
+  </div>
+  <span>2026 Flow Studio</span>
+</footer>
+
+</body>
+</html>

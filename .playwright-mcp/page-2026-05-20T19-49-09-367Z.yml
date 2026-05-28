@@ -1,0 +1,62 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - 'button "Example: OAuth Login Flow" [ref=e8] [cursor=pointer]':
+          - img [ref=e9]
+          - generic [ref=e17]: "Example: OAuth Login Flow"
+          - img [ref=e18]
+        - button "History" [ref=e21] [cursor=pointer]:
+          - generic "History" [ref=e22]
+      - generic [ref=e23]:
+        - button "Preview" [active] [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - text: Preview
+        - button "Code" [ref=e27] [cursor=pointer]: Code
+      - generic [ref=e29]:
+        - button "Share" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - text: Share
+        - button "Publish" [ref=e37] [cursor=pointer]
+        - generic "Developer" [ref=e38] [cursor=pointer]: D
+    - generic [ref=e39]:
+      - complementary [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e43]:
+            - img [ref=e45]
+            - heading "How can I help you build?" [level=3] [ref=e48]
+            - paragraph [ref=e49]: Describe the diagram or process you want to create. I can handle Mermaid, Charts, Whiteboards and more.
+          - generic [ref=e51]:
+            - textbox "How should I change the diagram?" [ref=e52]
+            - generic [ref=e53]:
+              - button "Agent Mode" [ref=e55] [cursor=pointer]:
+                - img [ref=e56]
+                - text: Agent Mode
+              - button [disabled] [ref=e59]:
+                - img [ref=e60]
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - button "AI Chat" [ref=e65] [cursor=pointer]:
+              - img [ref=e66]
+              - generic [ref=e68]: AI Chat
+            - generic [ref=e69]:
+              - button "−" [ref=e70] [cursor=pointer]
+              - generic [ref=e71]: 100%
+              - button "+" [ref=e72] [cursor=pointer]
+              - button "↺" [ref=e73] [cursor=pointer]
+            - generic [ref=e75]:
+              - img [ref=e76]
+              - generic [ref=e81]: Flowchart
+          - generic [ref=e82]:
+            - generic [ref=e83]: Free plan
+            - generic [ref=e84]:
+              - button "Undo (⌘Z)" [disabled] [ref=e85]:
+                - img [ref=e86]
+              - button "Redo (⌘⇧Z)" [disabled] [ref=e89]:
+                - img [ref=e90]
+            - button "Export ▾" [ref=e94] [cursor=pointer]
+        - generic [ref=e100]: Made with Flowchart Studio
+  - button "Open Next.js Dev Tools" [ref=e106] [cursor=pointer]:
+    - img [ref=e107]
+  - alert [ref=e110]

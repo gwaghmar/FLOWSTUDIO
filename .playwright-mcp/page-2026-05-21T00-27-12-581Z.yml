@@ -1,0 +1,205 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - link "Flow Studio" [ref=e3] [cursor=pointer]:
+      - /url: "#"
+      - img [ref=e5]
+      - text: Flow Studio
+    - generic [ref=e10]:
+      - link "Product" [ref=e11] [cursor=pointer]:
+        - /url: "#"
+      - link "Pricing" [ref=e12] [cursor=pointer]:
+        - /url: "#"
+      - link "Docs" [ref=e13] [cursor=pointer]:
+        - /url: "#"
+      - link "Templates" [ref=e14] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e15]:
+      - link "Sign in" [ref=e16] [cursor=pointer]:
+        - /url: "#"
+      - link "Get Started" [ref=e17] [cursor=pointer]:
+        - /url: "#"
+  - generic [ref=e18]:
+    - generic [ref=e19]:
+      - heading "Flow Studio" [level=1] [ref=e21]:
+        - text: Flow
+        - text: Studio
+      - generic [ref=e22]:
+        - paragraph [ref=e23]:
+          - text: The AI-Powered
+          - text: Diagram Platform
+          - text: for Modern Teams
+        - paragraph [ref=e24]: Describe what you need in plain English. Flow Studio picks the right diagram type, draws it instantly, and exports in any format. No design skills required.
+        - generic [ref=e25]:
+          - link "Get started free" [ref=e26] [cursor=pointer]:
+            - /url: "#"
+          - link "View templates" [ref=e27] [cursor=pointer]:
+            - /url: "#"
+    - generic [ref=e29]:
+      - generic [ref=e31]: Flow Studio — Powered by AI
+      - generic [ref=e32]:
+        - generic [ref=e35]: flow-studio / editor
+        - generic [ref=e36]:
+          - generic [ref=e37]: Mermaid
+          - generic [ref=e38]: ReactFlow
+          - generic [ref=e39]: ECharts
+          - generic [ref=e40]: Excalidraw
+          - generic [ref=e41]: BPMN
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: source.md
+            - generic [ref=e45]: sequenceDiagram
+            - generic [ref=e46]: participant User
+            - generic [ref=e47]: participant API
+            - generic [ref=e48]: participant DB
+            - generic [ref=e49]: "User->>+API: Login"
+            - generic [ref=e50]: "API->>+DB: Verify"
+            - generic [ref=e51]: "DB-->>-API: Token"
+            - generic [ref=e52]: "API-->>-User: Session"
+          - img [ref=e54]:
+            - generic [ref=e56]: User
+            - generic [ref=e58]: API
+            - generic [ref=e60]: DB
+            - generic [ref=e62]: Login
+            - generic [ref=e64]: Verify
+            - generic [ref=e66]: Token OK
+            - generic [ref=e68]: Session OK
+            - generic [ref=e72]: User
+            - generic [ref=e74]: API
+            - generic [ref=e76]: DB
+  - generic [ref=e78]:
+    - generic [ref=e79]:
+      - generic [ref=e80]: "7"
+      - generic [ref=e81]: Diagram Types
+    - generic [ref=e82]:
+      - generic [ref=e83]: 40+
+      - generic [ref=e84]: Templates
+    - generic [ref=e85]:
+      - generic [ref=e86]: AI
+      - generic [ref=e87]: Powered Generation
+    - generic [ref=e88]:
+      - generic [ref=e89]: Free
+      - generic [ref=e90]: To Get Started
+  - separator [ref=e91]
+  - generic [ref=e93]:
+    - generic [ref=e94]: The Diagram Engine
+    - generic [ref=e95]:
+      - generic [ref=e96]:
+        - heading "Seven ways to visualise anything." [level=2] [ref=e97]:
+          - text: Seven ways
+          - text: to visualise
+          - text: anything.
+        - paragraph [ref=e98]: From sequence diagrams to freehand whiteboards, Flow Studio renders every diagram type in a single editor. Switch types without losing your work.
+        - link "Explore all diagram types" [ref=e99] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]: Diagram Engine
+          - generic [ref=e104]: Flow Studio
+        - generic [ref=e105]:
+          - generic [ref=e107]: 
+          - generic [ref=e108]:
+            - generic [ref=e109]: Mermaid
+            - generic [ref=e110]: Flowcharts, sequences, Gantt charts
+          - generic [ref=e111]: Default
+        - generic [ref=e112]:
+          - generic [ref=e114]: 
+          - generic [ref=e115]:
+            - generic [ref=e116]: ReactFlow
+            - generic [ref=e117]: Node-based interactive graphs
+        - generic [ref=e118]:
+          - generic [ref=e120]: 
+          - generic [ref=e121]:
+            - generic [ref=e122]: Excalidraw
+            - generic [ref=e123]: Freehand whiteboard sketches
+        - generic [ref=e124]:
+          - generic [ref=e126]: 
+          - generic [ref=e127]:
+            - generic [ref=e128]: ECharts / Nivo
+            - generic [ref=e129]: Data visualisation and charts
+        - generic [ref=e130]:
+          - generic [ref=e132]: 
+          - generic [ref=e133]:
+            - generic [ref=e134]: BPMN
+            - generic [ref=e135]: Business process notation
+  - generic [ref=e137]:
+    - generic [ref=e138]:
+      - generic [ref=e139]: The AI Assistant
+      - heading "Describe it. Get a diagram." [level=2] [ref=e140]:
+        - text: Describe it.
+        - text: Get a diagram.
+      - paragraph [ref=e141]: Type what you want in plain English. The AI picks the right diagram type, generates the source, and renders it instantly. No syntax to learn, no blank-page friction.
+      - link "Try the AI assistant" [ref=e142] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e143]:
+      - generic [ref=e148]: AI Assistant
+      - generic [ref=e149]:
+        - generic [ref=e150]: Draw a system architecture for a SaaS app with auth, API, and database layers
+        - generic [ref=e151]: "```mermaid graph TD Browser[\"Browser\"] Auth[\"Auth Service\"] API[\"API Gateway\"] DB[(\"Postgres\")] Cache[\"Redis Cache\"] Browser -->|HTTPS| Auth Browser -->|JWT| API API --> DB API --> Cache Auth --> DB ``` Rendered as flow diagram"
+      - generic [ref=e152]:
+        - generic [ref=e153]: Describe your diagram...
+        - button "Generate" [ref=e154] [cursor=pointer]
+  - generic [ref=e155]:
+    - generic [ref=e156]:
+      - generic [ref=e157]:
+        - generic [ref=e158]: Use Cases
+        - heading "Built for every team." [level=2] [ref=e159]:
+          - text: Built for
+          - text: every team.
+      - generic [ref=e160]:
+        - paragraph [ref=e161]: From engineers documenting architecture to product managers mapping user flows, Flow Studio adapts to how your team thinks.
+        - link "See all templates" [ref=e162] [cursor=pointer]:
+          - /url: "#"
+    - generic [ref=e163]:
+      - generic [ref=e164]:
+        - generic [ref=e165]: 
+        - generic [ref=e166]: Engineering
+        - generic [ref=e167]: System architecture, API flows, database schemas, deployment diagrams, sequence diagrams for code review.
+      - generic [ref=e168]:
+        - generic [ref=e169]: 
+        - generic [ref=e170]: Product
+        - generic [ref=e171]: User journey maps, feature flows, roadmaps, sprint boards, stakeholder diagrams, and more.
+      - generic [ref=e172]:
+        - generic [ref=e173]: 
+        - generic [ref=e174]: Data and Analytics
+        - generic [ref=e175]: Live charts connected to your data, pipeline visualisations, metric dashboards, and trend graphs.
+      - generic [ref=e176]:
+        - generic [ref=e177]: 
+        - generic [ref=e178]: Operations
+        - generic [ref=e179]: Business process diagrams, incident runbooks, on-call workflows, and escalation trees.
+      - generic [ref=e180]:
+        - generic [ref=e181]: 
+        - generic [ref=e182]: Design
+        - generic [ref=e183]: Freehand whiteboard sketches, wireframes, user flows, and interactive concept explorations.
+      - generic [ref=e184]:
+        - generic [ref=e185]: 
+        - generic [ref=e186]: Documentation
+        - generic [ref=e187]: Embed diagrams in Notion, Confluence, GitHub, or any docs platform. Export PNG, SVG, or PDF.
+  - generic [ref=e189]:
+    - heading "Start diagramming today." [level=2] [ref=e190]:
+      - text: Start
+      - text: diagramming
+      - text: today.
+    - generic [ref=e191]:
+      - paragraph [ref=e192]: Free to start. No credit card required. Sign in, describe what you need, and export in under 60 seconds.
+      - generic [ref=e193]:
+        - link "Get started free" [ref=e194] [cursor=pointer]:
+          - /url: "#"
+        - link "View pricing" [ref=e195] [cursor=pointer]:
+          - /url: "#"
+  - contentinfo [ref=e196]:
+    - link "Flow Studio" [ref=e197] [cursor=pointer]:
+      - /url: "#"
+      - img [ref=e199]
+      - text: Flow Studio
+    - generic [ref=e202]:
+      - link "Pricing" [ref=e203] [cursor=pointer]:
+        - /url: "#"
+      - link "Docs" [ref=e204] [cursor=pointer]:
+        - /url: "#"
+      - link "Privacy" [ref=e205] [cursor=pointer]:
+        - /url: "#"
+      - link "Terms" [ref=e206] [cursor=pointer]:
+        - /url: "#"
+      - link "Status" [ref=e207] [cursor=pointer]:
+        - /url: "#"
+    - generic [ref=e208]: 2026 Flow Studio
