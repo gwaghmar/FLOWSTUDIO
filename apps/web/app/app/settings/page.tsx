@@ -140,7 +140,11 @@ export default async function SettingsPage({
             <p className="mt-2 text-sm text-emerald-700">Handle saved.</p>
           )}
           {sp.handleError && (
-            <p className="mt-2 text-sm text-red-600">{decodeURIComponent(sp.handleError)}</p>
+            <p className="mt-2 text-sm text-red-600">
+              {["Handle already taken", "Handle must be 3–30 chars: lowercase letters, numbers, hyphens (not at start/end)"].includes(decodeURIComponent(sp.handleError as string))
+                ? decodeURIComponent(sp.handleError as string)
+                : "Invalid handle. Use 3–30 lowercase letters, numbers, or hyphens."}
+            </p>
           )}
         </section>
 

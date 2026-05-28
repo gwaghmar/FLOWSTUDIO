@@ -13,7 +13,7 @@ export async function ensureHandle(userId: string, name: string | null, email: s
   const [u] = await db.select({ handle: users.handle }).from(users).where(eq(users.id, userId)).limit(1);
   if (u?.handle) return u.handle;
 
-  const base = slugify(name ?? email.split("@")[0]);
+  const base = slugify(name ?? email.split("@")[0]).slice(0, 28);
   let candidate = base;
   let i = 2;
   while (true) {

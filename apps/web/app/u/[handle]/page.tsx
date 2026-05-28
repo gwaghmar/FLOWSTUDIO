@@ -1,11 +1,14 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { resolveProfile, getPublicDiagrams } from "@/app/actions/profile";
 
+const getProfile = cache(resolveProfile);
+
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
-  const user = await resolveProfile(handle);
+  const user = await getProfile(handle);
   if (!user) return { title: "Not found — Flowchart Studio" };
   const name = user.name ?? user.email.split("@")[0];
   return {
@@ -16,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
 
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  const user = await resolveProfile(handle);
+  const user = await getProfile(handle);
   if (!user) notFound();
 
   const diagrams = await getPublicDiagrams(user.id);
