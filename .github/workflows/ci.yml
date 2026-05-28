@@ -42,3 +42,4 @@ jobs:
       - run: pnpm --filter @flowchart/web db:push
       - run: pnpm --filter @flowchart/web lint
       - run: pnpm --filter @flowchart/web build
+      - run: pnpm test:unit
