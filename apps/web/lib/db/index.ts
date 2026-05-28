@@ -60,13 +60,14 @@ function createSql() {
   }
   
   const isLocal = url.includes("localhost") || url.includes("127.0.0.1");
-  
+
   // In dev/test, we want to fail fast if the DB isn't there to trigger the mock fallback.
+  // In production, raise pool size to handle concurrent requests efficiently.
   return postgres(url, {
-    max: 1,
+    max: isLocal ? 1 : 10,
     prepare: false,
     ssl: isLocal ? false : "require",
-    connect_timeout: 2, 
+    connect_timeout: isLocal ? 2 : 10,
   });
 }
 
