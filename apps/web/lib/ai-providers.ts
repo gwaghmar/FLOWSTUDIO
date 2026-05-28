@@ -69,12 +69,45 @@ export function getProviderMeta(id: AiProvider): ProviderMeta {
   return PROVIDER_META.find((p) => p.id === id) ?? PROVIDER_META[0];
 }
 
+const ALLOWED_AI_HOSTNAMES = new Set([
+  "api.openai.com",
+  "api.anthropic.com",
+  "generativelanguage.googleapis.com",
+  "api.groq.com",
+  "api.mistral.ai",
+  "openrouter.ai",
+  "api.together.xyz",
+  "api.perplexity.ai",
+  // Common OpenAI-compatible proxy hosts
+  "api.deepseek.com",
+  "api.moonshot.cn",
+]);
+
+export function validateAiBaseUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return null;
+    const hostname = parsed.hostname.toLowerCase();
+    if (ALLOWED_AI_HOSTNAMES.has(hostname)) return url;
+    // Allow subdomains of allowed hosts (e.g. custom.openai.azure.com)
+    const isAllowedSubdomain = [...ALLOWED_AI_HOSTNAMES].some(
+      (h) => hostname.endsWith(`.${h}`)
+    );
+    return isAllowedSubdomain ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 export function buildLanguageModel(
   provider: AiProvider,
   model: string,
   apiKey: string,
   baseUrl?: string | null
 ): any {
+  // Ollama is localhost-only; all other providers must pass the allowlist.
+  const safeBaseUrl = provider === "ollama" ? baseUrl : validateAiBaseUrl(baseUrl);
   switch (provider) {
     case "anthropic": {
       const client = createAnthropic({ apiKey });
@@ -94,14 +127,14 @@ export function buildLanguageModel(
     }
     case "ollama":
     case "custom": {
-      const base = baseUrl ?? (provider === "ollama" ? "http://localhost:11434/v1" : undefined);
+      const base = safeBaseUrl ?? (provider === "ollama" ? "http://localhost:11434/v1" : undefined);
       const client = createOpenAI({ apiKey: apiKey || "ollama", baseURL: base });
       return client(model) as any;
     }
     case "openai":
     default: {
       const opts: Parameters<typeof createOpenAI>[0] = { apiKey };
-      if (baseUrl) opts.baseURL = baseUrl;
+      if (safeBaseUrl) opts.baseURL = safeBaseUrl;
       const client = createOpenAI(opts);
       return client(model) as any;
     }

@@ -12,6 +12,7 @@ import {
   isAiKeyEncryptionConfigured,
 } from "@/lib/ai-key-crypto";
 import type { AiProvider } from "@/lib/ai-providers";
+import { validateAiBaseUrl } from "@/lib/ai-providers";
 
 export type AiSettingsState = {
   hasKey: boolean;
@@ -50,6 +51,11 @@ export async function saveAiSettings(formData: FormData) {
   const baseUrl = (formData.get("aiBaseUrl") as string)?.trim() || null;
   const model = (formData.get("aiModel") as string)?.trim() || null;
   const provider = ((formData.get("aiProvider") as string)?.trim() || "openai") as AiProvider;
+
+  // Reject non-HTTPS and unknown hosts to prevent SSRF. Ollama is localhost-only and bypasses this check.
+  if (baseUrl && provider !== "ollama" && !validateAiBaseUrl(baseUrl)) {
+    throw new Error("Invalid base URL. Must be https:// and a known AI provider host.");
+  }
 
   const updates: {
     aiApiKeyCipher?: string | null;
