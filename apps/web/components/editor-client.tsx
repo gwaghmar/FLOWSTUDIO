@@ -333,7 +333,7 @@ export function EditorClient({
         : `AI patched${promptSnippet ? `: ${promptSnippet}` : ""}`;
       setSuggestedTemplate(null);
       setPendingRevisionLabel(aiLabel);
-      void handleSave();
+      void handleSave(aiLabel);
       if (forceCreateNext) setForceCreateNext(false);
     },
     onError: (err) => {
@@ -802,18 +802,16 @@ export function EditorClient({
   };
 
   const handleNodeClick = useCallback((nodeId: string) => {
-    console.log("Node clicked:", nodeId);
     setInput(`Edit node [${nodeId}]: `);
-    // Future enhancement: Automatically scroll to or focus the input bar
   }, [setInput]);
 
   // Keyboard shortcuts
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (labelOverride?: string) => {
     if (saving) return;
     setSaving(true);
     try {
       const sourceToSave = diagramType === "mermaid" ? embedUiInSource(source, uiState) : source;
-      const label = pendingRevisionLabel ?? undefined;
+      const label = labelOverride ?? pendingRevisionLabel ?? undefined;
       if (currentProjectId) {
         await saveProject(currentProjectId, { source: sourceToSave, themeId, title, diagramType }, label);
       }
