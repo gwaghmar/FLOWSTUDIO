@@ -25,6 +25,7 @@ describe("ensureUserAndWorkspaceCore", () => {
           aiKeyLast4: null,
           aiBaseUrl: null,
           aiModel: null,
+          handle: null,
         };
       },
       selectWorkspaceByOwnerId: async () => null,
@@ -62,6 +63,7 @@ describe("ensureUserAndWorkspaceCore", () => {
       aiKeyLast4: null,
       aiBaseUrl: null,
       aiModel: null,
+      handle: null,
     };
     const existingWorkspace = {
       id: "workspace-2",

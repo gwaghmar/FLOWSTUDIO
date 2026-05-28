@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ShareViewer } from "@/components/share-viewer";
 import { db } from "@/lib/db";
-import { shareLinks, projects } from "@/lib/db/schema";
+import { shareLinks, projects, workspaces, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sha256Hex } from "@/lib/crypto";
 
@@ -18,12 +18,17 @@ async function resolveShare(token: string) {
     if (!link) return { kind: "missing" as const };
     if (link.expiresAt && link.expiresAt < new Date()) return { kind: "expired" as const };
     const [p] = await db
-      .select({ title: projects.title, diagramType: projects.diagramType })
+      .select({ title: projects.title, diagramType: projects.diagramType, workspaceId: projects.workspaceId })
       .from(projects)
       .where(eq(projects.id, link.projectId))
       .limit(1);
     if (!p) return { kind: "missing" as const };
-    return { kind: "ok" as const, title: p.title, diagramType: p.diagramType };
+    // Resolve author handle for attribution
+    const [ws] = await db.select({ ownerId: workspaces.ownerId }).from(workspaces).where(eq(workspaces.id, p.workspaceId)).limit(1);
+    const authorHandle = ws
+      ? await db.select({ handle: users.handle }).from(users).where(eq(users.id, ws.ownerId)).limit(1).then(r => r[0]?.handle ?? null)
+      : null;
+    return { kind: "ok" as const, title: p.title, diagramType: p.diagramType, authorHandle };
   } catch {
     return { kind: "missing" as const };
   }
@@ -72,5 +77,5 @@ export default async function SharePage({
   const { token } = await params;
   const result = await resolveShare(token);
   if (result.kind === "missing") notFound();
-  return <ShareViewer token={token} />;
+  return <ShareViewer token={token} authorHandle={result.kind === "ok" ? result.authorHandle : null} />;
 }

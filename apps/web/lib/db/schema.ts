@@ -29,6 +29,7 @@ export const users = pgTable("user", {
   aiBaseUrl: text("ai_base_url"),
   aiModel: text("ai_model"),
   aiProvider: text("ai_provider").default("openai"),
+  handle: text("handle").unique(),
 }, () => [
   check("user_plan_chk", sql`plan IN ('free', 'pro')`),
   check("user_role_chk", sql`role IN ('user', 'admin')`),
@@ -96,6 +97,7 @@ export const shareLinks = pgTable("share_link", {
   // PNG data URL captured client-side at share-create time, used by the OG
   // image route to render a real preview of the diagram (vs a generic card).
   previewDataUrl: text("preview_data_url"),
+  rawToken: text("raw_token"),
 }, (t) => [index("share_link_project_idx").on(t.projectId)]);
 
 export const apiKeys = pgTable("api_key", {

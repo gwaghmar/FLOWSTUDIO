@@ -60,6 +60,7 @@ export async function createShareLink(projectId: string, previewDataUrl?: string
     id: crypto.randomUUID(),
     projectId,
     tokenHash,
+    rawToken: raw,
     createdAt: now,
     previewDataUrl: preview,
   });

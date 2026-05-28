@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createApiKey, deleteApiKey, listApiKeys, setPlan } from "@/app/actions/api-keys";
 import { getAiSettingsForUser } from "@/app/actions/ai-settings";
 import { getBrandKit } from "@/app/actions/brand-kit";
+import { updateHandle, getMyHandle } from "@/app/actions/profile";
 import { AiSettingsPanel } from "@/components/settings/ai-settings-panel";
 import { BrandKitPanel } from "@/components/settings/brand-kit-panel";
 import type { AiProvider } from "@/lib/ai-providers";
@@ -10,7 +11,7 @@ import type { AiProvider } from "@/lib/ai-providers";
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ newKey?: string; ai?: string }>;
+  searchParams: Promise<{ newKey?: string; ai?: string; handleSaved?: string; handleError?: string }>;
 }) {
   const sp = await searchParams;
   const session = await auth();
@@ -22,6 +23,7 @@ export default async function SettingsPage({
   const keys = await listApiKeys();
   const aiSettings = await getAiSettingsForUser();
   const brandKit = await getBrandKit();
+  const currentHandle = await getMyHandle();
 
   const currentProvider = (aiSettings?.provider ?? "openai") as AiProvider;
 
@@ -92,6 +94,55 @@ export default async function SettingsPage({
 
         {/* Brand kit */}
         <BrandKitPanel initialKit={brandKit} />
+
+        {/* Public profile handle */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="text-lg font-medium">Public profile</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Your handle appears on your public profile page and on diagrams you publish.
+            {currentHandle && (
+              <> Your profile is live at{" "}
+                <a href={`/u/${currentHandle}`} className="text-indigo-600 hover:underline">
+                  /u/{currentHandle}
+                </a>.
+              </>
+            )}
+          </p>
+          <form
+            action={async (formData: FormData) => {
+              "use server";
+              const h = (formData.get("handle") as string ?? "").trim();
+              try {
+                await updateHandle(h);
+              } catch (e) {
+                redirect(`/app/settings?handleError=${encodeURIComponent(e instanceof Error ? e.message : "Failed")}`);
+                return;
+              }
+              redirect("/app/settings?handleSaved=1");
+            }}
+            className="mt-4 flex gap-2 items-center"
+          >
+            <span className="text-sm text-slate-500">/u/</span>
+            <input
+              name="handle"
+              defaultValue={currentHandle ?? ""}
+              placeholder="your-handle"
+              pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]"
+              minLength={3}
+              maxLength={30}
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+              Save
+            </button>
+          </form>
+          {sp.handleSaved && (
+            <p className="mt-2 text-sm text-emerald-700">Handle saved.</p>
+          )}
+          {sp.handleError && (
+            <p className="mt-2 text-sm text-red-600">{decodeURIComponent(sp.handleError)}</p>
+          )}
+        </section>
 
         {/* REST API Keys */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6">

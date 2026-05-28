@@ -41,7 +41,7 @@ type ShareData = {
   diagramType: DiagramType;
 };
 
-export function ShareViewer({ token }: { token: string }) {
+export function ShareViewer({ token, authorHandle }: { token: string; authorHandle?: string | null }) {
   const [data, setData] = useState<ShareData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -113,6 +113,14 @@ export function ShareViewer({ token }: { token: string }) {
         <h1 className="text-xl font-semibold text-slate-900">
           {data?.title ?? "Shared diagram"}
         </h1>
+        {authorHandle && (
+          <p className="text-xs text-slate-500 mt-1">
+            by{" "}
+            <a href={`/u/${authorHandle}`} className="text-indigo-600 hover:underline">
+              @{authorHandle}
+            </a>
+          </p>
+        )}
         <p className="mt-1 text-sm text-slate-500">
           {data ? `${DIAGRAM_TYPE_LABELS[diagramType]} · ` : ""}
           View-only link. You can export a PNG from this page.
