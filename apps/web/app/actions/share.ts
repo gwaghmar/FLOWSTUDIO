@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { projects, shareLinks } from "@/lib/db/schema";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import { sha256Hex, token } from "@/lib/crypto";
 
 // Cap stored preview size so we don't bloat the row. A modest-quality 1200x630
@@ -64,6 +64,17 @@ export async function createShareLink(projectId: string, previewDataUrl?: string
     createdAt: now,
     previewDataUrl: preview,
   });
+
+  // Opportunistic cleanup: delete expired share links for this project
+  await db
+    .delete(shareLinks)
+    .where(
+      and(
+        eq(shareLinks.projectId, projectId),
+        lt(shareLinks.expiresAt, now)
+      )
+    );
+
   return raw;
 }
 
