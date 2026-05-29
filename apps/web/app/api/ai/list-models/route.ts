@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   const { user } = await ensureUserAndWorkspace(email);
-  const rl = rateLimit(`ai-models:${user.id}`, 40, 60_000);
+  const rl = await rateLimit(`ai-models:${user.id}`, 40, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       {

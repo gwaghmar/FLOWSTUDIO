@@ -392,7 +392,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
   }
 
   // Rate limiting — fixed per user
-  const rl = rateLimit(`ai:${user.id}`, 60, 60_000);
+  const rl = await rateLimit(`ai:${user.id}`, 60, 60_000);
   if (!rl.ok) {
     const body: ApiError = { error: "Too many AI requests", code: "RATE_LIMITED", details: { retryAfter: rl.retryAfter } };
     return NextResponse.json(body, { status: 429 });

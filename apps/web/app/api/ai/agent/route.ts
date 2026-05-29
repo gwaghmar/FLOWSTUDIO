@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   const { user } = await ensureUserAndWorkspace(email);
 
-  const rl = rateLimit(`ai-agent:${user.id}`, 60, 60_000);
+  const rl = await rateLimit(`ai-agent:${user.id}`, 60, 60_000);
   if (!rl.ok) {
     const body: ApiError = { error: "Too many AI requests", code: "RATE_LIMITED", details: { retryAfter: rl.retryAfter } };
     return NextResponse.json(body, { status: 429 });

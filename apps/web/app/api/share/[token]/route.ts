@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const ip = req.headers.get("x-forwarded-for") ?? "local";
-  const rl = rateLimit(`share:${ip}`, 120, 60_000);
+  const rl = await rateLimit(`share:${ip}`, 120, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many requests", code: "RATE_LIMITED" },

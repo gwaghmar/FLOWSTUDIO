@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const principal = await getPrincipalFromRequest(req);
   const rlKey =
     principal.type === "user" ? `validate:key:${principal.userId}` : `validate:ip:${ip}`;
-  const rl = rateLimit(rlKey, principal.type === "user" ? 600 : 60, 60_000);
+  const rl = await rateLimit(rlKey, principal.type === "user" ? 600 : 60, 60_000);
   if (!rl.ok) {
     const body: ApiError = {
       error: "Too many requests",
