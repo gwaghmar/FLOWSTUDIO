@@ -10,6 +10,13 @@ import { slugify } from "@/lib/slugify";
 export { slugify };
 
 export async function ensureHandle(userId: string, name: string | null, email: string): Promise<string> {
+  const session = await auth();
+  const sessionEmail = session?.user?.email;
+  if (!sessionEmail) throw new Error("Unauthorized");
+  // Verify caller isn't passing a different user's ID
+  const { user: sessionUser } = await ensureUserAndWorkspace(sessionEmail);
+  if (sessionUser.id !== userId) throw new Error("Unauthorized");
+
   const [u] = await db.select({ handle: users.handle }).from(users).where(eq(users.id, userId)).limit(1);
   if (u?.handle) return u.handle;
 
