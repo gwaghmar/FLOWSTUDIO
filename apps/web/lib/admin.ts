@@ -1,12 +1,16 @@
+const adminEmailSet: Set<string> = new Set(
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 export function parseAdminEmails(): Set<string> {
-  const raw = process.env.ADMIN_EMAILS ?? "";
-  return new Set(
-    raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
-  );
+  return adminEmailSet;
 }
 
 export function isAdminEmail(email: string): boolean {
-  return parseAdminEmails().has(email.toLowerCase());
+  return adminEmailSet.has(email.toLowerCase());
 }
 
 export function resolveRoleForNewUser(email: string): "admin" | "user" {
