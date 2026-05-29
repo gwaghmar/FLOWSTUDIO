@@ -38,7 +38,7 @@
     "@supabase/supabase-js": "^2.103.0",
     "@tldraw/tlschema": "4.5.8",
     "@xyflow/react": "^12.10.2",
-    "ai": "4.1.45",
+    "ai": "5.0.52",
     "bpmn-js": "^18.14.0",
     "bpmn-moddle": "^10.0.0",
     "drizzle-orm": "^0.38.4",
