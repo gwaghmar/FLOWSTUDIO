@@ -40,7 +40,8 @@ export async function adminListUsers(): Promise<AdminUserRow[]> {
       creditsBalance: users.creditsBalance,
     })
     .from(users)
-    .orderBy(desc(users.email));
+    .orderBy(desc(users.email))
+    .limit(500);
 }
 
 export async function adminSetCredits(userId: string, credits: number) {
