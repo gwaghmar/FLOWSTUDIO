@@ -257,7 +257,7 @@ const ReactFlowSchema = z.object({
     z.object({
       id: z.string(),
       position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.unknown()),
+      data: z.record(z.string(), z.unknown()),
     })
   ).min(1, "ReactFlow nodes array must have at least one node"),
   edges: z.array(
@@ -276,7 +276,7 @@ const NivoSchema = z.object({
 
 const TldrawSchema = z.union([
   z.object({ elements: z.array(z.unknown()).min(1) }),
-  z.object({ document: z.object({ store: z.record(z.unknown()) }) }),
+  z.object({ document: z.object({ store: z.record(z.string(), z.unknown()) }) }),
 ]);
 
 function validateReactFlowEdgeRefs(parsed: { nodes: { id: string }[]; edges: { id: string; source: string; target: string }[] }): string | null {
