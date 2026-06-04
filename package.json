@@ -28,9 +28,5 @@
       "unrs-resolver",
       "better-sqlite3"
     ]
-  },
-  "dependencies": {
-    "ai": "^6.0.175",
-    "lucide-react": "^1.14.0"
   }
 }

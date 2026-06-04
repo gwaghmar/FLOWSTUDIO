@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { isMockAuthEnabled, hasSupabaseConfig } from "@/lib/auth-mode";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (isMockAuthEnabled() || !hasSupabaseConfig()) {
     return NextResponse.next({ request });
   }
