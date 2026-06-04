@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateText, streamText, createDataStreamResponse } from "ai";
+import { generateText, streamText, createUIMessageStream, createUIMessageStreamResponse, type UIMessageStreamWriter } from "ai";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
@@ -597,7 +597,7 @@ Rules:
         { role: "user", content: `${intentInstruction}\n\nUser prompt:\n${promptText}\n\nHistory:\n${messages.map((m) => `${m.role}: ${m.content}`).join("\n").slice(-1800)}` },
       ],
       temperature: 0.1,
-      maxTokens: compact ? 500 : 800,
+      maxOutputTokens: compact ? 500 : 800,
     });
     const intentLatencyMs = Date.now() - intentStart;
     const intentPlan = parseIntentPlan(intentText, promptText);
@@ -660,32 +660,36 @@ Quality requirements:
           ? `Assumptions used: ${intentPlan.assumptions.slice(0, 3).join("; ")}.`
           : "Updated with explicit structure from your request.";
 
-    return createDataStreamResponse({
-      execute: async (dataStream) => {
-        dataStream.writeData({
-          diagramType: effectiveDiagramType,
-          needsClarification: false,
-          assumptions: intentPlan.assumptions,
-          assistantMessage: assumptionNote,
-          detailLevel: intentPlan.detailLevel,
-          resolvedSubtype:
-            (intentPlan as { suggestedSubtype?: string }).suggestedSubtype ?? effectiveDiagramType,
-          typeSwitched,
-          suggestedPresetId: intentPlan.suggestedPresetId ?? null,
-          intentFallback: Boolean(intentPlan._fallback),
-          generationMode,
+    return createUIMessageStreamResponse({
+      stream: createUIMessageStream({
+        execute: async ({ writer }: { writer: UIMessageStreamWriter }) => {
+        writer.write({
+          type: "data-meta",
+          data: {
+            diagramType: effectiveDiagramType,
+            needsClarification: false,
+            assumptions: intentPlan.assumptions,
+            assistantMessage: assumptionNote,
+            detailLevel: intentPlan.detailLevel,
+            resolvedSubtype:
+              (intentPlan as { suggestedSubtype?: string }).suggestedSubtype ?? effectiveDiagramType,
+            typeSwitched,
+            suggestedPresetId: intentPlan.suggestedPresetId ?? null,
+            intentFallback: Boolean(intentPlan._fallback),
+            generationMode,
+          },
         });
 
         const genStart = Date.now();
-        const result = await streamText({
+        const result = streamText({
           model: languageModel,
           system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
           messages,
           temperature: 0.3,
-          maxTokens,
+          maxOutputTokens: maxTokens,
         });
 
-        result.mergeIntoDataStream(dataStream);
+        writer.merge(result.toUIMessageStream());
 
         let creditCharged = false;
         let validationStatus: "ok" | "repaired" | "failed_after_retry" | "error" = "ok";
@@ -700,8 +704,8 @@ Quality requirements:
           genLatencyMs = Date.now() - genStart;
           try {
             const usage = await result.usage;
-            inputTokens = usage?.promptTokens;
-            outputTokens = usage?.completionTokens;
+            inputTokens = usage?.inputTokens;
+            outputTokens = usage?.outputTokens;
           } catch {}
 
           const validation = await validateAndRepairOutput(effectiveDiagramType, finalText);
@@ -722,30 +726,39 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
                   { role: "user", content: correctiveInstruction },
                 ],
                 temperature: 0.1,
-                maxTokens,
+                maxOutputTokens: maxTokens,
               });
               const recheck = await validateAndRepairOutput(effectiveDiagramType, corrective.text);
               if (recheck.ok) {
                 validationStatus = "repaired";
-                dataStream.writeData({
-                  correctedSource: recheck.source,
-                  validationRepaired: true,
-                  validationReason: validation.reason,
+                writer.write({
+                  type: "data-meta",
+                  data: {
+                    correctedSource: recheck.source,
+                    validationRepaired: true,
+                    validationReason: validation.reason,
+                  },
                 });
               } else {
                 validationStatus = "failed_after_retry";
                 console.warn("[AI generate] Corrective pass also failed:", recheck.reason);
-                dataStream.writeData({
-                  validationFailed: true,
-                  validationReason: validation.reason,
+                writer.write({
+                  type: "data-meta",
+                  data: {
+                    validationFailed: true,
+                    validationReason: validation.reason,
+                  },
                 });
               }
             } catch (e) {
               validationStatus = "failed_after_retry";
               console.warn("[AI generate] Corrective pass errored:", e);
-              dataStream.writeData({
-                validationFailed: true,
-                validationReason: validation.reason,
+              writer.write({
+                type: "data-meta",
+                data: {
+                  validationFailed: true,
+                  validationReason: validation.reason,
+                },
               });
             }
           }
@@ -784,6 +797,7 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
           error: errorMessage ?? null,
         });
       },
+      }),
     });
   } catch (e) {
     console.error("[AI generate error]", e);

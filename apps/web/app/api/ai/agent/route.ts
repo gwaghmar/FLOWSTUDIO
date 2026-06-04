@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { streamText, tool } from "ai";
+import { streamText, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: languageModel,
       messages,
-      maxSteps: 5, // Allow the agent to take multiple steps (use tools)
+      stopWhen: stepCountIs(5),
       system: `You are an autonomous Lovable-style AI agent building diagrams for the user.
 You can use tools to inspect and update the diagram source code.
 The current diagram type is: ${diagramType}.
@@ -127,7 +127,7 @@ STRATEGY:
       tools: {
         update_diagram: tool({
           description: "Update or create the diagram source code (Full rewrite).",
-          parameters: z.object({
+          inputSchema: z.object({
             sourceCode: z.string().describe("The new diagram syntax/JSON to apply"),
             explanation: z.string().describe("Brief explanation of the changes"),
           }),
@@ -137,7 +137,7 @@ STRATEGY:
         }),
         apply_patch: tool({
           description: "Apply a targeted text replacement to the diagram source (Surgical edit).",
-          parameters: z.object({
+          inputSchema: z.object({
             find: z.string().describe("The exact text or line to find"),
             replace: z.string().describe("The replacement text"),
             explanation: z.string().describe("Why this change is being made"),
@@ -148,7 +148,7 @@ STRATEGY:
         }),
         update_node: tool({
           description: "Specifically for React Flow: Update a node's properties.",
-          parameters: z.object({
+          inputSchema: z.object({
             id: z.string().describe("Node ID"),
             data: z.any().optional().describe("New data (label, etc)"),
             style: z.any().optional().describe("New styles (color, border, etc)"),
@@ -159,7 +159,7 @@ STRATEGY:
         }),
         fetch_external_data: tool({
           description: "Fetch data from an external URL (JSON) or generate contextual sample data by keyword.",
-          parameters: z.object({
+          inputSchema: z.object({
             sourceName: z.string().describe("A URL (https://...) or a descriptive name like 'sales_data.csv'"),
           }),
           execute: async ({ sourceName }) => {
@@ -239,7 +239,7 @@ STRATEGY:
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (e) {
     console.error("[Agent error]", e);
     const errBody: ApiError = { error: e instanceof Error ? e.message : "Agent failed", code: "INTERNAL_ERROR" };

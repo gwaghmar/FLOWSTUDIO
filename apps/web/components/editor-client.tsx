@@ -6,6 +6,7 @@ import { toPng, toSvg } from "html-to-image";
 import JSZip from "jszip";
 import { Logo } from "@/components/logo";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import {
   Sparkles,
   ArrowUp,
@@ -297,9 +298,11 @@ export function EditorClient({
   const [suggestedTemplate, setSuggestedTemplate] = useState<Template | null>(null);
   const [pendingSuggestInput, setPendingSuggestInput] = useState<string>("");
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
-  const { messages, input, handleInputChange, handleSubmit, isLoading: aiLoading, setMessages, data: streamData, setInput, append } = useChat({
-    api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
-    body: {
+  const [input, setInput] = useState("");
+
+  const bodyRef = useRef<Record<string, unknown>>({});
+  useEffect(() => {
+    bodyRef.current = {
       diagramType,
       title,
       currentSource: source.slice(0, compactAiContext ? 800 : 2000),
@@ -307,17 +310,33 @@ export function EditorClient({
       compact: compactAiContext,
       useCaseId,
       mode: forceCreateNext || !source.trim() ? "create" : "patch",
-    },
-    onResponse: () => {
-      setAgentTasks([
-        { id: "intent", label: "Analyzing intent...", status: "completed" },
-        { id: "structure", label: "Planning structure...", status: "completed" },
-        { id: "generate", label: "Streaming diagram...", status: "loading" },
-      ]);
-    },
-    onFinish: (message) => {
-      if (message.content.trim()) {
-        const cleaned = cleanModelOutput(message.content);
+    };
+  });
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
+        prepareSendMessagesRequest: ({ messages, body }) => ({
+          body: { messages, ...bodyRef.current, ...(body ?? {}) },
+        }),
+      }),
+    [isAgentMode]
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getMessageText = (m: any): string =>
+    Array.isArray(m?.parts)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? m.parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("")
+      : "";
+
+  const { messages, sendMessage, status, setMessages } = useChat({
+    transport,
+    onFinish: ({ message }) => {
+      const text = getMessageText(message);
+      if (text.trim()) {
+        const cleaned = cleanModelOutput(text);
         if (cleaned && cleaned.trim() !== source.trim()) {
           recordUndo(source);
           setSource(cleaned);
@@ -325,8 +344,8 @@ export function EditorClient({
       }
       setAgentTasks((prev) => prev.map(t => t.id === "generate" ? { ...t, status: "completed" } : t));
       showToast("Diagram updated · ⌘Z to undo");
-      // Tag the next save as AI-sourced (patch vs create), then reset force flag
-      const lastUserInput = messages.filter((m) => m.role === "user").slice(-1)[0]?.content?.trim() ?? "";
+      const lastUserMsg = messages.filter((m) => m.role === "user").slice(-1)[0];
+      const lastUserInput = lastUserMsg ? getMessageText(lastUserMsg).trim() : "";
       const promptSnippet = lastUserInput.slice(0, 60);
       const aiLabel = forceCreateNext
         ? `AI regenerated${promptSnippet ? `: ${promptSnippet}` : ""}`
@@ -339,32 +358,67 @@ export function EditorClient({
     onError: (err) => {
       console.error("[ai-chat]", err);
       setAgentTasks([]);
-      // Reset one-shot flags so the user doesn't unknowingly carry them over
       if (forceCreateNext) setForceCreateNext(false);
       showToast("Could not update diagram — see console");
     },
   });
 
+  const aiLoading = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    if (status === "streaming") {
+      setAgentTasks([
+        { id: "intent", label: "Analyzing intent...", status: "completed" },
+        { id: "structure", label: "Planning structure...", status: "completed" },
+        { id: "generate", label: "Streaming diagram...", status: "loading" },
+      ]);
+    }
+  }, [status]);
+
+  const sendChatMessage = useCallback((text: string) => {
+    void sendMessage({ text });
+  }, [sendMessage]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const streamData = useMemo<any[]>(() => {
+    const out: unknown[] = [];
+    for (const m of messages) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parts: any[] = Array.isArray((m as { parts?: unknown[] }).parts) ? (m as { parts: unknown[] }).parts as any[] : [];
+      for (const p of parts) {
+        if (p?.type === "data-meta" && p.data) out.push(p.data);
+      }
+    }
+    return out;
+  }, [messages]);
+
   // Handle Tool Results surgically
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.toolInvocations) return;
+    if (!lastMessage || lastMessage.role !== 'assistant') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parts: any[] = Array.isArray((lastMessage as { parts?: unknown[] }).parts) ? (lastMessage as { parts: unknown[] }).parts as any[] : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolParts = parts.filter((p: any) => typeof p?.type === "string" && p.type.startsWith("tool-"));
+    if (toolParts.length === 0) return;
 
     // Snapshot once before any tool mutates source
     const snapshotBeforeTools = sourceRef.current;
     let mutated = false;
 
-    lastMessage.toolInvocations.forEach(tool => {
-      if (tool.state !== 'result') return;
-      const result = tool.result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toolParts.forEach((tp: any) => {
+      if (tp.state !== 'output-available') return;
+      const result = tp.output;
       if (!result || !result.success) return;
+      const toolName: string = tp.toolName ?? String(tp.type).slice(5);
 
-      if (tool.toolName === 'update_diagram' && result.sourceCode) {
+      if (toolName === 'update_diagram' && result.sourceCode) {
         mutated = true;
         setSource(result.sourceCode);
       }
 
-      if (tool.toolName === 'apply_patch' && result.find && result.replace) {
+      if (toolName === 'apply_patch' && result.find && result.replace) {
         setSource(prev => {
           if (prev.includes(result.find)) {
             mutated = true;
@@ -374,7 +428,7 @@ export function EditorClient({
         });
       }
 
-      if (tool.toolName === 'update_node' && diagramType === 'reactflow') {
+      if (toolName === 'update_node' && diagramType === 'reactflow') {
         try {
           const parsed = JSON.parse(sourceRef.current);
           const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
@@ -475,7 +529,7 @@ export function EditorClient({
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant" && aiLoading) {
-      const cleaned = cleanModelOutput(lastMessage.content);
+      const cleaned = cleanModelOutput(getMessageText(lastMessage));
       if (cleaned && cleaned.length > 5) {
         setSource(cleaned);
       }
@@ -658,10 +712,10 @@ export function EditorClient({
       promptAppendedRef.current = true;
       setTimeout(() => {
         setLeftPanelOpen(true);
-        append({ role: "user", content: initialPrompt });
+        sendChatMessage(initialPrompt);
       }, 100);
     }
-  }, [initialPrompt, append]);
+  }, [initialPrompt, sendChatMessage]);
 
   const typeMeta = useMemo(() => getDiagramTypeMeta(diagramType), [diagramType]);
   const theme = useMemo(() => THEMES.find((t) => t.id === themeId) ?? THEMES[0], [themeId]);
@@ -830,7 +884,7 @@ export function EditorClient({
     }
   }, [currentProjectId, source, uiState, themeId, title, diagramType, showToast, pendingRevisionLabel, saving]);
 
-  const handleChatSubmit = useCallback((e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent) => {
+  const handleChatSubmit = useCallback((_e?: React.FormEvent<HTMLFormElement> | React.KeyboardEvent) => {
     if (!input.trim() || aiLoading) return;
     const match = matchTemplate(input);
     if (match && !suggestedTemplate) {
@@ -839,13 +893,10 @@ export function EditorClient({
       setInput("");
       return;
     }
-    if ("key" in e) {
-      void append({ role: "user", content: input });
-      setInput("");
-    } else {
-      handleSubmit(e as React.FormEvent<HTMLFormElement>);
-    }
-  }, [input, aiLoading, suggestedTemplate, handleSubmit, append, setInput]);
+    const text = input;
+    setInput("");
+    sendChatMessage(text);
+  }, [input, aiLoading, suggestedTemplate, sendChatMessage]);
 
   const handleUseCaseChange = useCallback((id: UseCaseId) => {
     setUseCaseId(id);
@@ -1325,22 +1376,31 @@ export function EditorClient({
                     ? "bg-[#f1f0ee] text-slate-900" 
                     : "bg-white text-slate-700 border border-slate-100"
                 }`}>
-                  {msg.content}
+                  {getMessageText(msg)}
                   {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
                     <span className="inline-block h-4 w-1 animate-pulse bg-indigo-400 ml-1 translate-y-0.5" />
                   )}
                 </div>
-                {msg.toolInvocations && msg.toolInvocations.map(tool => (
-                  <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      {tool.state === 'result' ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
-                      <span className="font-semibold">{tool.toolName === 'web_search' ? 'Searching web...' : tool.toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
-                    </div>
-                    {tool.state === 'result' && tool.toolName === 'update_diagram' && (
-                      <span className="text-slate-400 pl-5">Diagram updated successfully.</span>
-                    )}
-                  </div>
-                ))}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(Array.isArray((msg as { parts?: unknown[] }).parts) ? ((msg as { parts: any[] }).parts as any[]) : [])
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  .filter((p: any) => typeof p?.type === "string" && p.type.startsWith("tool-"))
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  .map((tool: any) => {
+                    const toolName: string = tool.toolName ?? String(tool.type).slice(5);
+                    const isDone = tool.state === 'output-available';
+                    return (
+                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          {isDone ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
+                          <span className="font-semibold">{toolName === 'web_search' ? 'Searching web...' : toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
+                        </div>
+                        {isDone && toolName === 'update_diagram' && (
+                          <span className="text-slate-400 pl-5">Diagram updated successfully.</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 {msg.role === "assistant" && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
@@ -1408,7 +1468,7 @@ export function EditorClient({
                       </button>
                       <button
                         onClick={() => {
-                          void append({ role: "user", content: pendingSuggestInput });
+                          sendChatMessage(pendingSuggestInput);
                           setSuggestedTemplate(null);
                           setPendingSuggestInput("");
                         }}
@@ -1437,7 +1497,7 @@ export function EditorClient({
             >
               <textarea
                 value={input}
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="How should I change the diagram?"
                 className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
                 rows={1}
