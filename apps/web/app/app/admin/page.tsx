@@ -110,11 +110,11 @@ export default async function AdminPage() {
                         type="number"
                         min={0}
                         defaultValue={u.creditsBalance}
-                        className="w-20 rounded border border-slate-300 px-2 py-1"
+                        className="w-20 rounded-sm border border-slate-300 px-2 py-1"
                       />
                       <button
                         type="submit"
-                        className="rounded bg-slate-900 px-2 py-1 text-xs text-white"
+                        className="rounded-sm bg-slate-900 px-2 py-1 text-xs text-white"
                       >
                         Set credits
                       </button>
@@ -127,7 +127,7 @@ export default async function AdminPage() {
                     >
                       <button
                         type="submit"
-                        className="rounded border border-slate-300 px-2 py-1 text-xs"
+                        className="rounded-sm border border-slate-300 px-2 py-1 text-xs"
                       >
                         Free
                       </button>
@@ -140,7 +140,7 @@ export default async function AdminPage() {
                     >
                       <button
                         type="submit"
-                        className="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-xs text-indigo-900"
+                        className="rounded-sm border border-indigo-300 bg-indigo-50 px-2 py-1 text-xs text-indigo-900"
                       >
                         Pro
                       </button>

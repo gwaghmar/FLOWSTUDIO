@@ -162,7 +162,7 @@ export function AiSettingsPanel({
           <p className="font-medium">Save AI settings is disabled until this is set</p>
           <p className="leading-relaxed text-amber-900/95">
             The app encrypts your API key in the database. Add to{" "}
-            <code className="rounded bg-white/80 px-1 py-0.5 text-xs">
+            <code className="rounded-sm bg-white/80 px-1 py-0.5 text-xs">
               apps/web/.env.local
             </code>
             :
@@ -172,9 +172,9 @@ export function AiSettingsPanel({
           </pre>
           <p className="text-xs text-amber-900/90">
             Generate one:{" "}
-            <code className="rounded bg-white/80 px-1">openssl rand -hex 24</code>{" "}
+            <code className="rounded-sm bg-white/80 px-1">openssl rand -hex 24</code>{" "}
             or{" "}
-            <code className="rounded bg-white/80 px-1">
+            <code className="rounded-sm bg-white/80 px-1">
               {`node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`}
             </code>
             . Then <strong>restart</strong> the dev server (
@@ -199,7 +199,7 @@ export function AiSettingsPanel({
               type="checkbox"
               checked={compactContext}
               onChange={(e) => setCompactContext(e.target.checked)}
-              className="mt-0.5 rounded"
+              className="mt-0.5 rounded-sm"
             />
             <span className="min-w-0">
               <span className="block text-sm font-medium text-slate-900">

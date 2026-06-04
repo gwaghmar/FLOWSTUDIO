@@ -41,7 +41,7 @@ export default async function AppLayout({
         <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Link href="/app" className="flex items-center gap-2 text-sm font-semibold text-slate-900 sm:text-base">
-              <Logo className="h-6 w-6 shadow-sm rounded shadow-orange-500/20" />
+              <Logo className="h-6 w-6 shadow-xs rounded-sm shadow-orange-500/20" />
               <span>Flowchart Studio</span>
             </Link>
             <nav className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600 sm:justify-end sm:text-sm">

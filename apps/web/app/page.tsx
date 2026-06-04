@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { Logo } from "@/components/logo";
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export default async function HomePage() {
   const session = await auth();
@@ -25,21 +25,21 @@ export default async function HomePage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link
           href="/"
-          className={`flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-sm`}
+          className={`flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
         >
-          <Logo className="h-7 w-7 shadow-sm rounded shadow-orange-500/20" />
+          <Logo className="h-7 w-7 shadow-xs rounded-sm shadow-orange-500/20" />
           <span>Flowchart Studio</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
-          <Link href="/pricing" className={`rounded-sm hover:text-slate-900 ${focusRing}`}>Pricing</Link>
-          <Link href="/docs" className={`rounded-sm hover:text-slate-900 ${focusRing}`}>Docs</Link>
-          <Link href="/legal/privacy" className={`rounded-sm hover:text-slate-900 ${focusRing}`}>Privacy</Link>
+          <Link href="/pricing" className={`rounded-xs hover:text-slate-900 ${focusRing}`}>Pricing</Link>
+          <Link href="/docs" className={`rounded-xs hover:text-slate-900 ${focusRing}`}>Docs</Link>
+          <Link href="/legal/privacy" className={`rounded-xs hover:text-slate-900 ${focusRing}`}>Privacy</Link>
           {isLoggedIn ? (
-            <Link href="/app" className={`rounded-sm font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}>
+            <Link href="/app" className={`rounded-xs font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}>
               My projects →
             </Link>
           ) : (
-            <Link href="/login" className={`rounded-sm font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}>
+            <Link href="/login" className={`rounded-xs font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}>
               Sign in
             </Link>
           )}

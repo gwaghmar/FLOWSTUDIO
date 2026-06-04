@@ -70,7 +70,7 @@ export function BillingIntervalToggle({
         onClick={() => onChange("month")}
         className={`flex-1 rounded-md px-3 py-2 font-medium ${
           value === "month"
-            ? "bg-white text-slate-900 shadow-sm"
+            ? "bg-white text-slate-900 shadow-xs"
             : "text-slate-600 hover:text-slate-900"
         }`}
       >
@@ -81,7 +81,7 @@ export function BillingIntervalToggle({
         onClick={() => onChange("year")}
         className={`flex-1 rounded-md px-3 py-2 font-medium ${
           value === "year"
-            ? "bg-white text-slate-900 shadow-sm"
+            ? "bg-white text-slate-900 shadow-xs"
             : "text-slate-600 hover:text-slate-900"
         }`}
       >

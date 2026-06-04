@@ -6,7 +6,7 @@ export default function TermsPage() {
       <div className="mx-auto max-w-2xl px-6 py-16">
         <Link
           href="/"
-          className="text-sm text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-sm"
+          className="text-sm text-indigo-600 hover:text-indigo-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-xs"
         >
           ← Home
         </Link>

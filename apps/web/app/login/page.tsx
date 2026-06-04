@@ -34,7 +34,7 @@ export default async function LoginPage({
       </header>
 
       <div className="mx-auto flex max-w-md flex-col px-6 pb-16 pt-12">
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm sm:p-7">
+        <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-xs backdrop-blur-xs sm:p-7">
 
           {isMock && (
             <form
@@ -47,7 +47,7 @@ export default async function LoginPage({
               className="mb-5 flex flex-col gap-3"
             >
               <input name="email" type="email" placeholder="dev@example.com"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
               />
               <button type="submit"
                 className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
@@ -98,14 +98,14 @@ export default async function LoginPage({
                 <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
                 <input id="signup-email" name="email" type="email" required autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
               <div>
                 <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
                 <input id="signup-password" name="password" type="password" required minLength={8} autoComplete="new-password"
                   placeholder="Min. 8 characters"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
               <button type="submit" className="rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
@@ -131,14 +131,14 @@ export default async function LoginPage({
                 <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
                 <input id="login-email" name="email" type="email" required autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
               <div>
                 <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
                 <input id="login-password" name="password" type="password" required autoComplete="current-password"
                   placeholder="Your password"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
               <button type="submit" className="rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">

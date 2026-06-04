@@ -46,7 +46,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           {diagrams.map((d) => (
             <li
               key={d.rawToken ?? d.createdAt.toISOString()}
-              className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs hover:shadow-md transition-shadow"
             >
               {d.previewDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
                   className="w-full h-36 object-cover border-b border-slate-100"
                 />
               ) : (
-                <div className="w-full h-36 bg-gradient-to-br from-slate-100 to-slate-200 border-b border-slate-100 flex items-center justify-center">
+                <div className="w-full h-36 bg-linear-to-br from-slate-100 to-slate-200 border-b border-slate-100 flex items-center justify-center">
                   <span className="text-slate-300 text-sm capitalize">{d.diagramType}</span>
                 </div>
               )}

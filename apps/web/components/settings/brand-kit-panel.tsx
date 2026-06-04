@@ -50,7 +50,7 @@ export function BrandKitPanel({ initialKit }: { initialKit: BrandKitRow | null }
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-100"
             placeholder="My brand"
           />
         </label>
@@ -65,13 +65,13 @@ export function BrandKitPanel({ initialKit }: { initialKit: BrandKitRow | null }
         <div className="rounded-lg border border-slate-200 p-3">
           <div className="text-xs font-medium text-slate-700">Preview</div>
           <div
-            className="mt-2 flex h-20 items-center justify-center rounded"
+            className="mt-2 flex h-20 items-center justify-center rounded-sm"
             style={{ background }}
           >
             <div className="flex items-center gap-2">
-              <span style={{ background: primary }} className="h-8 w-8 rounded shadow" />
-              <span style={{ background: secondary }} className="h-8 w-8 rounded shadow" />
-              <span style={{ background: accent }} className="h-8 w-8 rounded shadow" />
+              <span style={{ background: primary }} className="h-8 w-8 rounded-sm shadow-sm" />
+              <span style={{ background: secondary }} className="h-8 w-8 rounded-sm shadow-sm" />
+              <span style={{ background: accent }} className="h-8 w-8 rounded-sm shadow-sm" />
             </div>
           </div>
         </div>
@@ -113,14 +113,14 @@ function ColorField({
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+          className="h-6 w-6 cursor-pointer rounded-sm border-0 bg-transparent p-0"
           aria-label={`${label} color picker`}
         />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent text-xs tabular-nums text-slate-700 focus:outline-none"
+          className="w-full bg-transparent text-xs tabular-nums text-slate-700 focus:outline-hidden"
           aria-label={`${label} hex value`}
         />
       </div>

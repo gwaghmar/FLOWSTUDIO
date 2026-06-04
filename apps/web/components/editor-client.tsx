@@ -1230,13 +1230,13 @@ export function EditorClient({
             onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
             className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-slate-50"
           >
-            <Logo className="h-5 w-5 shadow-sm rounded shadow-orange-500/20" />
+            <Logo className="h-5 w-5 shadow-xs rounded-sm shadow-orange-500/20" />
             <span className="font-semibold text-slate-900 tracking-tight">{title || "Flowchart Studio"}</span>
             <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
 
           {isNavMenuOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 rounded-xl border border-slate-200 bg-white shadow-lg z-[100] py-1 text-sm">
+            <div className="absolute top-full left-0 mt-1 w-48 rounded-xl border border-slate-200 bg-white shadow-lg z-100 py-1 text-sm">
               <Link href="/" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Home</Link>
               <Link href="/app" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Projects</Link>
               <Link href="/app/settings" className="block px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Settings</Link>
@@ -1256,15 +1256,15 @@ export function EditorClient({
         <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center bg-slate-100 p-1 rounded-xl">
            <button
              onClick={() => setSourceExpanded(false)}
-             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${!sourceExpanded ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${!sourceExpanded ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
            >
               <Play className="h-3.5 w-3.5" /> Preview
            </button>
            <button
              onClick={() => setSourceExpanded(true)}
-             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${sourceExpanded ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${sourceExpanded ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
            >
-              <div className="h-3 w-3 border border-slate-400 rounded-sm" /> Code
+              <div className="h-3 w-3 border border-slate-400 rounded-xs" /> Code
            </button>
         </div>
 
@@ -1288,7 +1288,7 @@ export function EditorClient({
            <button
              onClick={() => void handleShare()}
              disabled={isSharing}
-             className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm disabled:opacity-60"
+             className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-xs disabled:opacity-60"
            >
              Publish
            </button>
@@ -1298,14 +1298,14 @@ export function EditorClient({
                  <div
                    key={u.email}
                    title={u.name || u.email}
-                   className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white -ml-2 first:ml-0 cursor-default shadow-sm"
+                   className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white -ml-2 first:ml-0 cursor-default shadow-xs"
                    style={{ background: presenceColor(u.email) }}
                  >
                    {(u.name || u.email).charAt(0).toUpperCase()}
                  </div>
                ))}
                {presenceOthers.length > 4 && (
-                 <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold border-2 border-white -ml-2 shadow-sm">
+                 <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold border-2 border-white -ml-2 shadow-xs">
                    +{presenceOthers.length - 4}
                  </div>
                )}
@@ -1371,7 +1371,7 @@ export function EditorClient({
             
             {messages.map((msg, i) => (
               <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                <div className={`relative max-w-[92%] rounded-[20px] px-5 py-4 text-[14px] leading-relaxed shadow-sm ${
+                <div className={`relative max-w-[92%] rounded-[20px] px-5 py-4 text-[14px] leading-relaxed shadow-xs ${
                   msg.role === "user" 
                     ? "bg-[#f1f0ee] text-slate-900" 
                     : "bg-white text-slate-700 border border-slate-100"
@@ -1390,7 +1390,7 @@ export function EditorClient({
                     const toolName: string = tool.toolName ?? String(tool.type).slice(5);
                     const isDone = tool.state === 'output-available';
                     return (
-                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-sm">
+                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-xs">
                         <div className="flex items-center gap-2">
                           {isDone ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
                           <span className="font-semibold">{toolName === 'web_search' ? 'Searching web...' : toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
@@ -1436,7 +1436,7 @@ export function EditorClient({
                   <button
                     key={q}
                     onClick={() => setInput(q)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-xs"
                   >
                     {q}
                   </button>
@@ -1499,7 +1499,7 @@ export function EditorClient({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="How should I change the diagram?"
-                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
                 rows={1}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -1514,7 +1514,7 @@ export function EditorClient({
                   <button
                     type="button"
                     onClick={() => setIsAgentMode(!isAgentMode)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-sm transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
                   >
                     <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
                     Agent Mode
@@ -1524,7 +1524,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setForceCreateNext((v) => !v)}
                       title="Next message will regenerate the diagram from scratch instead of patching the existing one"
-                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-sm transition-all ${forceCreateNext ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${forceCreateNext ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
                     >
                       <Sparkles className={`h-3.5 w-3.5 ${forceCreateNext ? 'text-amber-600' : 'text-slate-500'}`} />
                       {forceCreateNext ? "Will regenerate" : "Regenerate"}
@@ -1558,7 +1558,7 @@ export function EditorClient({
       {aiNotice && (
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
           <span>{aiNotice}</span>
-          <button type="button" onClick={() => setAiNotice(null)} className="rounded p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
+          <button type="button" onClick={() => setAiNotice(null)} className="rounded-sm p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
         </div>
       )}
       {/* AI-05: assumption disclosure banner — "Generated as: type · preset · detail" */}
@@ -1568,7 +1568,7 @@ export function EditorClient({
           <button
             type="button"
             onClick={() => setAssumptionBanner(null)}
-            className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            className="rounded-sm p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
             aria-label="Dismiss generation notice"
           >×</button>
         </div>
@@ -1596,13 +1596,13 @@ export function EditorClient({
             
             {/* Zoom */}
             <div className="hidden lg:flex shrink-0 items-center gap-0.5">
-              <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
+              <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
               <span className="w-11 text-center text-xs tabular-nums text-slate-600">{Math.round(zoom * 100)}%</span>
-              <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
+              <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
               <button
                 type="button"
                 onClick={handleResetView}
-                className="rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100"
+                className="rounded-sm px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100"
                 title="Reset zoom & pan (⌘0)"
               >
                 ↺
@@ -1624,7 +1624,7 @@ export function EditorClient({
                   <select
                     value={presetId}
                     onChange={(e) => setPresetId(e.target.value as SocialPresetId)}
-                    className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-100"
                     aria-label="Canvas size preset"
                   >
                     {SOCIAL_PRESETS.map((p) => (
@@ -1642,7 +1642,7 @@ export function EditorClient({
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {showWatermark && (
-              <span className="hidden sm:inline-block rounded border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Free plan</span>
+              <span className="hidden sm:inline-block rounded-sm border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Free plan</span>
             )}
             
             <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
@@ -1711,11 +1711,11 @@ export function EditorClient({
                                 className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 ${active ? "bg-indigo-50" : ""}`}
                               >
                                 <span
-                                  className="h-5 w-5 shrink-0 rounded border border-slate-200"
+                                  className="h-5 w-5 shrink-0 rounded-sm border border-slate-200"
                                   style={{ background: bg }}
                                 >
                                   <span
-                                    className="block h-full w-full rounded"
+                                    className="block h-full w-full rounded-sm"
                                     style={{
                                       background: `linear-gradient(135deg, ${swatch} 0 50%, transparent 50% 100%)`,
                                     }}
@@ -1796,7 +1796,7 @@ export function EditorClient({
                 type="button"
                 onClick={() => setExportOpen((p) => !p)}
                 disabled={isExporting}
-                className="hidden sm:block px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors shadow-sm"
+                className="hidden sm:block px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[13px] font-semibold hover:bg-slate-800 disabled:opacity-60 transition-colors shadow-xs"
                 aria-expanded={exportOpen}
               >
                 {isExporting ? "…" : "Export ▾"}
@@ -1842,7 +1842,7 @@ export function EditorClient({
                     </div>
                     {diagramType === "mermaid" && (
                       <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                        <input type="checkbox" checked={zipIncludeCustom} onChange={(e) => setZipIncludeCustom(e.target.checked)} className="rounded" />
+                        <input type="checkbox" checked={zipIncludeCustom} onChange={(e) => setZipIncludeCustom(e.target.checked)} className="rounded-sm" />
                         Add custom
                       </label>
                     )}
@@ -1935,7 +1935,7 @@ export function EditorClient({
                   {aiLoading && (
                     <div
                       data-no-export
-                      className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-indigo-50/95 border border-indigo-200 px-2.5 py-1 text-[10px] font-medium text-indigo-700 shadow-sm backdrop-blur-sm"
+                      className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-indigo-50/95 border border-indigo-200 px-2.5 py-1 text-[10px] font-medium text-indigo-700 shadow-xs backdrop-blur-xs"
                     >
                       <Sparkles className="h-3 w-3 animate-pulse" /> Streaming
                     </div>
@@ -1943,7 +1943,7 @@ export function EditorClient({
                   {!aiLoading && mermaidRenderError && (
                     <div
                       data-no-export
-                      className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur-sm"
+                      className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-xs backdrop-blur-xs"
                     >
                       <span className="font-medium">Mermaid syntax: </span>
                       <span className="font-mono">{mermaidRenderError}</span>
@@ -2019,7 +2019,7 @@ export function EditorClient({
                   <button
                     type="button"
                     onClick={openSearch}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
                     aria-label="Find in source (⌘F)"
                     title="Find (⌘F)"
                   >
@@ -2028,7 +2028,7 @@ export function EditorClient({
                   <button
                     type="button"
                     onClick={() => setSourcePanelOpen(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
                     aria-label="Close source editor"
                   >
                     ×
@@ -2058,7 +2058,7 @@ export function EditorClient({
                         }
                       }}
                       placeholder="Find"
-                      className="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                      className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200"
                     />
                     <span className="shrink-0 text-[10px] tabular-nums text-slate-400 w-12 text-right">
                       {searchQuery
@@ -2071,7 +2071,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setSearchCaseSensitive((v) => !v)}
                       title="Match case"
-                      className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${searchCaseSensitive ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                      className={`shrink-0 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-bold ${searchCaseSensitive ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
                     >
                       Aa
                     </button>
@@ -2080,7 +2080,7 @@ export function EditorClient({
                       onClick={() => focusMatch(searchActiveIdx - 1)}
                       disabled={searchMatches.length === 0}
                       title="Previous match (⇧⏎)"
-                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                     >
                       <ChevronUp className="h-3 w-3" />
                     </button>
@@ -2089,7 +2089,7 @@ export function EditorClient({
                       onClick={() => focusMatch(searchActiveIdx + 1)}
                       disabled={searchMatches.length === 0}
                       title="Next match (⏎)"
-                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                     >
                       <ChevronDown className="h-3 w-3" />
                     </button>
@@ -2097,7 +2097,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setReplaceOpen((v) => !v)}
                       title="Toggle replace"
-                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${replaceOpen ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                      className={`shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${replaceOpen ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
                     >
                       ⇄
                     </button>
@@ -2108,7 +2108,7 @@ export function EditorClient({
                         sourceTextareaRef.current?.focus();
                       }}
                       title="Close (Esc)"
-                      className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -2132,14 +2132,14 @@ export function EditorClient({
                           }
                         }}
                         placeholder="Replace"
-                        className="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                        className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200"
                       />
                       <button
                         type="button"
                         onClick={replaceCurrent}
                         disabled={searchMatches.length === 0}
                         title="Replace current"
-                        className="shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
                       >
                         Replace
                       </button>
@@ -2148,7 +2148,7 @@ export function EditorClient({
                         onClick={replaceAll}
                         disabled={searchMatches.length === 0}
                         title="Replace all matches"
-                        className="shrink-0 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
                       >
                         All
                       </button>
@@ -2294,7 +2294,7 @@ export function EditorClient({
                   }}
                   spellCheck={false}
                   wrap="off"
-                  className="relative h-full w-full resize-none bg-transparent py-3 pr-4 pl-14 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-none"
+                  className="relative h-full w-full resize-none bg-transparent py-3 pr-4 pl-14 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-hidden"
                   style={{ minHeight: "100%" }}
                   placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
                 />

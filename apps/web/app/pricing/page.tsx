@@ -17,7 +17,7 @@ const editorSignInHref =
   "/login?callbackUrl=" + encodeURIComponent("/app/editor");
 
 const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
@@ -32,33 +32,33 @@ export default function PricingPage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link
           href="/"
-          className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-sm`}
+          className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
         >
           Flowchart Studio
         </Link>
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
           <Link
             href="/pricing"
-            className={`rounded-sm font-medium text-slate-900 ${focusRing}`}
+            className={`rounded-xs font-medium text-slate-900 ${focusRing}`}
             aria-current="page"
           >
             Pricing
           </Link>
           <Link
             href="/docs"
-            className={`rounded-sm hover:text-slate-900 ${focusRing}`}
+            className={`rounded-xs hover:text-slate-900 ${focusRing}`}
           >
             Docs
           </Link>
           <Link
             href="/legal/privacy"
-            className={`rounded-sm hover:text-slate-900 ${focusRing}`}
+            className={`rounded-xs hover:text-slate-900 ${focusRing}`}
           >
             Privacy
           </Link>
           <Link
             href="/login"
-            className={`rounded-sm font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}
+            className={`rounded-xs font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}
           >
             Sign in
           </Link>
@@ -86,9 +86,9 @@ export default function PricingPage() {
             role="switch"
             aria-checked={annual}
             onClick={() => setAnnual((a) => !a)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${annual ? "bg-indigo-600" : "bg-slate-300"}`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${annual ? "bg-indigo-600" : "bg-slate-300"}`}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${annual ? "translate-x-6" : "translate-x-1"}`} />
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${annual ? "translate-x-6" : "translate-x-1"}`} />
           </button>
           <span className={`text-sm font-medium ${annual ? "text-slate-900" : "text-slate-400"}`}>
             Annual
@@ -99,7 +99,7 @@ export default function PricingPage() {
         <div className="mt-12 grid gap-8 lg:grid-cols-2 lg:gap-10">
           <section
             aria-labelledby="plan-free"
-            className="flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+            className="flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-xs"
           >
             <h2 id="plan-free" className="text-lg font-semibold text-slate-900">
               Free

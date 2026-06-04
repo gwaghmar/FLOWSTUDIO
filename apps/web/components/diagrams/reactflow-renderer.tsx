@@ -41,10 +41,10 @@ function CustomNode({ data }: { data: { label: string; description?: string; col
       }}
       className={`min-w-[160px] rounded-xl border-2 bg-white px-5 py-3 text-center shadow-md transition-all ${data.isActive ? "scale-105" : "hover:shadow-lg"}`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-300" />
+      <Handle type="target" position={Position.Top} className="bg-slate-300!" />
       <div className="text-[13px] font-bold text-slate-800">{data.label}</div>
       {data.description && <div className="mt-1 text-[11px] leading-relaxed text-slate-500">{data.description}</div>}
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-300" />
+      <Handle type="source" position={Position.Bottom} className="bg-slate-300!" />
     </div>
   );
 }
@@ -145,7 +145,7 @@ function ReactFlowInner({ source, onChange, onNodeClick, readOnly }: Props) {
         <Controls />
         <MiniMap 
           nodeColor={(n) => (n.data as { color?: string; isActive?: boolean })?.isActive ? "#fbbf24" : (n.data as { color?: string })?.color ?? "#6366f1"}
-          className="!bg-white shadow-lg border border-slate-200 rounded-lg overflow-hidden"
+          className="bg-white! shadow-lg border border-slate-200 rounded-lg overflow-hidden"
         />
       </ReactFlow>
     </div>

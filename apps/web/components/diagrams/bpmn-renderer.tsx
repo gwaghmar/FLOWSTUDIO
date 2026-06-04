@@ -178,7 +178,7 @@ export function BpmnRenderer({ source, onChange, readOnly = false }: Props) {
       <div ref={containerRef} className="h-full w-full" />
       {parseError ? (
         <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
-          <div className="pointer-events-auto max-w-lg rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 shadow-sm">
+          <div className="pointer-events-auto max-w-lg rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 shadow-xs">
             <span className="font-medium">BPMN parse error: </span>
             <span className="font-mono">{parseError}</span>
           </div>

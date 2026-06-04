@@ -112,7 +112,7 @@ export default async function AiEventsPage() {
 
       {!dbReachable && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Couldn&apos;t reach the database. Telemetry table may not be migrated yet — run <code className="rounded bg-amber-100 px-1">db:push</code>.
+          Couldn&apos;t reach the database. Telemetry table may not be migrated yet — run <code className="rounded-sm bg-amber-100 px-1">db:push</code>.
         </div>
       )}
 
@@ -250,7 +250,7 @@ function StatusBadge({ status }: { status: string }) {
     error: "bg-red-50 text-red-800 border-red-200",
   };
   return (
-    <span className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium ${styles[status] ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
+    <span className={`inline-block rounded-sm border px-1.5 py-0.5 text-[10px] font-medium ${styles[status] ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
       {status}
     </span>
   );

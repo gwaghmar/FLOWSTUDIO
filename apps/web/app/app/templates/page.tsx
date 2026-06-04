@@ -30,9 +30,9 @@ export default async function TemplatesPage() {
       <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {TEMPLATES.map((t) => (
           <li key={t.id}>
-            <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg">
-              <div className={`relative aspect-[16/10] bg-gradient-to-br ${t.gradient} p-6`}>
-                <div className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 backdrop-blur-sm">
+            <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-lg">
+              <div className={`relative aspect-16/10 bg-linear-to-br ${t.gradient} p-6`}>
+                <div className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 backdrop-blur-xs">
                   {t.tag}
                 </div>
                 <div className="flex h-full flex-col justify-end">
@@ -40,7 +40,7 @@ export default async function TemplatesPage() {
                     <DiagramTypeIcon type={t.diagramType} className="h-4 w-4" />
                     <span className="text-[11px] font-medium uppercase tracking-wider">{t.diagramType}</span>
                   </div>
-                  <h3 className="mt-1 text-xl font-bold text-white drop-shadow-sm">
+                  <h3 className="mt-1 text-xl font-bold text-white drop-shadow-xs">
                     {t.title}
                   </h3>
                 </div>
