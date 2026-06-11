@@ -23,7 +23,7 @@ share / embed / export.
 - Monorepo (pnpm): `apps/web` (Next app) + `packages/core` (shared types, prompts, themes)
 - Mermaid + Excalidraw + ReactFlow (@xyflow) + ECharts + Nivo + tldraw + bpmn-js for diagram rendering
 
-## Diagram types supported (7)
+## Diagram types supported (8)
 
 | Type | What it's for | Editing model |
 |---|---|---|
@@ -34,8 +34,9 @@ share / embed / export.
 | `nivo` | Polished chart variants | JSON source (read-only) |
 | `tldraw` | Free-form canvas | visual canvas + source |
 | `bpmn` | BPMN 2.0 business process | visual modeler + XML source |
+| `cloud` | AWS/GCP/Azure system & infra diagrams with service icons | drag-to-edit + source (xyflow) |
 
-All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. Editor is
+All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud renderer and its shared helpers live at `apps/web/components/diagrams/cloud-renderer.tsx` and `apps/web/lib/diagrams/` (`xyflow-base.ts`, `cloud-icons.ts`, `cloud-glyphs.tsx`). Editor is
 `apps/web/components/editor-client.tsx` (one big file — every diagram type
 branches inside its render section).
 

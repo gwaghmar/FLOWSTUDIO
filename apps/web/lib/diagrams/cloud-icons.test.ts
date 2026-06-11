@@ -17,6 +17,9 @@ describe("resolveIconId", () => {
   it("falls back to box for unknown tokens", () => {
     assert.equal(resolveIconId("totally-unknown"), "box");
   });
+  it("falls back to box for undefined service", () => {
+    assert.equal(resolveIconId(undefined), "box");
+  });
 });
 
 describe("PROVIDER_COLORS", () => {
