@@ -80,6 +80,10 @@ const ReactFlowRenderer = dynamic(
   () => import("./diagrams/reactflow-renderer").then((m) => ({ default: m.ReactFlowRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Node graph" /> }
 );
+const CloudRenderer = dynamic(
+  () => import("./diagrams/cloud-renderer").then((m) => ({ default: m.CloudRenderer })),
+  { ssr: false, loading: () => <CanvasLoader label="Architecture" /> }
+);
 const EChartsRenderer = dynamic(
   () => import("./diagrams/echarts-renderer").then((m) => ({ default: m.EChartsRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Chart" /> }
@@ -807,10 +811,15 @@ export function EditorClient({
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
 
   const handleAutoLayout = useCallback(async () => {
-    if (diagramType !== "reactflow") return;
     try {
-      const mod = await import("./diagrams/reactflow-renderer");
-      const next = await mod.autoLayoutReactFlow(source);
+      let next = source;
+      if (diagramType === "reactflow") {
+        next = await (await import("./diagrams/reactflow-renderer")).autoLayoutReactFlow(source);
+      } else if (diagramType === "cloud") {
+        next = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(source);
+      } else {
+        return;
+      }
       if (next === source) {
         showToast("Layout unchanged");
         return;
@@ -1212,6 +1221,7 @@ export function EditorClient({
     mermaid: getMermaidSubtypeMeta(mermaidSubtype).quickPrompts,
     excalidraw: ["Add more steps", "Create a user journey", "Sketch a system design"],
     reactflow: ["Add a decision node", "Build an org chart", "Add error path"],
+    cloud: ["Add a load balancer", "Put it on GCP", "Add a cache layer", "Add a message queue"],
     echarts: ["Change to line chart", "Add second series", "Make it a pie chart", "Add gradient colors"],
     nivo: ["Change to bar chart", "Add monthly data", "Use dark theme"],
     bpmn: ["Add approval gateway", "Add error boundary", "Add a swimlane"],
@@ -1736,11 +1746,11 @@ export function EditorClient({
                   )}
                 </div>
               )}
-              {diagramType === "reactflow" && (
+              {(diagramType === "reactflow" || diagramType === "cloud") && (
                 <button
                   type="button"
                   onClick={() => void handleAutoLayout()}
-                  title="Auto-layout the node graph"
+                  title={diagramType === "cloud" ? "Auto-layout the architecture" : "Auto-layout the node graph"}
                   className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   <Wand2 className="h-4 w-4" />
@@ -1962,6 +1972,15 @@ export function EditorClient({
               style={{ width: `${frameW}px`, height: `${frameH}px`, transform: `scale(${previewScale})`, transformOrigin: "top center" }}
             >
               <ReactFlowRenderer source={source} onChange={setSource} onNodeClick={handleNodeClick} />
+            </div>
+          )}
+          {diagramType === "cloud" && (
+            <div
+              ref={frameRef}
+              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              style={{ minHeight: "600px", height: "100%" }}
+            >
+              <CloudRenderer source={source} onChange={setSource} readOnly={false} />
             </div>
           )}
           {diagramType === "echarts" && (
