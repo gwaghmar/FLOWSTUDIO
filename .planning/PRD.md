@@ -42,7 +42,7 @@ indie hackers, technical writers). The core loop:
 
 ---
 
-## 3. Diagram type coverage (9 types)
+## 3. Diagram type coverage (10 types)
 
 | Type | Status | Editing model |
 |---|---|---|
@@ -55,6 +55,7 @@ indie hackers, technical writers). The core loop:
 | BPMN 2.0 | [x] | visual modeler + XML |
 | Cloud / Architecture | [x] | drag + source (xyflow icon nodes) |
 | ERD / Database schema | [x] | drag + source (xyflow table nodes) |
+| Org Chart | [x] | drag + source (xyflow person nodes, tree layout) |
 
 ---
 
@@ -82,7 +83,8 @@ indie hackers, technical writers). The core loop:
 ### New diagram types (Group A — xyflow custom-node family)
 - [x] **Phase 1: Cloud / Architecture** — `cloud` type; xyflow icon nodes (AWS/GCP/Azure/generic) + shared `xyflow-base`; trademark-safe glyph registry
 - [x] **Phase 2: ERD / Database schema** — `erd` type; xyflow table nodes (typed columns, PK/FK/UK, relationship edges with cardinality); reuses `xyflow-base`; AI routes DB-schema intent here
-- [ ] Phase 3: Org chart · Phase 4: Mind map · Phase 5: Quadrant · Phase 6: Timeline · Phase 7: Wireframe · Phase 8: Customer journey (roadmap: `docs/superpowers/specs/2026-06-10-new-diagram-types-ROADMAP.md`)
+- [x] **Phase 3: Org chart** — `orgchart` type; xyflow person nodes (avatar/name/title) in a top-down dagre tree; reuses `xyflow-base`; AI routes reporting-hierarchy intent here. Also fixed a shared 0-width canvas bug across cloud/erd/orgchart (`w-full` on the render wrapper)
+- [ ] Phase 4: Mind map · Phase 5: Quadrant · Phase 6: Timeline · Phase 7: Wireframe · Phase 8: Customer journey (roadmap: `docs/superpowers/specs/2026-06-10-new-diagram-types-ROADMAP.md`)
 
 ### Editor polish pass (post-1.3)
 - [x] **Phase 12: Renderer audit** — 5 real bugs fixed across BPMN / ECharts / ReactFlow / Mermaid
