@@ -10,7 +10,7 @@
     "db:studio": "pnpm --filter @flowchart/web db:studio",
     "mcp:dev": "pnpm --filter @flowchart/mcp-server dev",
     "test": "pnpm exec playwright test",
-    "test:unit": "node --test --experimental-strip-types apps/web/lib/auth-mode.test.ts apps/web/lib/deployment-readiness.test.ts apps/web/lib/db/mode.test.ts apps/web/lib/profile.test.ts",
+    "test:unit": "node --test --experimental-strip-types apps/web/lib/auth-mode.test.ts apps/web/lib/deployment-readiness.test.ts apps/web/lib/db/mode.test.ts apps/web/lib/profile.test.ts apps/web/lib/diagrams/xyflow-base.test.ts",
     "test:web": "pnpm --filter @flowchart/web test"
   },
   "engines": {
