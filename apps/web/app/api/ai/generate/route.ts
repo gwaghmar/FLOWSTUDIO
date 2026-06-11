@@ -564,7 +564,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -588,7 +588,7 @@ Rules:
   - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
   - "flowchart", "sequence diagram", "ERD", "database schema", "class diagram", "Gantt", "mindmap" → "mermaid"
-  - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS/GCP/Azure", "how it's deployed", "deployment topology" → "cloud"
+  - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS", "GCP", "Azure", "how it's deployed", "deployment topology" → "cloud"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({
