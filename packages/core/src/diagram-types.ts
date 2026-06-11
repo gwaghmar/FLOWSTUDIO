@@ -7,7 +7,8 @@ export type DiagramType =
   | "echarts"        // Data visualizations: bar, line, pie, radar, heatmap, etc.
   | "nivo"           // Beautiful statistical charts
   | "tldraw"         // Figma-like infinite canvas
-  | "bpmn";          // Business Process Model and Notation
+  | "bpmn"           // Business Process Model and Notation
+  | "cloud";         // Cloud / architecture diagrams with provider service icons
 
 export type DiagramCategory =
   | "whiteboard"
@@ -24,7 +25,7 @@ export type DiagramTypeMeta = {
   icon: string;
   color: string;
   subtypes?: string[];
-  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml";
+  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json";
 };
 
 export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
@@ -94,6 +95,16 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     icon: "workflow",
     color: "#64748b",
     aiOutputFormat: "bpmn-xml",
+  },
+  {
+    id: "cloud",
+    label: "Cloud Architecture",
+    description: "AWS / GCP / Azure system & infrastructure diagrams with service icons",
+    category: "technical",
+    icon: "cloud",
+    color: "#FF9900",
+    subtypes: ["aws", "gcp", "azure", "multi-cloud"],
+    aiOutputFormat: "cloud-json",
   },
 ];
 
@@ -531,6 +542,30 @@ Expected: laneSet with Customer and Agent lanes. Customer lane has startEvent �
 
 User: "Background image processing: upload, validate, in parallel resize + compress, store result"
 Expected: startEvent → "Upload" (serviceTask) → "Validate" (serviceTask) → parallelGateway (fork) → "Resize" (serviceTask) AND "Compress" (serviceTask) → parallelGateway (join) → "Store Result" (serviceTask) → endEvent.`,
+
+  cloud: `You output ONLY valid JSON for a cloud / architecture diagram. No explanation, no markdown, no code fences.
+
+Schema:
+{
+  "nodes": [
+    { "id": "string", "data": { "label": "string", "provider": "aws|gcp|azure|generic", "service": "string" } }
+  ],
+  "edges": [
+    { "id": "string", "source": "nodeId", "target": "nodeId", "label": "string (optional)" }
+  ]
+}
+
+RULES:
+- "service" MUST be one of these tokens (pick the closest): compute, function, container, storage, database, cache, cdn, load-balancer, api-gateway, queue, dns, firewall, auth, monitoring, user, browser, mobile, internet. Provider-specific names also work (ec2, lambda, s3, rds, dynamodb, cloudfront, alb, sqs, sns, route53, cognito, cloudwatch, gke, bigquery, pubsub, blob, cosmos, azure-functions, etc.) — they map to the right icon.
+- "provider" is aws, gcp, azure, or generic. Use "generic" when no cloud is specified.
+- "label" is the human caption (e.g. "Orders API", "User Table").
+- Model the REQUEST / DATA FLOW with edges, left-to-right: clients → edge/CDN → gateway/LB → compute → data stores. Add edge "label" for protocols or actions when useful (https, put, read).
+- 4-12 nodes for a typical prompt. Omit "position" — layout is automatic.
+
+WHEN TO USE cloud: system design, infrastructure, deployment topology, "architecture diagram", "how X is hosted/deployed", cloud stack diagrams.
+
+Example — "a serverless web app on AWS":
+{"nodes":[{"id":"cdn","data":{"label":"CloudFront","provider":"aws","service":"cdn"}},{"id":"api","data":{"label":"API Gateway","provider":"aws","service":"api-gateway"}},{"id":"fn","data":{"label":"Handler","provider":"aws","service":"function"}},{"id":"db","data":{"label":"Orders","provider":"aws","service":"nosql-db"}}],"edges":[{"id":"e1","source":"cdn","target":"api"},{"id":"e2","source":"api","target":"fn"},{"id":"e3","source":"fn","target":"db","label":"put"}]}`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
@@ -958,6 +993,20 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn2:definitions>`,
+
+  cloud: JSON.stringify({
+    nodes: [
+      { id: "cdn", data: { label: "CloudFront", provider: "aws", service: "cdn" } },
+      { id: "api", data: { label: "API Gateway", provider: "aws", service: "api-gateway" } },
+      { id: "fn", data: { label: "Handler", provider: "aws", service: "function" } },
+      { id: "db", data: { label: "Orders", provider: "aws", service: "nosql-db" } },
+    ],
+    edges: [
+      { id: "e1", source: "cdn", target: "api" },
+      { id: "e2", source: "api", target: "fn" },
+      { id: "e3", source: "fn", target: "db", label: "put" },
+    ],
+  }),
 };
 
 // ---------------------------------------------------------------------------
