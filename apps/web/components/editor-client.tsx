@@ -88,6 +88,10 @@ const ErdRenderer = dynamic(
   () => import("./diagrams/erd-renderer").then((m) => ({ default: m.ErdRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Schema" /> }
 );
+const OrgChartRenderer = dynamic(
+  () => import("./diagrams/orgchart-renderer").then((m) => ({ default: m.OrgChartRenderer })),
+  { ssr: false, loading: () => <CanvasLoader label="Org chart" /> }
+);
 const EChartsRenderer = dynamic(
   () => import("./diagrams/echarts-renderer").then((m) => ({ default: m.EChartsRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Chart" /> }
@@ -359,6 +363,8 @@ export function EditorClient({
             cleaned = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(cleaned);
           } else if (diagramType === "erd" && cloudNeedsLayout(cleaned)) {
             cleaned = await (await import("./diagrams/erd-renderer")).autoLayoutErd(cleaned);
+          } else if (diagramType === "orgchart" && cloudNeedsLayout(cleaned)) {
+            cleaned = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(cleaned);
           }
           recordUndo(source);
           setSource(cleaned);
@@ -837,6 +843,8 @@ export function EditorClient({
         next = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(source);
       } else if (diagramType === "erd") {
         next = await (await import("./diagrams/erd-renderer")).autoLayoutErd(source);
+      } else if (diagramType === "orgchart") {
+        next = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(source);
       } else {
         return;
       }
@@ -1243,6 +1251,7 @@ export function EditorClient({
     reactflow: ["Add a decision node", "Build an org chart", "Add error path"],
     cloud: ["Add a load balancer", "Put it on GCP", "Add a cache layer", "Add a message queue"],
     erd: ["Add a junction table", "Add a foreign key", "Add timestamps", "Normalize this schema"],
+    orgchart: ["Add a direct report", "Add an HR department", "Insert a VP layer", "Add a co-founder"],
     echarts: ["Change to line chart", "Add second series", "Make it a pie chart", "Add gradient colors"],
     nivo: ["Change to bar chart", "Add monthly data", "Use dark theme"],
     bpmn: ["Add approval gateway", "Add error boundary", "Add a swimlane"],
@@ -1767,11 +1776,11 @@ export function EditorClient({
                   )}
                 </div>
               )}
-              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd") && (
+              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart") && (
                 <button
                   type="button"
                   onClick={() => void handleAutoLayout()}
-                  title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : "Auto-layout the node graph"}
+                  title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : diagramType === "orgchart" ? "Auto-layout the org chart" : "Auto-layout the node graph"}
                   className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   <Wand2 className="h-4 w-4" />
@@ -2011,6 +2020,15 @@ export function EditorClient({
               style={{ minHeight: "600px", height: "100%" }}
             >
               <ErdRenderer source={source} onChange={setSource} readOnly={false} />
+            </div>
+          )}
+          {diagramType === "orgchart" && (
+            <div
+              ref={frameRef}
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
+              style={{ minHeight: "600px", height: "100%" }}
+            >
+              <OrgChartRenderer source={source} onChange={setSource} readOnly={false} />
             </div>
           )}
           {diagramType === "echarts" && (
