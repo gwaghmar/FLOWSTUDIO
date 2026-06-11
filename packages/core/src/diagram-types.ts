@@ -8,7 +8,8 @@ export type DiagramType =
   | "nivo"           // Beautiful statistical charts
   | "tldraw"         // Figma-like infinite canvas
   | "bpmn"           // Business Process Model and Notation
-  | "cloud";         // Cloud / architecture diagrams with provider service icons
+  | "cloud"          // Cloud / architecture diagrams with provider service icons
+  | "erd";           // Entity-relationship / database schema diagrams (visual tables)
 
 export type DiagramCategory =
   | "whiteboard"
@@ -25,7 +26,7 @@ export type DiagramTypeMeta = {
   icon: string;
   color: string;
   subtypes?: string[];
-  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json";
+  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json" | "erd-json";
 };
 
 export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
@@ -105,6 +106,16 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     color: "#FF9900",
     subtypes: ["aws", "gcp", "azure", "multi-cloud"],
     aiOutputFormat: "cloud-json",
+  },
+  {
+    id: "erd",
+    label: "Database Schema",
+    description: "Entity-relationship diagrams — tables, columns, keys, and relationships",
+    category: "technical",
+    icon: "database",
+    color: "#0891b2",
+    subtypes: ["tables", "relationships", "keys"],
+    aiOutputFormat: "erd-json",
   },
 ];
 
@@ -566,6 +577,31 @@ WHEN TO USE cloud: system design, infrastructure, deployment topology, "architec
 
 Example — "a serverless web app on AWS":
 {"nodes":[{"id":"cdn","data":{"label":"CloudFront","provider":"aws","service":"cdn"}},{"id":"api","data":{"label":"API Gateway","provider":"aws","service":"api-gateway"}},{"id":"fn","data":{"label":"Handler","provider":"aws","service":"function"}},{"id":"db","data":{"label":"Orders","provider":"aws","service":"nosql-db"}}],"edges":[{"id":"e1","source":"cdn","target":"api"},{"id":"e2","source":"api","target":"fn"},{"id":"e3","source":"fn","target":"db","label":"put"}]}`,
+
+  erd: `You output ONLY valid JSON for an entity-relationship (database schema) diagram. No explanation, no markdown, no code fences.
+
+Schema:
+{
+  "nodes": [
+    { "id": "string", "data": { "label": "table_name", "columns": [ { "name": "string", "type": "string", "key": "PK|FK|UK (optional)" } ] } }
+  ],
+  "edges": [
+    { "id": "string", "source": "tableId", "target": "tableId", "label": "1:N | 1:1 | N:M" }
+  ]
+}
+
+RULES:
+- One node per table/entity. "id" is a stable slug (lowercase, no spaces); "label" is the table name shown in the header.
+- "columns" lists every field in order. Each column has "name" and a SQL-ish "type" (uuid, int, bigint, text, varchar, boolean, timestamp, decimal, json, etc.).
+- "key": set "PK" for primary keys, "FK" for foreign keys, "UK" for unique columns. Omit for plain columns. A column may be both PK and FK in a junction table — prefer "PK" then add the FK relationship via an edge.
+- Model relationships with edges between table ids. Set "label" to the cardinality: "1:N" (one-to-many), "1:1", or "N:M". Point edges from the parent (PK side) to the child (FK side) for 1:N.
+- Every FK column SHOULD have a matching edge to the referenced table.
+- Omit "position" — layout is automatic. 2-8 tables for a typical prompt.
+
+WHEN TO USE erd: "database schema", "ER diagram", "ERD", "tables and relationships", "data model", "entities and attributes", schema design.
+
+Example — "a blog database with users, posts, and comments":
+{"nodes":[{"id":"users","data":{"label":"users","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"email","type":"text","key":"UK"},{"name":"name","type":"text"},{"name":"created_at","type":"timestamp"}]}},{"id":"posts","data":{"label":"posts","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"title","type":"text"},{"name":"body","type":"text"},{"name":"published_at","type":"timestamp"}]}},{"id":"comments","data":{"label":"comments","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"post_id","type":"uuid","key":"FK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"content","type":"text"}]}}],"edges":[{"id":"e1","source":"users","target":"posts","label":"1:N"},{"id":"e2","source":"posts","target":"comments","label":"1:N"},{"id":"e3","source":"users","target":"comments","label":"1:N"}]}`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
@@ -1005,6 +1041,35 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
       { id: "e1", source: "cdn", target: "api" },
       { id: "e2", source: "api", target: "fn" },
       { id: "e3", source: "fn", target: "db", label: "put" },
+    ],
+  }),
+
+  erd: JSON.stringify({
+    nodes: [
+      { id: "users", data: { label: "users", columns: [
+        { name: "id", type: "uuid", key: "PK" },
+        { name: "email", type: "text", key: "UK" },
+        { name: "name", type: "text" },
+        { name: "created_at", type: "timestamp" },
+      ] } },
+      { id: "posts", data: { label: "posts", columns: [
+        { name: "id", type: "uuid", key: "PK" },
+        { name: "author_id", type: "uuid", key: "FK" },
+        { name: "title", type: "text" },
+        { name: "body", type: "text" },
+        { name: "published_at", type: "timestamp" },
+      ] } },
+      { id: "comments", data: { label: "comments", columns: [
+        { name: "id", type: "uuid", key: "PK" },
+        { name: "post_id", type: "uuid", key: "FK" },
+        { name: "author_id", type: "uuid", key: "FK" },
+        { name: "content", type: "text" },
+      ] } },
+    ],
+    edges: [
+      { id: "e1", source: "users", target: "posts", label: "1:N" },
+      { id: "e2", source: "posts", target: "comments", label: "1:N" },
+      { id: "e3", source: "users", target: "comments", label: "1:N" },
     ],
   }),
 };
