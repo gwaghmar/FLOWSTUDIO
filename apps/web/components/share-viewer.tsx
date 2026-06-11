@@ -33,6 +33,10 @@ const BpmnRenderer = dynamic(
   () => import("./diagrams/bpmn-renderer").then((m) => m.BpmnRenderer),
   { ssr: false }
 );
+const CloudRenderer = dynamic(
+  () => import("./diagrams/cloud-renderer").then((m) => m.CloudRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -105,6 +109,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     nivo: "Chart",
     tldraw: "Canvas",
     bpmn: "BPMN process",
+    cloud: "Cloud architecture",
   };
 
   return (
@@ -189,6 +194,11 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
               {diagramType === "bpmn" && (
                 <div className="h-[600px]">
                   <BpmnRenderer source={data.source} readOnly onChange={() => {}} />
+                </div>
+              )}
+              {diagramType === "cloud" && (
+                <div className="h-[600px]">
+                  <CloudRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
             </div>

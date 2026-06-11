@@ -30,6 +30,10 @@ const BpmnRenderer = dynamic(
   () => import("./diagrams/bpmn-renderer").then((m) => m.BpmnRenderer),
   { ssr: false }
 );
+const CloudRenderer = dynamic(
+  () => import("./diagrams/cloud-renderer").then((m) => m.CloudRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -125,6 +129,9 @@ export function EmbedViewer({ token }: { token: string }) {
       )}
       {diagramType === "bpmn" && (
         <BpmnRenderer source={data.source} readOnly onChange={() => {}} />
+      )}
+      {diagramType === "cloud" && (
+        <CloudRenderer source={data.source} readOnly onChange={() => {}} />
       )}
     </div>
   );

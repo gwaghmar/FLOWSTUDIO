@@ -15,6 +15,7 @@ const TYPE_LABELS: Record<string, string> = {
   nivo: "Chart",
   tldraw: "Canvas",
   bpmn: "BPMN process",
+  cloud: "Cloud architecture",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {

@@ -8,6 +8,7 @@ import {
   AreaChart,
   LayoutTemplate,
   Workflow,
+  Cloud,
   type LucideIcon,
 } from "lucide-react";
 import type { DiagramType } from "@flowchart/core";
@@ -22,6 +23,7 @@ export function DiagramTypeIcon({ type, className, size }: { type: DiagramType; 
     nivo: AreaChart,
     tldraw: LayoutTemplate,
     bpmn: Workflow,
+    cloud: Cloud,
   };
   const Icon = iconMap[type] ?? GitFork;
   return <Icon size={size ?? 18} className={className} />;
