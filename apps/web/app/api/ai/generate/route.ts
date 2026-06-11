@@ -177,7 +177,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -546,6 +546,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
       tldraw:     "Extract: spatial groupings, hierarchy levels, connection patterns, shape categories.",
       bpmn:       "Extract: participants/lanes, gateway types (exclusive/parallel/inclusive), process stages, happy path vs exception paths, SLA constraints.",
       cloud:      "Extract: cloud provider (aws/gcp/azure/generic), the services/components involved, and the request/data flow direction (clients -> edge -> gateway -> compute -> data). Map each component to a service token from the cloud icon registry.",
+      erd:        "Extract: every entity/table, its columns with SQL types, primary keys (PK), foreign keys (FK), unique keys (UK), and the relationships (1:1 / 1:N / N:M) between tables.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:
@@ -564,7 +565,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -587,7 +588,8 @@ Rules:
   - "whiteboard", "sketch", "brainstorm", "freehand", "wireframe", "rough drawing" → "excalidraw"
   - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
-  - "flowchart", "sequence diagram", "ERD", "database schema", "class diagram", "Gantt", "mindmap" → "mermaid"
+  - "flowchart", "sequence diagram", "class diagram", "Gantt", "mindmap", "state machine", "C4" → "mermaid"
+  - "ERD", "database schema", "entity relationship", "data model", "tables and relationships", "DB design", "schema design" → "erd"
   - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS", "GCP", "Azure", "how it's deployed", "deployment topology" → "cloud"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
