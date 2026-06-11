@@ -9,7 +9,8 @@ export type DiagramType =
   | "tldraw"         // Figma-like infinite canvas
   | "bpmn"           // Business Process Model and Notation
   | "cloud"          // Cloud / architecture diagrams with provider service icons
-  | "erd";           // Entity-relationship / database schema diagrams (visual tables)
+  | "erd"            // Entity-relationship / database schema diagrams (visual tables)
+  | "orgchart";      // Org charts — person nodes in a top-down reporting tree
 
 export type DiagramCategory =
   | "whiteboard"
@@ -26,7 +27,7 @@ export type DiagramTypeMeta = {
   icon: string;
   color: string;
   subtypes?: string[];
-  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json" | "erd-json";
+  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json" | "erd-json" | "orgchart-json";
 };
 
 export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
@@ -116,6 +117,16 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     color: "#0891b2",
     subtypes: ["tables", "relationships", "keys"],
     aiOutputFormat: "erd-json",
+  },
+  {
+    id: "orgchart",
+    label: "Org Chart",
+    description: "Reporting structures and company hierarchies — person nodes in a top-down tree",
+    category: "business",
+    icon: "users",
+    color: "#7c3aed",
+    subtypes: ["company", "team", "reporting"],
+    aiOutputFormat: "orgchart-json",
   },
 ];
 
@@ -602,6 +613,30 @@ WHEN TO USE erd: "database schema", "ER diagram", "ERD", "tables and relationshi
 
 Example — "a blog database with users, posts, and comments":
 {"nodes":[{"id":"users","data":{"label":"users","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"email","type":"text","key":"UK"},{"name":"name","type":"text"},{"name":"created_at","type":"timestamp"}]}},{"id":"posts","data":{"label":"posts","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"title","type":"text"},{"name":"body","type":"text"},{"name":"published_at","type":"timestamp"}]}},{"id":"comments","data":{"label":"comments","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"post_id","type":"uuid","key":"FK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"content","type":"text"}]}}],"edges":[{"id":"e1","source":"users","target":"posts","label":"1:N"},{"id":"e2","source":"posts","target":"comments","label":"1:N"},{"id":"e3","source":"users","target":"comments","label":"1:N"}]}`,
+
+  orgchart: `You output ONLY valid JSON for an org chart (reporting hierarchy). No explanation, no markdown, no code fences.
+
+Schema:
+{
+  "nodes": [
+    { "id": "string", "data": { "label": "Person Name", "title": "Role / job title", "color": "#hex (optional)" } }
+  ],
+  "edges": [
+    { "id": "string", "source": "managerId", "target": "reportId" }
+  ]
+}
+
+RULES:
+- One node per person. "label" is the person's name; "title" is their role (e.g. "CEO", "VP Engineering"). If only roles are given (no names), put the role in "label" and omit "title".
+- Edges are reporting lines pointing DOWNWARD from manager to direct report (source = manager, target = report). Build a single connected tree from the top leader down.
+- No edge labels — the hierarchy is implied by direction.
+- Omit "position" — layout is automatic top-down. Use "color" only when the prompt calls out a group/department to highlight.
+- 3-15 people for a typical prompt.
+
+WHEN TO USE orgchart: "org chart", "organizational chart", "reporting structure", "company hierarchy", "who reports to whom", "team structure", "leadership chart".
+
+Example — "engineering org: CEO, a CTO and CFO, two eng directors under the CTO":
+{"nodes":[{"id":"ceo","data":{"label":"Jane Smith","title":"CEO"}},{"id":"cto","data":{"label":"Bob Lee","title":"CTO"}},{"id":"cfo","data":{"label":"Mia Chen","title":"CFO"}},{"id":"d1","data":{"label":"Raj Patel","title":"Director, Platform"}},{"id":"d2","data":{"label":"Sara Kim","title":"Director, Product Eng"}}],"edges":[{"id":"e1","source":"ceo","target":"cto"},{"id":"e2","source":"ceo","target":"cfo"},{"id":"e3","source":"cto","target":"d1"},{"id":"e4","source":"cto","target":"d2"}]}`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
@@ -1070,6 +1105,24 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
       { id: "e1", source: "users", target: "posts", label: "1:N" },
       { id: "e2", source: "posts", target: "comments", label: "1:N" },
       { id: "e3", source: "users", target: "comments", label: "1:N" },
+    ],
+  }),
+
+  orgchart: JSON.stringify({
+    nodes: [
+      { id: "ceo", position: { x: 330, y: 0 }, data: { label: "Jane Smith", title: "CEO" } },
+      { id: "cto", position: { x: 120, y: 130 }, data: { label: "Bob Lee", title: "CTO" } },
+      { id: "cfo", position: { x: 330, y: 130 }, data: { label: "Mia Chen", title: "CFO" } },
+      { id: "vps", position: { x: 540, y: 130 }, data: { label: "Tom Ng", title: "VP Sales" } },
+      { id: "d1", position: { x: 40, y: 260 }, data: { label: "Raj Patel", title: "Director, Platform" } },
+      { id: "d2", position: { x: 220, y: 260 }, data: { label: "Sara Kim", title: "Director, Product Eng" } },
+    ],
+    edges: [
+      { id: "e1", source: "ceo", target: "cto" },
+      { id: "e2", source: "ceo", target: "cfo" },
+      { id: "e3", source: "ceo", target: "vps" },
+      { id: "e4", source: "cto", target: "d1" },
+      { id: "e5", source: "cto", target: "d2" },
     ],
   }),
 };
