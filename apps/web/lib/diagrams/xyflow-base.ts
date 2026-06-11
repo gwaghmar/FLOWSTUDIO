@@ -58,7 +58,6 @@ export type ChangeHandlers = {
 
 export function makeChangeHandlers(args: {
   data: GraphData;
-  readOnly: boolean;
   push: (nodes: Node[], edges: Edge[]) => void;
   edgeId: () => string;
 }): ChangeHandlers {
@@ -75,8 +74,8 @@ export function makeChangeHandlers(args: {
     onConnect: (connection) => {
       const newEdge: Edge = {
         id: edgeId(),
-        source: connection.source as string,
-        target: connection.target as string,
+        source: connection.source,
+        target: connection.target,
         type: "smoothstep",
       };
       push(data.nodes, [...data.edges, newEdge]);
