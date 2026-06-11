@@ -1998,7 +1998,7 @@ export function EditorClient({
           {diagramType === "cloud" && (
             <div
               ref={frameRef}
-              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <CloudRenderer source={source} onChange={setSource} readOnly={false} />
@@ -2007,7 +2007,7 @@ export function EditorClient({
           {diagramType === "erd" && (
             <div
               ref={frameRef}
-              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <ErdRenderer source={source} onChange={setSource} readOnly={false} />
