@@ -1,77 +1,90 @@
 # FlowStudio
 
-**FlowStudio** is a web app where you describe what you want in plain text and AI generates the right diagram for you � instantly.
+FlowStudio is an AI-powered diagram studio for turning plain-language prompts into polished diagrams, charts, architecture maps, process models, and shareable exports.
 
-Supports **7 diagram types**: Mermaid, Excalidraw, ReactFlow, ECharts, Nivo, TLDraw, and BPMN. Export as PNG or SVG at exact sizes for any platform (presentations, social media, docs, etc.).
+[Live app](https://web-govw.vercel.app) · [Repository](https://github.com/gwaghmar/FLOWSTUDIO)
 
----
+![FlowStudio architecture](docs/assets/flowstudio-architecture.svg)
 
-## What it does
+## What It Does
 
-- Type a description like *"OAuth login flow between browser, API, and auth server"* ? AI picks the right diagram type and draws it
-- Supports social media presets (16:9, square, story) and custom export sizes
-- Multi-provider AI: OpenAI, Anthropic, Google, Groq, Mistral
-- Save, share, and export diagrams
-- Auth + Stripe billing built in
+- Generates the right diagram type from a short prompt.
+- Supports 8 diagram engines: Mermaid, Excalidraw, React Flow, ECharts, Nivo, tldraw, BPMN, and cloud architecture diagrams.
+- Exports exact-size PNG and SVG assets for docs, decks, social posts, and embeds.
+- Saves projects with revision history, public share links, iframe embeds, and real Open Graph previews.
+- Supports multi-provider AI through OpenAI, Anthropic, Google, Groq, and Mistral.
+- Includes Auth.js, Supabase/Postgres persistence, Stripe billing, API keys, and an MCP server for agent workflows.
 
----
+## Architecture
+
+The app is a pnpm monorepo with a Next.js web app, shared diagram logic, a CLI package, and an MCP server.
+
+```mermaid
+flowchart LR
+    User["User prompt"] --> Web["Next.js web app"]
+    Web --> Intent["AI intent planner"]
+    Intent --> Core["packages/core diagram registry"]
+    Core --> Renderers["Diagram renderers"]
+    Renderers --> Export["PNG/SVG export"]
+    Web --> DB["Supabase Postgres"]
+    Web --> Share["Share, embed, OG preview"]
+    MCP["MCP server"] --> Core
+    CLI["CLI"] --> Core
+```
+
+Mermaid source for the diagram image lives in [`docs/assets/flowstudio-architecture.mmd`](docs/assets/flowstudio-architecture.mmd).
 
 ## Tech Stack
 
-- **Next.js 15** (App Router) + TypeScript + Tailwind CSS
-- **Drizzle ORM** + Postgres (Supabase)
-- **Vercel AI SDK** for multi-provider AI
-- Auth.js (GitHub OAuth + dev credentials)
-- Monorepo: `apps/web` (web app) + `packages/core` (shared types/prompts)
-
----
+- Next.js 16 App Router, React 19, TypeScript, Tailwind CSS
+- Drizzle ORM with Supabase/Postgres
+- Vercel AI SDK with OpenAI, Anthropic, Google, Groq, and Mistral providers
+- Mermaid, Excalidraw, React Flow, ECharts, Nivo, tldraw, and bpmn-js
+- pnpm workspaces with `apps/web`, `packages/core`, `packages/cli`, and `packages/mcp-server`
 
 ## Quick Start
 
 ```bash
 pnpm install
 cp .env.example apps/web/.env.local
-# Fill in DATABASE_URL, AUTH_SECRET, and your AI provider key
-cd apps/web && pnpm db:push
+pnpm --filter @flowchart/web db:push
 pnpm dev
 ```
 
-Open http://localhost:3000. In dev, sign in with **Demo email** on `/login`.
+Open `http://localhost:3040`.
 
----
+For local development without Postgres, set `MOCK_DB=true` in `apps/web/.env.local`.
 
-## Status
+## Environment
 
-Milestones 1.0, 1.1, and 1.2 are **complete**.
+Copy `.env.example` to `apps/web/.env.local` and configure the values you need:
 
-### Milestone 1.0 — AI Diagram Quality & Precision ✅
+- `DATABASE_URL` for Supabase/Postgres
+- `AUTH_SECRET` for Auth.js
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for production auth
+- At least one hosted AI provider key, such as `OPENAI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`
+- Stripe values if billing is enabled
 
-- **WYSIWYG Canvas** — preview locks to the selected export aspect ratio and updates immediately on preset change
-- **Use-Case Awareness** — AI infers the target platform from your words; "Use for" selector lets you override; style conventions adapt
-- **Smarter AI Generation** — all 7 prompts include type-selection rules, extraction checklists, and few-shot examples; clarification threshold raised to `ambiguityScore ≥ 90`; silent generations surface a "Generated as: …" banner
+## Scripts
 
-### Milestone 1.1 — AI Iteration & Sharing ✅
-
-- **Surgical AI Edits** — follow-up prompts patch the existing diagram instead of regenerating; "Regenerate" toggle forces a full rebuild
-- **Persistent Version History** — every save creates an auto-labeled revision; click the Clock icon in the toolbar to browse history and restore any prior version (history is preserved — restores stack on top)
-- **Public Share with OG Previews** — `/s/[token]` renders a read-only diagram with a branded 1200×630 OG image and proper 404 for expired/missing links
-
-### Milestone 1.2 — Brand & Distribution ✅
-
-- **Brand Kit** — set your workspace colors in Settings (primary, secondary, accent, background); the editor's Palette button applies them to any diagram in one click
-- **Iframe Embeds** — `/embed/[token]` serves a chromeless viewer; the editor's "Embed" button copies a paste-ready `<iframe>` snippet
-
-### Milestone 1.3 — Legendary ✅
-
-- **Real OG Previews** — when you click Share or Embed, the editor captures a PNG of the actual diagram and stores it with the link; social unfurls (Slack, Twitter, LinkedIn) show the real diagram, not a generic card
-- **Streaming Live Preview** — the Mermaid canvas updates progressively as the AI generates, with a parse-gate so partial output doesn't flicker the diagram to empty; pulsing "Streaming" pill confirms the magic
-- **AI-aware Brand Kit** — once you set a brand kit, the AI honors those colors when generating color-sensitive diagrams (echarts, themed mermaid, reactflow)
-- **Templates Gallery** — `/app/templates` ships 6 hand-crafted starters (onboarding funnel, OAuth flow, architecture, revenue chart, blog ER, roadmap gantt); one click forks into your workspace
-
----
+```bash
+pnpm dev          # run the web app
+pnpm build        # build core and web packages
+pnpm lint         # run workspace lint tasks
+pnpm test:unit    # run Node unit tests
+pnpm test         # run Playwright tests
+pnpm mcp:dev      # run the MCP server
+```
 
 ## Deploy
 
-1. Import repo to Vercel, set **Root Directory** to `apps/web`
-2. Add env vars from `.env.example` in the Vercel dashboard
-3. Run `pnpm db:push` against your Supabase `DATABASE_URL`
+1. Import the repository into Vercel.
+2. Set the Vercel root directory to `apps/web`.
+3. Add the production environment variables from `.env.example`.
+4. Connect a Supabase Postgres database and run `pnpm --filter @flowchart/web db:push`.
+
+## Project Status
+
+FlowStudio has shipped the core editor, AI generation, save/share/embed workflows, brand kit support, templates, real OG previews, streaming Mermaid preview, and cloud architecture diagrams.
+
+Current polish focus: source editor ergonomics, more layout helpers, template recommendations, and public profile pages.
