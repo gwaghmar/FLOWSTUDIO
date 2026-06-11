@@ -38,6 +38,10 @@ const ErdRenderer = dynamic(
   () => import("./diagrams/erd-renderer").then((m) => m.ErdRenderer),
   { ssr: false }
 );
+const OrgChartRenderer = dynamic(
+  () => import("./diagrams/orgchart-renderer").then((m) => m.OrgChartRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -139,6 +143,9 @@ export function EmbedViewer({ token }: { token: string }) {
       )}
       {diagramType === "erd" && (
         <ErdRenderer source={data.source} readOnly onChange={() => {}} />
+      )}
+      {diagramType === "orgchart" && (
+        <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
       )}
     </div>
   );

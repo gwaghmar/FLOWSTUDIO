@@ -10,6 +10,7 @@ import {
   Workflow,
   Cloud,
   Database,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { DiagramType } from "@flowchart/core";
@@ -26,6 +27,7 @@ export function DiagramTypeIcon({ type, className, size }: { type: DiagramType; 
     bpmn: Workflow,
     cloud: Cloud,
     erd: Database,
+    orgchart: Users,
   };
   const Icon = iconMap[type] ?? GitFork;
   return <Icon size={size ?? 18} className={className} />;

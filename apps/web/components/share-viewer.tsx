@@ -41,6 +41,10 @@ const ErdRenderer = dynamic(
   () => import("./diagrams/erd-renderer").then((m) => m.ErdRenderer),
   { ssr: false }
 );
+const OrgChartRenderer = dynamic(
+  () => import("./diagrams/orgchart-renderer").then((m) => m.OrgChartRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -115,6 +119,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     bpmn: "BPMN process",
     cloud: "Cloud architecture",
     erd: "Database schema",
+    orgchart: "Org chart",
   };
 
   return (
@@ -209,6 +214,11 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
               {diagramType === "erd" && (
                 <div className="h-[600px]">
                   <ErdRenderer source={data.source} readOnly onChange={() => {}} />
+                </div>
+              )}
+              {diagramType === "orgchart" && (
+                <div className="h-[600px]">
+                  <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
             </div>

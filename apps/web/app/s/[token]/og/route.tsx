@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
   bpmn: "BPMN process",
   cloud: "Cloud architecture",
   erd: "Database schema",
+  orgchart: "Org chart",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {

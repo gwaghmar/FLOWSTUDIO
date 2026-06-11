@@ -177,7 +177,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -547,6 +547,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
       bpmn:       "Extract: participants/lanes, gateway types (exclusive/parallel/inclusive), process stages, happy path vs exception paths, SLA constraints.",
       cloud:      "Extract: cloud provider (aws/gcp/azure/generic), the services/components involved, and the request/data flow direction (clients -> edge -> gateway -> compute -> data). Map each component to a service token from the cloud icon registry.",
       erd:        "Extract: every entity/table, its columns with SQL types, primary keys (PK), foreign keys (FK), unique keys (UK), and the relationships (1:1 / 1:N / N:M) between tables.",
+      orgchart:   "Extract: every person (name) and their role/title, plus the reporting lines (who reports to whom). Build a single top-down tree from the most senior leader.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:
@@ -565,7 +566,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -584,7 +585,8 @@ Rules:
 - suggestedDiagramType rules (ONLY set when prompt strongly fits a DIFFERENT type than current):
   - "chart", "bar chart", "pie chart", "line chart", "graph the data", "visualize numbers", "statistics", "metrics", "compare values" → "echarts"
   - "beautiful chart", "nivo chart", "publication chart" → "nivo"
-  - "org chart", "node graph", "network diagram", "pipeline stages", "dependency graph", "tree nodes" → "reactflow"
+  - "node graph", "network diagram", "pipeline stages", "dependency graph", "tree nodes" → "reactflow"
+  - "org chart", "organizational chart", "reporting structure", "company hierarchy", "who reports to whom", "team structure", "leadership chart" → "orgchart"
   - "whiteboard", "sketch", "brainstorm", "freehand", "wireframe", "rough drawing" → "excalidraw"
   - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
