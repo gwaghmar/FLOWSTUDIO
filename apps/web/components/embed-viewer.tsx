@@ -34,6 +34,10 @@ const CloudRenderer = dynamic(
   () => import("./diagrams/cloud-renderer").then((m) => m.CloudRenderer),
   { ssr: false }
 );
+const ErdRenderer = dynamic(
+  () => import("./diagrams/erd-renderer").then((m) => m.ErdRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -132,6 +136,9 @@ export function EmbedViewer({ token }: { token: string }) {
       )}
       {diagramType === "cloud" && (
         <CloudRenderer source={data.source} readOnly onChange={() => {}} />
+      )}
+      {diagramType === "erd" && (
+        <ErdRenderer source={data.source} readOnly onChange={() => {}} />
       )}
     </div>
   );

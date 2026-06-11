@@ -37,6 +37,10 @@ const CloudRenderer = dynamic(
   () => import("./diagrams/cloud-renderer").then((m) => m.CloudRenderer),
   { ssr: false }
 );
+const ErdRenderer = dynamic(
+  () => import("./diagrams/erd-renderer").then((m) => m.ErdRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -110,6 +114,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     tldraw: "Canvas",
     bpmn: "BPMN process",
     cloud: "Cloud architecture",
+    erd: "Database schema",
   };
 
   return (
@@ -199,6 +204,11 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
               {diagramType === "cloud" && (
                 <div className="h-[600px]">
                   <CloudRenderer source={data.source} readOnly onChange={() => {}} />
+                </div>
+              )}
+              {diagramType === "erd" && (
+                <div className="h-[600px]">
+                  <ErdRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
             </div>

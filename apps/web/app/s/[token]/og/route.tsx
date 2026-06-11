@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<string, string> = {
   tldraw: "Canvas",
   bpmn: "BPMN process",
   cloud: "Cloud architecture",
+  erd: "Database schema",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {
