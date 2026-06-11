@@ -177,7 +177,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -545,6 +545,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
       nivo:       "Extract: data series names, comparison axes, chart subtype. Set suggestedSubtype to bar/line/pie/radar/treemap/sankey/network/chord/calendar/waffle.",
       tldraw:     "Extract: spatial groupings, hierarchy levels, connection patterns, shape categories.",
       bpmn:       "Extract: participants/lanes, gateway types (exclusive/parallel/inclusive), process stages, happy path vs exception paths, SLA constraints.",
+      cloud:      "Extract: cloud provider (aws/gcp/azure/generic), the services/components involved, and the request/data flow direction (clients -> edge -> gateway -> compute -> data). Map each component to a service token from the cloud icon registry.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:
@@ -587,6 +588,7 @@ Rules:
   - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
   - "flowchart", "sequence diagram", "ERD", "database schema", "class diagram", "Gantt", "mindmap" → "mermaid"
+  - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS/GCP/Azure", "how it's deployed", "deployment topology" → "cloud"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({
