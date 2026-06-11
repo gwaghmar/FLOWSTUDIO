@@ -23,7 +23,7 @@ share / embed / export.
 - Monorepo (pnpm): `apps/web` (Next app) + `packages/core` (shared types, prompts, themes)
 - Mermaid + Excalidraw + ReactFlow (@xyflow) + ECharts + Nivo + tldraw + bpmn-js for diagram rendering
 
-## Diagram types supported (8)
+## Diagram types supported (9)
 
 | Type | What it's for | Editing model |
 |---|---|---|
@@ -35,8 +35,9 @@ share / embed / export.
 | `tldraw` | Free-form canvas | visual canvas + source |
 | `bpmn` | BPMN 2.0 business process | visual modeler + XML source |
 | `cloud` | AWS/GCP/Azure system & infra diagrams with service icons | drag-to-edit + source (xyflow) |
+| `erd` | Visual database schema — table nodes with typed columns, PK/FK/UK, relationships | drag-to-edit + source (xyflow) |
 
-All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud renderer and its shared helpers live at `apps/web/components/diagrams/cloud-renderer.tsx` and `apps/web/lib/diagrams/` (`xyflow-base.ts`, `cloud-icons.ts`, `cloud-glyphs.tsx`). Editor is
+All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud and erd renderers (`cloud-renderer.tsx`, `erd-renderer.tsx`) are the Group A xyflow family — both consume the shared helpers in `apps/web/lib/diagrams/` (`xyflow-base.ts` = parse/serialize/dagre-layout/change-handlers; `cloud-icons.ts`, `cloud-glyphs.tsx` = cloud-only icon registry). erd needs no icon registry — just a `TableNode`. Editor is
 `apps/web/components/editor-client.tsx` (one big file — every diagram type
 branches inside its render section).
 
