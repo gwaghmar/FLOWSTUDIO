@@ -24,12 +24,12 @@ function IconNode({ data }: { data: IconNodeData }) {
   const glyph = GLYPHS[resolveIconId(data.service)];
   return (
     <div className="flex min-w-[120px] flex-col items-center gap-1.5 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 shadow-md transition-all hover:shadow-lg">
-      <Handle type="target" position={Position.Top} className="bg-slate-300!" />
-      <Handle type="target" position={Position.Left} className="bg-slate-300!" />
+      <Handle id="t" type="target" position={Position.Top} className="bg-slate-300!" />
+      <Handle id="l" type="target" position={Position.Left} className="bg-slate-300!" />
       <span style={{ color }} className="flex h-7 w-7 items-center justify-center">{glyph}</span>
       <div className="text-center text-[12px] font-semibold text-slate-800">{data.label}</div>
-      <Handle type="source" position={Position.Bottom} className="bg-slate-300!" />
-      <Handle type="source" position={Position.Right} className="bg-slate-300!" />
+      <Handle id="b" type="source" position={Position.Bottom} className="bg-slate-300!" />
+      <Handle id="r" type="source" position={Position.Right} className="bg-slate-300!" />
     </div>
   );
 }
@@ -58,11 +58,14 @@ function CloudInner({ source, onChange, readOnly = false }: Props) {
     [onChange, readOnly]
   );
 
-  const { onNodesChange, onEdgesChange, onConnect } = makeChangeHandlers({
-    data,
-    push,
-    edgeId: () => `e${++edgeCounter.current}-${data.nodes.length}`,
-  });
+  const { onNodesChange, onEdgesChange, onConnect } = useMemo(
+    () => makeChangeHandlers({
+      data,
+      push,
+      edgeId: () => `e${++edgeCounter.current}-${data.nodes.length}`,
+    }),
+    [data, push]
+  );
 
   return (
     <div className="h-full w-full">
