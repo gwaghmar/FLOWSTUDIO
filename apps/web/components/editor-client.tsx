@@ -84,6 +84,10 @@ const CloudRenderer = dynamic(
   () => import("./diagrams/cloud-renderer").then((m) => ({ default: m.CloudRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Architecture" /> }
 );
+const ErdRenderer = dynamic(
+  () => import("./diagrams/erd-renderer").then((m) => ({ default: m.ErdRenderer })),
+  { ssr: false, loading: () => <CanvasLoader label="Schema" /> }
+);
 const EChartsRenderer = dynamic(
   () => import("./diagrams/echarts-renderer").then((m) => ({ default: m.EChartsRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Chart" /> }
@@ -353,6 +357,8 @@ export function EditorClient({
         if (cleaned && cleaned.trim() !== source.trim()) {
           if (diagramType === "cloud" && cloudNeedsLayout(cleaned)) {
             cleaned = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(cleaned);
+          } else if (diagramType === "erd" && cloudNeedsLayout(cleaned)) {
+            cleaned = await (await import("./diagrams/erd-renderer")).autoLayoutErd(cleaned);
           }
           recordUndo(source);
           setSource(cleaned);
@@ -829,6 +835,8 @@ export function EditorClient({
         next = await (await import("./diagrams/reactflow-renderer")).autoLayoutReactFlow(source);
       } else if (diagramType === "cloud") {
         next = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(source);
+      } else if (diagramType === "erd") {
+        next = await (await import("./diagrams/erd-renderer")).autoLayoutErd(source);
       } else {
         return;
       }
@@ -1234,6 +1242,7 @@ export function EditorClient({
     excalidraw: ["Add more steps", "Create a user journey", "Sketch a system design"],
     reactflow: ["Add a decision node", "Build an org chart", "Add error path"],
     cloud: ["Add a load balancer", "Put it on GCP", "Add a cache layer", "Add a message queue"],
+    erd: ["Add a junction table", "Add a foreign key", "Add timestamps", "Normalize this schema"],
     echarts: ["Change to line chart", "Add second series", "Make it a pie chart", "Add gradient colors"],
     nivo: ["Change to bar chart", "Add monthly data", "Use dark theme"],
     bpmn: ["Add approval gateway", "Add error boundary", "Add a swimlane"],
@@ -1758,11 +1767,11 @@ export function EditorClient({
                   )}
                 </div>
               )}
-              {(diagramType === "reactflow" || diagramType === "cloud") && (
+              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd") && (
                 <button
                   type="button"
                   onClick={() => void handleAutoLayout()}
-                  title={diagramType === "cloud" ? "Auto-layout the architecture" : "Auto-layout the node graph"}
+                  title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : "Auto-layout the node graph"}
                   className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   <Wand2 className="h-4 w-4" />
@@ -1993,6 +2002,15 @@ export function EditorClient({
               style={{ minHeight: "600px", height: "100%" }}
             >
               <CloudRenderer source={source} onChange={setSource} readOnly={false} />
+            </div>
+          )}
+          {diagramType === "erd" && (
+            <div
+              ref={frameRef}
+              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              style={{ minHeight: "600px", height: "100%" }}
+            >
+              <ErdRenderer source={source} onChange={setSource} readOnly={false} />
             </div>
           )}
           {diagramType === "echarts" && (
