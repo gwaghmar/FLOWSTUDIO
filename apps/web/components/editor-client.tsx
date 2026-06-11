@@ -151,6 +151,15 @@ function caretFromOffset(value: string, offset: number): { line: number; col: nu
   return { line, col };
 }
 
+function cloudNeedsLayout(src: string): boolean {
+  try {
+    const d = JSON.parse(src) as { nodes?: { position?: unknown }[] };
+    return Array.isArray(d?.nodes) && d.nodes.length > 0 && d.nodes.every((n) => !n.position);
+  } catch {
+    return false;
+  }
+}
+
 function parseUiFromSource(raw: string): { source: string; ui: UiState } {
   const lines = raw.split("\n");
   const first = lines[0]?.trim() ?? "";
@@ -337,11 +346,14 @@ export function EditorClient({
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport,
-    onFinish: ({ message }) => {
+    onFinish: async ({ message }) => {
       const text = getMessageText(message);
       if (text.trim()) {
-        const cleaned = cleanModelOutput(text);
+        let cleaned = cleanModelOutput(text);
         if (cleaned && cleaned.trim() !== source.trim()) {
+          if (diagramType === "cloud" && cloudNeedsLayout(cleaned)) {
+            cleaned = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(cleaned);
+          }
           recordUndo(source);
           setSource(cleaned);
         }

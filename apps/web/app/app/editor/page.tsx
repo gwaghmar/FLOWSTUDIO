@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-const VALID_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn"];
+const VALID_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud"];
 
 function buildAiAssistantHint(ai: Awaited<ReturnType<typeof getAiSettingsForUser>>) {
   const serverOpenAiFallback = Boolean(

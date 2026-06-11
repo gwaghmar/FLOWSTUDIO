@@ -41,7 +41,10 @@ type Props = { source: string; onChange?: (source: string) => void; readOnly?: b
 function CloudInner({ source, onChange, readOnly = false }: Props) {
   const data: GraphData = useMemo(() => {
     const g = parseGraph(source);
-    return { ...g, nodes: g.nodes.map((n) => ({ ...n, type: "icon" })) };
+    return {
+      nodes: g.nodes.map((n) => ({ ...n, type: "icon" })),
+      edges: g.edges.map((e) => ({ ...e, sourceHandle: e.sourceHandle ?? "r", targetHandle: e.targetHandle ?? "l" })),
+    };
   }, [source]);
   const lastSource = useRef(source);
   const edgeCounter = useRef(0);
