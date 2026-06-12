@@ -192,6 +192,75 @@ export const TEMPLATES: Template[] = [
     Public profiles       :         g1, 2026-08-15, 14d
     Referral program      :         g2, after g1, 14d`,
   },
+  {
+    id: "timeline_startup_journey",
+    title: "Startup journey timeline",
+    description: "Milestones from first prototype to 10k users",
+    diagramType: "timeline",
+    themeId: "stage_pipeline",
+    tag: "Story",
+    gradient: "from-sky-500 via-blue-500 to-indigo-500",
+    source: JSON.stringify({
+      type: "timeline", title: "From idea to 10k users",
+      items: [
+        { date: "Jan 2025", label: "First prototype" },
+        { date: "Mar 2025", label: "Public beta", description: "500 signups in week one" },
+        { date: "Jun 2025", label: "Product Hunt #1" },
+        { date: "Dec 2025", label: "10,000 users" },
+      ],
+    }, null, 2),
+  },
+  {
+    id: "versus_remote_office",
+    title: "Remote vs Office",
+    description: "Side-by-side comparison card",
+    diagramType: "versus",
+    themeId: "stage_pipeline",
+    tag: "Compare",
+    gradient: "from-amber-500 via-orange-500 to-yellow-500",
+    source: JSON.stringify({
+      type: "versus", title: "Remote vs Office",
+      left: { name: "Remote", points: ["No commute", "Deep focus time", "Hire anywhere"] },
+      right: { name: "Office", points: ["Faster onboarding", "Spontaneous collaboration", "Clear work-life boundary"] },
+    }, null, 2),
+  },
+  {
+    id: "matrix_effort_impact",
+    title: "Effort vs impact matrix",
+    description: "Prioritize features in a 2x2 quadrant",
+    diagramType: "matrix2x2",
+    themeId: "stage_pipeline",
+    tag: "Strategy",
+    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
+    source: JSON.stringify({
+      type: "matrix2x2", title: "Feature priorities",
+      xAxis: { low: "Low effort", high: "High effort" },
+      yAxis: { low: "Low impact", high: "High impact" },
+      items: [
+        { label: "Dark mode", x: 20, y: 75 }, { label: "SSO", x: 80, y: 85 },
+        { label: "Emoji reactions", x: 15, y: 25 }, { label: "Plugin API", x: 90, y: 40 },
+      ],
+      quadrantLabels: ["Quick wins", "Big bets", "Fill-ins", "Money pits"],
+    }, null, 2),
+  },
+  {
+    id: "funnel_saas_signup",
+    title: "SaaS signup funnel",
+    description: "Visitors to paid conversions with drop-off notes",
+    diagramType: "funnel",
+    themeId: "stage_pipeline",
+    tag: "Growth",
+    gradient: "from-pink-500 via-rose-500 to-red-500",
+    source: JSON.stringify({
+      type: "funnel", title: "SaaS signup funnel",
+      stages: [
+        { label: "Site visitors", value: "40,000" },
+        { label: "Started trial", value: "2,400", note: "6% conversion" },
+        { label: "Activated", value: "1,100" },
+        { label: "Paid plan", value: "310" },
+      ],
+    }, null, 2),
+  },
 ];
 
 export function getTemplate(id: string): Template | undefined {
