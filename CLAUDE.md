@@ -23,7 +23,7 @@ share / embed / export.
 - Monorepo (pnpm): `apps/web` (Next app) + `packages/core` (shared types, prompts, themes)
 - Mermaid + Excalidraw + ReactFlow (@xyflow) + ECharts + Nivo + tldraw + bpmn-js for diagram rendering
 
-## Diagram types supported (10)
+## Diagram types supported (14)
 
 | Type | What it's for | Editing model |
 |---|---|---|
@@ -37,6 +37,10 @@ share / embed / export.
 | `cloud` | AWS/GCP/Azure system & infra diagrams with service icons | drag-to-edit + source (xyflow) |
 | `erd` | Visual database schema — table nodes with typed columns, PK/FK/UK, relationships | drag-to-edit + source (xyflow) |
 | `orgchart` | Reporting hierarchy — person nodes (avatar/name/title) in a top-down tree | drag-to-edit + source (xyflow) |
+| `timeline` | Milestone timelines — product roadmaps, company journeys, career paths | source + AI (social-json) |
+| `versus` | Side-by-side comparison — X vs Y with pros, cons, and a verdict | source + AI (social-json) |
+| `matrix2x2` | Quadrant charts — SWOT, effort vs impact, competitor positioning | source + AI (social-json) |
+| `funnel` | Conversion funnels — marketing, sales, and signup stages with numbers | source + AI (social-json) |
 
 All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud, erd, and orgchart renderers (`cloud-renderer.tsx`, `erd-renderer.tsx`, `orgchart-renderer.tsx`) are the Group A xyflow family — all consume the shared helpers in `apps/web/lib/diagrams/` (`xyflow-base.ts` = parse/serialize/dagre-layout/change-handlers; `cloud-icons.ts`, `cloud-glyphs.tsx` = cloud-only icon registry). erd/orgchart need no icon registry — just a `TableNode` / `PersonNode`. NOTE: each Group A canvas render branch in `editor-client.tsx` MUST use `w-full` on the wrapper — the flex parent is `items-start justify-center`, so without an explicit width the xyflow canvas collapses to 0px and renders nothing. Editor is
 `apps/web/components/editor-client.tsx` (one big file — every diagram type
@@ -63,6 +67,13 @@ branches inside its render section).
 - **Streaming live preview** — Mermaid renders progressively as the AI types; `mermaid.parse()` gate + last-good-svg fallback prevents flicker on partial source; pulsing "Streaming" pill
 - **AI-aware brand kit** — `/api/ai/generate` injects a BRAND PALETTE directive when a kit exists; AI uses those colors for echarts/mermaid theme overrides
 - **Templates gallery** — `/app/templates` with 6 curated starters (onboarding funnel, OAuth, web arch, revenue chart, blog ER, roadmap gantt)
+
+### Milestone 1.4 — Social Card Engine ✅
+- **4 new diagram types**: timeline, versus, matrix2x2, funnel — all wired from AI generation through editor, share, embed, OG, and templates gallery
+- **Copy image** — Export ▾ → Copy image writes a PNG to the clipboard; covers all diagram types including excalidraw and echarts dark mode
+- **Social card renderer** — single renderer dispatching to 4 layout sub-components (pure HTML/Tailwind, `cqw` fluid sizing)
+- **Parse module** — `parseSocialCard()` with normalizing parser, coordinate clamping, empty-array defaults, TDD-verified (5 tests)
+- **Templates** — 4 starter templates in the gallery
 
 ### Editor polish pass (post-1.3) ✅
 - Full audit of all 7 renderers — fixed 5 real bugs (BPMN/ECharts couldn't recover from parse errors, ReactFlow crashed on AI nodes without positions, Mermaid re-init on every render, silent failure on broken hand edits)
@@ -127,7 +138,7 @@ branches inside its render section).
 ### Verification
 - After every fix: `pnpm --filter @flowchart/web exec tsc --noEmit` (filter `.test.ts` errors, those are pre-existing).
 - After every UI change: `pnpm --filter @flowchart/web build` (catches issues tsc misses).
-- `pnpm test:unit` — 14 tests across 5 suites. Should stay green.
+- `pnpm test:unit` — 44 tests across 8 suites. Should stay green.
 
 ### Lint warnings to ignore
 There are ~41 pre-existing `@typescript-eslint/no-unused-vars` warnings in `editor-client.tsx` from old state that was never wired (e.g. `setShowTypePanel`, `setEchartsUiTheme`, `setShowStylePanel`). Don't fix unless explicitly asked — could break implicit dependencies.

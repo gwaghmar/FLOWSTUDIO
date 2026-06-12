@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Brand & Distribution
+milestone: v1.4
+milestone_name: Social Card Engine
 status: All phases complete
-last_updated: "2026-05-23T02:00:00.000Z"
+last_updated: "2026-06-12T00:00:00.000Z"
 progress:
-  total_phases: 8
-  completed_phases: 8
+  total_phases: 13
+  completed_phases: 13
   percent: 100
 ---
 
@@ -17,6 +17,8 @@ progress:
 **Milestone 1.0** — AI Diagram Quality & Precision — DONE
 **Milestone 1.1** — AI Iteration & Sharing — DONE
 **Milestone 1.2** — Brand & Distribution — DONE
+**Milestone 1.3** — Legendary — DONE
+**Milestone 1.4** — Social Card Engine — DONE
 
 ## Phase Status
 
@@ -30,6 +32,11 @@ progress:
 | 6 | Public Share with OG Previews | 1.1 | ✅ Complete |
 | 7 | Brand Kit | 1.2 | ✅ Complete |
 | 8 | Iframe Embeds | 1.2 | ✅ Complete |
+| 9 | Real OG Previews | 1.3 | ✅ Complete |
+| 10 | Streaming Preview | 1.3 | ✅ Complete |
+| 11 | AI-Aware Brand & Templates | 1.3 | ✅ Complete |
+| 12 | Editor Audit & Polish | 1.3 | ✅ Complete |
+| 13 | Social Card Engine | 1.4 | ✅ Complete |
 
 ## Decisions
 
@@ -44,11 +51,11 @@ progress:
 
 ## Pending Todos
 
-(None)
+- `validateAndRepairOutput` has no handler for social card types, cloud, erd, or orgchart (pre-existing gap — hardening follow-up)
 
 ## Blockers
 
 (None)
 
 ---
-*Last updated: May 23, 2026 after Phase 3 completion*
+*Last updated: June 12, 2026 after Phase 13 completion*
