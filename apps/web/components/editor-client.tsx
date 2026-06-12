@@ -1117,6 +1117,29 @@ export function EditorClient({
     }
   }, [diagramType, source, title, echartsUiTheme, pngScale, zipIncludeCustom, customExportWidth, customExportHeight, bgColor]);
 
+  const handleCopyImage = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      let dataUrl: string | undefined;
+      if (diagramType === "mermaid") {
+        const svg = innerRef.current?.querySelector("svg");
+        if (svg) dataUrl = await toPng(svg as unknown as HTMLElement, { pixelRatio: pngScale, backgroundColor: bgColor });
+      } else if (diagramType === "echarts") {
+        dataUrl = echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: "#ffffff" });
+      } else if (frameRef.current) {
+        dataUrl = await toPng(frameRef.current, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") });
+      }
+      if (!dataUrl) return;
+      const blob = await (await fetch(dataUrl)).blob();
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      showToast("Image copied — paste it anywhere");
+    } catch {
+      showToast("Copy failed — try Export PNG instead");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [diagramType, pngScale, bgColor, showToast]);
+
   /**
    * Capture a 1200x630 PNG of the current diagram for OG previews. Best-effort:
    * returns undefined on any failure so the OG route falls back to the
@@ -1847,6 +1870,9 @@ export function EditorClient({
               </button>
               {exportOpen && (
                 <div className="absolute right-0 top-full z-30 mt-1 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                  <div className="mb-1.5">
+                    <button type="button" onClick={() => void handleCopyImage()} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">Copy image</button>
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => void handleExport("png")} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">PNG</button>
                     <button type="button" onClick={() => void handleExport("svg")} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">SVG</button>
