@@ -741,6 +741,78 @@ const NON_MERMAID_TEMPLATES: FlowchartTemplate[] = [
 </bpmn2:definitions>`,
     mermaid: "",
   },
+  // ── Social Card Templates ──────────────────────────────────────────────────
+  {
+    id: "timeline_startup_journey",
+    title: "Startup journey timeline",
+    description: "Milestones from first prototype to 10k users",
+    promptHint: "Timeline of a startup's first year",
+    diagramType: "timeline",
+    source: JSON.stringify({
+      type: "timeline",
+      title: "From idea to 10k users",
+      items: [
+        { date: "Jan 2025", label: "First prototype" },
+        { date: "Mar 2025", label: "Public beta", description: "500 signups in week one" },
+        { date: "Jun 2025", label: "Product Hunt #1" },
+        { date: "Dec 2025", label: "10,000 users" },
+      ],
+    }, null, 2),
+    mermaid: "",
+  },
+  {
+    id: "versus_remote_office",
+    title: "Remote vs Office",
+    description: "Side-by-side comparison card",
+    promptHint: "Compare remote work and office work",
+    diagramType: "versus",
+    source: JSON.stringify({
+      type: "versus",
+      title: "Remote vs Office",
+      left: { name: "Remote", points: ["No commute", "Deep focus time", "Hire anywhere"] },
+      right: { name: "Office", points: ["Faster onboarding", "Spontaneous collaboration", "Clear work-life boundary"] },
+    }, null, 2),
+    mermaid: "",
+  },
+  {
+    id: "matrix_effort_impact",
+    title: "Effort vs impact matrix",
+    description: "Prioritize features in a 2x2 quadrant",
+    promptHint: "Effort vs impact matrix for feature planning",
+    diagramType: "matrix2x2",
+    source: JSON.stringify({
+      type: "matrix2x2",
+      title: "Feature priorities",
+      xAxis: { low: "Low effort", high: "High effort" },
+      yAxis: { low: "Low impact", high: "High impact" },
+      items: [
+        { label: "Dark mode", x: 20, y: 75 },
+        { label: "SSO", x: 80, y: 85 },
+        { label: "Emoji reactions", x: 15, y: 25 },
+        { label: "Plugin API", x: 90, y: 40 },
+      ],
+      quadrantLabels: ["Quick wins", "Big bets", "Fill-ins", "Money pits"],
+    }, null, 2),
+    mermaid: "",
+  },
+  {
+    id: "funnel_saas_signup",
+    title: "SaaS signup funnel",
+    description: "Visitors to paid conversions with drop-off notes",
+    promptHint: "SaaS conversion funnel with numbers",
+    diagramType: "funnel",
+    source: JSON.stringify({
+      type: "funnel",
+      title: "SaaS signup funnel",
+      stages: [
+        { label: "Site visitors", value: "40,000" },
+        { label: "Started trial", value: "2,400", note: "6% conversion" },
+        { label: "Activated", value: "1,100" },
+        { label: "Paid plan", value: "310" },
+      ],
+    }, null, 2),
+    mermaid: "",
+  },
 ];
 
 export const ALL_TEMPLATES: FlowchartTemplate[] = [...TEMPLATES, ...NON_MERMAID_TEMPLATES];
