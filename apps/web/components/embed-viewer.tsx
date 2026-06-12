@@ -42,6 +42,10 @@ const OrgChartRenderer = dynamic(
   () => import("./diagrams/orgchart-renderer").then((m) => m.OrgChartRenderer),
   { ssr: false }
 );
+const SocialCardRenderer = dynamic(
+  () => import("./diagrams/social-card-renderer").then((m) => m.SocialCardRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -146,6 +150,11 @@ export function EmbedViewer({ token }: { token: string }) {
       )}
       {diagramType === "orgchart" && (
         <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
+      )}
+      {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+        <div className="h-full w-full [container-type:size]">
+          <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
+        </div>
       )}
     </div>
   );

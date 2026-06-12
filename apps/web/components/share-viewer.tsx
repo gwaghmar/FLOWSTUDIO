@@ -45,6 +45,10 @@ const OrgChartRenderer = dynamic(
   () => import("./diagrams/orgchart-renderer").then((m) => m.OrgChartRenderer),
   { ssr: false }
 );
+const SocialCardRenderer = dynamic(
+  () => import("./diagrams/social-card-renderer").then((m) => m.SocialCardRenderer),
+  { ssr: false }
+);
 
 type ShareData = {
   title: string;
@@ -120,6 +124,10 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     cloud: "Cloud architecture",
     erd: "Database schema",
     orgchart: "Org chart",
+    timeline: "Timeline",
+    versus: "Versus",
+    matrix2x2: "2x2 Matrix",
+    funnel: "Funnel",
   };
 
   return (
@@ -219,6 +227,11 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
               {diagramType === "orgchart" && (
                 <div className="h-[600px]">
                   <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
+                </div>
+              )}
+              {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+                <div className="h-[600px] [container-type:size]">
+                  <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
             </div>

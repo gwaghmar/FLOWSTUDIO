@@ -550,6 +550,10 @@ Use the brand colors for the most prominent visual elements (main series, primar
       cloud:      "Extract: cloud provider (aws/gcp/azure/generic), the services/components involved, and the request/data flow direction (clients -> edge -> gateway -> compute -> data). Map each component to a service token from the cloud icon registry.",
       erd:        "Extract: every entity/table, its columns with SQL types, primary keys (PK), foreign keys (FK), unique keys (UK), and the relationships (1:1 / 1:N / N:M) between tables.",
       orgchart:   "Extract: every person (name) and their role/title, plus the reporting lines (who reports to whom). Build a single top-down tree from the most senior leader.",
+      timeline:   "Extract: the key events or milestones, their dates or relative ordering, and any grouping/category labels.",
+      versus:     "Extract: the two (or more) items being compared and the attributes/criteria used for comparison.",
+      matrix2x2:  "Extract: the two axes (each with a low/high label) and the items to be plotted in each of the four quadrants.",
+      funnel:     "Extract: the funnel stage names in order from top to bottom, and any numeric values or percentages associated with each stage.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:

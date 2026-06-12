@@ -18,6 +18,10 @@ const TYPE_LABELS: Record<string, string> = {
   cloud: "Cloud architecture",
   erd: "Database schema",
   orgchart: "Org chart",
+  timeline: "Timeline",
+  versus: "Versus",
+  matrix2x2: "2x2 Matrix",
+  funnel: "Funnel",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {
