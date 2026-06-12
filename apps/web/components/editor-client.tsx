@@ -92,6 +92,10 @@ const OrgChartRenderer = dynamic(
   () => import("./diagrams/orgchart-renderer").then((m) => ({ default: m.OrgChartRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Org chart" /> }
 );
+const SocialCardRenderer = dynamic(
+  () => import("./diagrams/social-card-renderer").then((m) => ({ default: m.SocialCardRenderer })),
+  { ssr: false, loading: () => <CanvasLoader label="Card" /> }
+);
 const EChartsRenderer = dynamic(
   () => import("./diagrams/echarts-renderer").then((m) => ({ default: m.EChartsRenderer })),
   { ssr: false, loading: () => <CanvasLoader label="Chart" /> }
@@ -2029,6 +2033,15 @@ export function EditorClient({
               style={{ minHeight: "600px", height: "100%" }}
             >
               <OrgChartRenderer source={source} onChange={setSource} readOnly={false} />
+            </div>
+          )}
+          {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+            <div
+              ref={frameRef}
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white [container-type:size]"
+              style={{ minHeight: "600px", height: "100%" }}
+            >
+              <SocialCardRenderer source={source} onChange={setSource} readOnly={false} />
             </div>
           )}
           {diagramType === "echarts" && (

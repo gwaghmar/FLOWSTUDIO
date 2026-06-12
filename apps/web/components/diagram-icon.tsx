@@ -11,6 +11,10 @@ import {
   Cloud,
   Database,
   Users,
+  Milestone,
+  Columns2,
+  Grid2x2,
+  Filter,
   type LucideIcon,
 } from "lucide-react";
 import type { DiagramType } from "@flowchart/core";
@@ -28,6 +32,10 @@ export function DiagramTypeIcon({ type, className, size }: { type: DiagramType; 
     cloud: Cloud,
     erd: Database,
     orgchart: Users,
+    timeline: Milestone,
+    versus: Columns2,
+    matrix2x2: Grid2x2,
+    funnel: Filter,
   };
   const Icon = iconMap[type] ?? GitFork;
   return <Icon size={size ?? 18} className={className} />;
