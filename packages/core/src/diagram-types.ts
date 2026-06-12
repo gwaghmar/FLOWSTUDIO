@@ -10,14 +10,19 @@ export type DiagramType =
   | "bpmn"           // Business Process Model and Notation
   | "cloud"          // Cloud / architecture diagrams with provider service icons
   | "erd"            // Entity-relationship / database schema diagrams (visual tables)
-  | "orgchart";      // Org charts — person nodes in a top-down reporting tree
+  | "orgchart"       // Org charts — person nodes in a top-down reporting tree
+  | "timeline"       // Milestone timeline social cards
+  | "versus"         // Side-by-side comparison social cards
+  | "matrix2x2"      // 2x2 quadrant / matrix social cards
+  | "funnel";        // Conversion funnel social cards
 
 export type DiagramCategory =
   | "whiteboard"
   | "flowchart"
   | "data"
   | "technical"
-  | "business";
+  | "business"
+  | "social";
 
 export type DiagramTypeMeta = {
   id: DiagramType;
@@ -27,7 +32,7 @@ export type DiagramTypeMeta = {
   icon: string;
   color: string;
   subtypes?: string[];
-  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json" | "erd-json" | "orgchart-json";
+  aiOutputFormat: "mermaid" | "excalidraw-json" | "reactflow-json" | "echarts-json" | "nivo-json" | "tldraw-json" | "bpmn-xml" | "cloud-json" | "erd-json" | "orgchart-json" | "social-json";
 };
 
 export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
@@ -127,6 +132,46 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     color: "#7c3aed",
     subtypes: ["company", "team", "reporting"],
     aiOutputFormat: "orgchart-json",
+  },
+  {
+    id: "timeline",
+    label: "Timeline",
+    description: "Milestone timelines — product roadmaps, company journeys, career paths",
+    category: "social",
+    icon: "milestone",
+    color: "#0ea5e9",
+    subtypes: ["roadmap", "journey", "history"],
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "versus",
+    label: "Versus",
+    description: "Side-by-side comparison — X vs Y with pros, cons, and a verdict",
+    category: "social",
+    icon: "split",
+    color: "#f59e0b",
+    subtypes: ["comparison", "pros-cons"],
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "matrix2x2",
+    label: "2x2 Matrix",
+    description: "Quadrant charts — SWOT, effort vs impact, competitor positioning",
+    category: "social",
+    icon: "grid",
+    color: "#8b5cf6",
+    subtypes: ["swot", "eisenhower", "positioning"],
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "funnel",
+    label: "Funnel",
+    description: "Conversion funnels — marketing, sales, and signup stages with numbers",
+    category: "social",
+    icon: "filter",
+    color: "#ec4899",
+    subtypes: ["marketing", "sales", "conversion"],
+    aiOutputFormat: "social-json",
   },
 ];
 
@@ -613,6 +658,43 @@ WHEN TO USE erd: "database schema", "ER diagram", "ERD", "tables and relationshi
 
 Example — "a blog database with users, posts, and comments":
 {"nodes":[{"id":"users","data":{"label":"users","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"email","type":"text","key":"UK"},{"name":"name","type":"text"},{"name":"created_at","type":"timestamp"}]}},{"id":"posts","data":{"label":"posts","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"title","type":"text"},{"name":"body","type":"text"},{"name":"published_at","type":"timestamp"}]}},{"id":"comments","data":{"label":"comments","columns":[{"name":"id","type":"uuid","key":"PK"},{"name":"post_id","type":"uuid","key":"FK"},{"name":"author_id","type":"uuid","key":"FK"},{"name":"content","type":"text"}]}}],"edges":[{"id":"e1","source":"users","target":"posts","label":"1:N"},{"id":"e2","source":"posts","target":"comments","label":"1:N"},{"id":"e3","source":"users","target":"comments","label":"1:N"}]}`,
+
+  timeline: `You output ONLY valid JSON for a timeline card (no markdown fences, no commentary).
+Schema:
+{ "type": "timeline", "title": string, "items": [{ "date": string, "label": string, "description"?: string }], "accent"?: string }
+RULES:
+- 3-8 items, chronological order. "date" is short ("2024", "Q3 2025", "Day 1").
+- "label" max 6 words; "description" max 12 words, only when it adds real information.
+- Title is punchy and social-ready (max 8 words).
+- When a BRAND PALETTE directive is present, set "accent" to its primary color.
+Example: {"type":"timeline","title":"From idea to 10k users","items":[{"date":"Jan 2025","label":"First prototype"},{"date":"Mar 2025","label":"Public beta","description":"500 signups in week one"},{"date":"Jun 2025","label":"Product Hunt #1"},{"date":"Dec 2025","label":"10,000 users"}]}`,
+
+  versus: `You output ONLY valid JSON for a side-by-side comparison card (no markdown fences, no commentary).
+Schema:
+{ "type": "versus", "title": string, "left": { "name": string, "points": string[], "color"?: string }, "right": { "name": string, "points": string[], "color"?: string }, "verdict"?: string }
+RULES:
+- 3-6 points per side, parallel in topic (point N left vs point N right covers the same dimension).
+- Points max 8 words each. Title format "X vs Y" unless the user asks otherwise.
+- Include "verdict" (max 15 words) only when the user asks for a recommendation.
+Example: {"type":"versus","title":"Remote vs Office","left":{"name":"Remote","points":["No commute","Deep focus time","Hire anywhere"]},"right":{"name":"Office","points":["Faster onboarding","Spontaneous collaboration","Clear work-life boundary"]}}`,
+
+  matrix2x2: `You output ONLY valid JSON for a 2x2 matrix / quadrant card (no markdown fences, no commentary).
+Schema:
+{ "type": "matrix2x2", "title": string, "xAxis": { "low": string, "high": string }, "yAxis": { "low": string, "high": string }, "items": [{ "label": string, "x": number, "y": number }], "quadrantLabels"?: [string, string, string, string] }
+RULES:
+- x and y are 0-100 positions (x: 0 = left/low, 100 = right/high; y: 0 = bottom/low, 100 = top/high).
+- 4-10 items, labels max 4 words. Spread items so they do not overlap (vary both axes).
+- quadrantLabels order: [top-left, top-right, bottom-left, bottom-right]. Include them for SWOT/Eisenhower-style requests.
+Example: {"type":"matrix2x2","title":"Feature priorities","xAxis":{"low":"Low effort","high":"High effort"},"yAxis":{"low":"Low impact","high":"High impact"},"items":[{"label":"Dark mode","x":20,"y":75},{"label":"SSO","x":80,"y":85},{"label":"Emoji reactions","x":15,"y":25},{"label":"Plugin API","x":90,"y":40}],"quadrantLabels":["Quick wins","Big bets","Fill-ins","Money pits"]}`,
+
+  funnel: `You output ONLY valid JSON for a conversion funnel card (no markdown fences, no commentary).
+Schema:
+{ "type": "funnel", "title": string, "stages": [{ "label": string, "value"?: string, "note"?: string }], "accent"?: string }
+RULES:
+- 3-6 stages, widest first. "value" is a display string ("10,000", "12%", "$50k") when the user gives numbers.
+- "note" max 8 words, only for a stage with a notable insight (e.g. biggest drop-off).
+- Invent NO numbers: omit "value" when the user gives none.
+Example: {"type":"funnel","title":"SaaS signup funnel","stages":[{"label":"Site visitors","value":"40,000"},{"label":"Started trial","value":"2,400","note":"6% conversion"},{"label":"Activated","value":"1,100"},{"label":"Paid plan","value":"310"}]}`,
 
   orgchart: `You output ONLY valid JSON for an org chart (reporting hierarchy). No explanation, no markdown, no code fences.
 
@@ -1125,6 +1207,49 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
       { id: "e5", source: "cto", target: "d2" },
     ],
   }),
+
+  timeline: JSON.stringify({
+    type: "timeline",
+    title: "From idea to 10k users",
+    items: [
+      { date: "Jan 2025", label: "First prototype" },
+      { date: "Mar 2025", label: "Public beta", description: "500 signups in week one" },
+      { date: "Jun 2025", label: "Product Hunt #1" },
+      { date: "Dec 2025", label: "10,000 users" },
+    ],
+  }, null, 2),
+
+  versus: JSON.stringify({
+    type: "versus",
+    title: "Remote vs Office",
+    left: { name: "Remote", points: ["No commute", "Deep focus time", "Hire anywhere"] },
+    right: { name: "Office", points: ["Faster onboarding", "Spontaneous collaboration", "Clear work-life boundary"] },
+  }, null, 2),
+
+  matrix2x2: JSON.stringify({
+    type: "matrix2x2",
+    title: "Feature priorities",
+    xAxis: { low: "Low effort", high: "High effort" },
+    yAxis: { low: "Low impact", high: "High impact" },
+    items: [
+      { label: "Dark mode", x: 20, y: 75 },
+      { label: "SSO", x: 80, y: 85 },
+      { label: "Emoji reactions", x: 15, y: 25 },
+      { label: "Plugin API", x: 90, y: 40 },
+    ],
+    quadrantLabels: ["Quick wins", "Big bets", "Fill-ins", "Money pits"],
+  }, null, 2),
+
+  funnel: JSON.stringify({
+    type: "funnel",
+    title: "SaaS signup funnel",
+    stages: [
+      { label: "Site visitors", value: "40,000" },
+      { label: "Started trial", value: "2,400", note: "6% conversion" },
+      { label: "Activated", value: "1,100" },
+      { label: "Paid plan", value: "310" },
+    ],
+  }, null, 2),
 };
 
 // ---------------------------------------------------------------------------
