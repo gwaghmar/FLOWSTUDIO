@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { streamText, tool, stepCountIs } from "ai";
+import { streamText, tool, stepCountIs, convertToModelMessages } from "ai";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
   try {
     const result = streamText({
       model: languageModel,
-      messages,
+      messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       system: `You are an autonomous Lovable-style AI agent building diagrams for the user.
 You can use tools to inspect and update the diagram source code.

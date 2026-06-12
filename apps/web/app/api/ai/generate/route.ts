@@ -14,8 +14,7 @@ import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
 import { rateLimit } from "@/lib/rate-limit";
-
-type ChatTurn = { role: "user" | "assistant"; content: string };
+import { lastUserText, toChatTurns, type ChatTurn } from "@/lib/ai-messages";
 type DetailLevel = "low" | "medium" | "high";
 type IntentPlan = {
   intentSummary: string;
@@ -467,7 +466,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
     diagramType?: DiagramType;
     currentSource?: string;
     conversationHistory?: ChatTurn[];
-    messages?: ChatTurn[];
+    messages?: Array<{ role?: string; content?: unknown; parts?: Array<{ type?: string; text?: string }> }>;
     diagramSummary?: string;
     title?: string;
     compact?: boolean;
@@ -475,7 +474,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
     mode?: "patch" | "create";
   };
 
-  const promptText = (reqBody.prompt || reqBody.messages?.[reqBody.messages.length - 1]?.content)?.trim();
+  const promptText = (reqBody.prompt?.trim() || lastUserText(reqBody.messages)) || undefined;
 
   if (!promptText) {
     const errBody: ApiError = { error: "prompt required", code: "VALIDATION_ERROR" };
@@ -523,8 +522,11 @@ Use the brand colors for the most prominent visual elements (main series, primar
 
   // Build conversation with history
   const messages: ChatTurn[] = [];
-  if (reqBody.conversationHistory?.length) {
-    messages.push(...reqBody.conversationHistory.slice(-(compact ? 3 : 4)));
+  const history = reqBody.conversationHistory?.length
+    ? reqBody.conversationHistory
+    : toChatTurns(reqBody.messages).slice(0, -1);
+  if (history.length) {
+    messages.push(...history.slice(-(compact ? 3 : 4)));
   }
   const sourceSnippet = reqBody.currentSource?.slice(0, compact ? 900 : 2200) ?? "";
   const summarySnippet = reqBody.diagramSummary?.slice(0, compact ? 280 : 560) ?? "";
