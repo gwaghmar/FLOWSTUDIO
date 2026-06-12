@@ -550,7 +550,7 @@ Use the brand colors for the most prominent visual elements (main series, primar
       cloud:      "Extract: cloud provider (aws/gcp/azure/generic), the services/components involved, and the request/data flow direction (clients -> edge -> gateway -> compute -> data). Map each component to a service token from the cloud icon registry.",
       erd:        "Extract: every entity/table, its columns with SQL types, primary keys (PK), foreign keys (FK), unique keys (UK), and the relationships (1:1 / 1:N / N:M) between tables.",
       orgchart:   "Extract: every person (name) and their role/title, plus the reporting lines (who reports to whom). Build a single top-down tree from the most senior leader.",
-      timeline:   "Extract: the key events or milestones, their dates or relative ordering, and any grouping/category labels.",
+      timeline:   "Extract: every dated milestone (date + what happened) in chronological order. Keep labels short; move detail to description.",
       versus:     "Extract: the two things being compared and parallel comparison dimensions. Point N on each side must address the same dimension.",
       matrix2x2:  "Extract: the two axes (each with a low/high label) and the items to be plotted in each of the four quadrants.",
       funnel:     "Extract: the funnel stage names in order from top to bottom, and any numeric values or percentages associated with each stage.",
@@ -596,10 +596,10 @@ Rules:
   - "whiteboard", "sketch", "brainstorm", "freehand", "wireframe", "rough drawing" → "excalidraw"
   - "BPMN", "business process model", "enterprise workflow", "swim lanes process", "service task" → "bpmn"
   - "infinite canvas", "design mockup", "presentation canvas", "slide layout" → "tldraw"
-  - "flowchart", "sequence diagram", "class diagram", "Gantt", "mindmap", "state machine", "C4" → "mermaid"
+  - "flowchart", "sequence diagram", "class diagram", "Gantt", "mindmap", "state machine", "C4", "journey map" → "mermaid"
   - "ERD", "database schema", "entity relationship", "data model", "tables and relationships", "DB design", "schema design" → "erd"
   - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS", "GCP", "Azure", "how it's deployed", "deployment topology" → "cloud"
-  - "timeline", "roadmap", "milestones", "journey", "history", "what happened when" → "timeline"
+  - "timeline", "roadmap", "milestones", "history", "what happened when" → "timeline"
   - "versus", "compare X and Y", "pros cons", "side by side" → "versus"
   - "2x2", "quadrant", "matrix", "SWOT", "effort impact", "priority matrix" → "matrix2x2"
   - "funnel", "conversion", "signup funnel", "marketing funnel", "drop-off" → "funnel"
