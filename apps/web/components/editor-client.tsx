@@ -1137,7 +1137,9 @@ export function EditorClient({
         dataUrl = await toPng(frameRef.current, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") });
       }
       if (!dataUrl) return;
-      const blob = await (await fetch(dataUrl)).blob();
+      const [, b64] = dataUrl.split(",");
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "image/png" });
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
       showToast("Image copied — paste it anywhere");
     } catch {
