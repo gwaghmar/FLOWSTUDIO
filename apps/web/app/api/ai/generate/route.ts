@@ -176,7 +176,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart", "timeline", "versus", "matrix2x2", "funnel"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -572,7 +572,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -599,6 +599,10 @@ Rules:
   - "flowchart", "sequence diagram", "class diagram", "Gantt", "mindmap", "state machine", "C4" → "mermaid"
   - "ERD", "database schema", "entity relationship", "data model", "tables and relationships", "DB design", "schema design" → "erd"
   - "architecture diagram", "system design", "infrastructure", "cloud diagram", "AWS", "GCP", "Azure", "how it's deployed", "deployment topology" → "cloud"
+  - "timeline", "roadmap", "milestones", "journey", "history", "what happened when" → "timeline"
+  - "versus", "compare X and Y", "pros cons", "side by side" → "versus"
+  - "2x2", "quadrant", "matrix", "SWOT", "effort impact", "priority matrix" → "matrix2x2"
+  - "funnel", "conversion", "signup funnel", "marketing funnel", "drop-off" → "funnel"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({
