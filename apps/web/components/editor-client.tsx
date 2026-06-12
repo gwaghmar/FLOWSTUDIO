@@ -1124,8 +1124,15 @@ export function EditorClient({
       if (diagramType === "mermaid") {
         const svg = innerRef.current?.querySelector("svg");
         if (svg) dataUrl = await toPng(svg as unknown as HTMLElement, { pixelRatio: pngScale, backgroundColor: bgColor });
+      } else if (diagramType === "excalidraw") {
+        const { exportExcalidrawToPng } = await import("./diagrams/excalidraw-renderer");
+        const blob = await exportExcalidrawToPng(source);
+        if (!blob) return;
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        showToast("Image copied — paste it anywhere");
+        return;
       } else if (diagramType === "echarts") {
-        dataUrl = echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: "#ffffff" });
+        dataUrl = echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: echartsUiTheme === "dark" ? "#0f172a" : "#ffffff" });
       } else if (frameRef.current) {
         dataUrl = await toPng(frameRef.current, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") });
       }
@@ -1138,7 +1145,7 @@ export function EditorClient({
     } finally {
       setIsExporting(false);
     }
-  }, [diagramType, pngScale, bgColor, showToast]);
+  }, [diagramType, source, pngScale, bgColor, echartsUiTheme, showToast]);
 
   /**
    * Capture a 1200x630 PNG of the current diagram for OG previews. Best-effort:
