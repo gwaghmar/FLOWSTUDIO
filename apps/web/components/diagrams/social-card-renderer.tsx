@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { parseSocialCard, type SocialCard, type TimelineCard, type VersusCard, type MatrixCard, type FunnelCard, type VennCard, type TierListCard, type IcebergCard, type AlignmentCard } from "@/lib/diagrams/social-cards";
+import { parseSocialCard, type SocialCard, type TimelineCard, type VersusCard, type MatrixCard, type FunnelCard, type VennCard, type TierListCard, type IcebergCard, type AlignmentCard, type BudgetCard, type HabitsCard, type BingoCard, type BracketCard } from "@/lib/diagrams/social-cards";
 
 const DEFAULT_ACCENT = "#4f46e5";
 
@@ -34,6 +34,10 @@ function CardBody({ card }: { card: SocialCard }) {
     case "tierlist": return <TierListLayout card={card} />;
     case "iceberg": return <IcebergLayout card={card} />;
     case "alignment": return <AlignmentLayout card={card} />;
+    case "budget": return <BudgetLayout card={card} />;
+    case "habits": return <HabitsLayout card={card} />;
+    case "bingo": return <BingoLayout card={card} />;
+    case "bracket": return <BracketLayout card={card} />;
   }
 }
 
@@ -230,6 +234,127 @@ function IcebergLayout({ card }: { card: IcebergCard }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+const BUDGET_PALETTE = ["#4f46e5","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316"];
+
+function BudgetLayout({ card }: { card: BudgetCard }) {
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      {card.total && (
+        <p className="mb-[3%] text-center text-[clamp(11px,2cqw,18px)] text-slate-500">
+          Total: <span className="font-bold text-slate-800">{card.total}</span>
+        </p>
+      )}
+      <div className="flex flex-1 flex-col justify-around gap-[2%]">
+        {card.categories.map((cat, i) => {
+          const color = cat.color ?? BUDGET_PALETTE[i % BUDGET_PALETTE.length];
+          return (
+            <div key={i} className="flex items-center gap-[3%]">
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+              <span className="w-[22%] shrink-0 truncate text-[clamp(10px,1.8cqw,16px)] font-medium text-slate-700">{cat.label}</span>
+              <div className="relative flex-1 rounded-full bg-slate-100" style={{ height: "clamp(8px,1.5cqw,14px)" }}>
+                <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${cat.percent}%`, backgroundColor: color }} />
+              </div>
+              <span className="w-[18%] shrink-0 text-right text-[clamp(10px,1.8cqw,15px)] font-semibold text-slate-700">
+                {cat.amount ?? `${cat.percent}%`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HabitsLayout({ card }: { card: HabitsCard }) {
+  const doneSet = new Set(card.days.filter((d) => d.done).map((d) => d.day));
+  const maxDay = card.days.length > 0 ? Math.max(...card.days.map((d) => d.day)) : 30;
+  const ACCENT = "#6366f1";
+  const doneCount = card.days.filter((d) => d.done).length;
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      {card.month && (
+        <p className="mb-[2%] text-center text-[clamp(10px,1.8cqw,16px)] text-slate-500">{card.month}</p>
+      )}
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="grid grid-cols-7 gap-[1.5%]">
+          {Array.from({ length: maxDay }, (_, i) => {
+            const day = i + 1;
+            const done = doneSet.has(day);
+            return (
+              <div key={day}
+                className="flex aspect-square items-center justify-center rounded-md text-[clamp(7px,1.2cqw,11px)] font-semibold"
+                style={{ backgroundColor: done ? ACCENT : "#e2e8f0", color: done ? "#fff" : "#94a3b8" }}>
+                {day}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-[3%] text-center text-[clamp(10px,1.8cqw,15px)] text-slate-600">
+          <span className="font-bold" style={{ color: ACCENT }}>{doneCount}</span>/{maxDay} days — {card.habit}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BingoLayout({ card }: { card: BingoCard }) {
+  const squares = [...card.squares];
+  while (squares.length < 25) squares.push("?");
+  const grid = squares.slice(0, 25);
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="grid flex-1 grid-cols-5 gap-[1.5%]">
+        {grid.map((sq, i) => {
+          const isCenter = i === 12;
+          return (
+            <div key={i}
+              className="flex items-center justify-center rounded-xl p-[3%] text-center text-[clamp(8px,1.4cqw,13px)] font-semibold leading-tight"
+              style={isCenter
+                ? { backgroundColor: "#4f46e5", color: "#fff" }
+                : { backgroundColor: "#f8fafc", border: "2px solid #e2e8f0", color: "#1e293b" }}>
+              {sq}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BracketLayout({ card }: { card: BracketCard }) {
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="flex flex-1 items-stretch gap-[2%] overflow-hidden">
+        {card.rounds.map((round, ri) => (
+          <div key={ri} className="flex flex-1 flex-col">
+            <p className="mb-[4%] text-center text-[clamp(9px,1.5cqw,13px)] font-bold uppercase tracking-wide text-slate-500">{round.name}</p>
+            <div className="flex flex-1 flex-col justify-around gap-[4%]">
+              {round.matches.map((match, mi) => (
+                <div key={mi} className="overflow-hidden rounded-xl border border-slate-200">
+                  {[match.a, match.b].map((contestant, ci) => {
+                    const isWinner = match.winner === contestant;
+                    return (
+                      <div key={ci}
+                        className={`flex items-center px-[6%] py-[4%] text-[clamp(9px,1.6cqw,14px)] font-semibold ${ci === 0 ? "border-b border-slate-200" : ""}`}
+                        style={isWinner ? { backgroundColor: "#4f46e5", color: "#fff" } : { color: "#475569" }}>
+                        {contestant}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

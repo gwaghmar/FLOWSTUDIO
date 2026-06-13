@@ -19,6 +19,10 @@ import {
   ListOrdered,
   Triangle,
   LayoutGrid,
+  PieChart,
+  CheckSquare,
+  Hash,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import type { DiagramType } from "@flowchart/core";
@@ -44,6 +48,10 @@ export function DiagramTypeIcon({ type, className, size }: { type: DiagramType; 
     tierlist: ListOrdered,
     iceberg: Triangle,
     alignment: LayoutGrid,
+    budget: PieChart,
+    habits: CheckSquare,
+    bingo: Hash,
+    bracket: Trophy,
   };
   const Icon = iconMap[type] ?? GitFork;
   return <Icon size={size ?? 18} className={className} />;

@@ -2071,7 +2071,8 @@ export function EditorClient({
             </div>
           )}
           {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" ||
-            diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
+            diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment"
+            || diagramType === "budget" || diagramType === "habits" || diagramType === "bingo" || diagramType === "bracket") && (
             <div
               ref={frameRef}
               className="w-full rounded-xl overflow-hidden shadow-xl bg-white [container-type:size]"

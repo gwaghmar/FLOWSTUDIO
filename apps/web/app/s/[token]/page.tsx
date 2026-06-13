@@ -12,6 +12,7 @@ const TYPE_LABELS: Record<string, string> = {
   cloud: "Cloud architecture", erd: "Database schema", orgchart: "Org chart",
   timeline: "Timeline", versus: "Versus", matrix2x2: "2x2 Matrix", funnel: "Funnel",
   venn: "Venn Diagram", tierlist: "Tier List", iceberg: "Iceberg", alignment: "Alignment Chart",
+  budget: "Budget Breakdown", habits: "Habit Tracker", bingo: "Bingo Card", bracket: "Bracket",
 };
 
 async function resolveShare(token: string) {

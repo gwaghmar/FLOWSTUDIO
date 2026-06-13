@@ -18,7 +18,11 @@ export type DiagramType =
   | "venn"          // 2-set Venn overlap social cards
   | "tierlist"      // S/A/B/C tier ranking social cards
   | "iceberg"       // layered depth social cards
-  | "alignment";    // 3x3 grid alignment chart social cards
+  | "alignment"     // 3x3 grid alignment chart social cards
+  | "budget"        // Income/expense breakdown social cards
+  | "habits"        // Monthly habit streak grid social cards
+  | "bingo"         // 5x5 bingo card social cards
+  | "bracket";      // Single-elimination tournament bracket social cards
 
 export type DiagramCategory =
   | "whiteboard"
@@ -211,6 +215,42 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     category: "social",
     icon: "grid-3x3",
     color: "#64748b",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "budget",
+    label: "Budget Breakdown",
+    description: "Income split across spending categories — visualize where your money goes",
+    category: "social",
+    icon: "pie-chart",
+    color: "#10b981",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "habits",
+    label: "Habit Tracker",
+    description: "Monthly streak grid — track daily habits in a GitHub contribution chart style",
+    category: "social",
+    icon: "check-square",
+    color: "#6366f1",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "bingo",
+    label: "Bingo Card",
+    description: "5x5 bingo card — buzzword bingo, content bingo, event bingo",
+    category: "social",
+    icon: "grid",
+    color: "#f59e0b",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "bracket",
+    label: "Bracket",
+    description: "Single-elimination tournament bracket — rate, rank, and crown a winner",
+    category: "social",
+    icon: "trophy",
+    color: "#ef4444",
     aiOutputFormat: "social-json",
   },
 ];
@@ -798,6 +838,48 @@ RULES:
 - aim for all 9 cells filled; cells may be omitted for sparse grids
 - x=0 is leftmost column; y=0 is top row; label max 3 words; description optional one-liner
 Example: {"type":"alignment","title":"Developer Alignment Chart","xAxis":["Lawful","Neutral","Chaotic"],"yAxis":["Good","Neutral","Evil"],"cells":[{"x":0,"y":0,"label":"DevOps","description":"Documents everything"},{"x":1,"y":0,"label":"Full Stack"},{"x":2,"y":0,"label":"10x Hacker","description":"Ships at 3am"},{"x":0,"y":1,"label":"Tech Lead"},{"x":1,"y":1,"label":"Backend Dev"},{"x":2,"y":1,"label":"Cowboy Coder"},{"x":0,"y":2,"label":"Enterprise Arch"},{"x":1,"y":2,"label":"DBA"},{"x":2,"y":2,"label":"Sneaky PM"}]}`,
+
+  budget: `You output ONLY valid JSON for a Budget Breakdown card (no markdown fences, no commentary).
+Schema:
+{ "type": "budget", "title": string, "total"?: string, "categories": [{ "label": string, "percent": number, "amount"?: string, "color"?: string }] }
+RULES:
+- 3-7 categories; percents should sum to 100
+- "amount" is a display string ("$1,200", "20%") — omit if the user gives no numbers
+- Omit "color" unless the user requests custom colors
+- "total" is a display string for the whole budget (optional)
+Example: {"type":"budget","title":"Monthly Budget","total":"$5,000","categories":[{"label":"Rent","percent":36,"amount":"$1,800"},{"label":"Food","percent":12,"amount":"$600"},{"label":"Savings","percent":20,"amount":"$1,000"},{"label":"Other","percent":32,"amount":"$1,600"}]}`,
+
+  habits: `You output ONLY valid JSON for a Habit Tracker card (no markdown fences, no commentary).
+Schema:
+{ "type": "habits", "title": string, "habit": string, "month": string, "days": [{ "day": number, "done": boolean }] }
+RULES:
+- "days" covers every day of the month (1 to 28/30/31); include ALL days, not just completed ones
+- "done": true for completed days, false for missed or future days
+- "month" is a display string ("June 2025")
+- "habit" is a short label for what is tracked ("Read 30 min", "Exercise", "No sugar")
+- For future days in the month, use done: false
+Example: {"type":"habits","title":"Reading streak — June 2025","habit":"Read 30 min","month":"June 2025","days":[{"day":1,"done":true},{"day":2,"done":true},{"day":3,"done":false},{"day":4,"done":true},{"day":5,"done":false},{"day":6,"done":true},{"day":7,"done":true}]}`,
+
+  bingo: `You output ONLY valid JSON for a Bingo Card (no markdown fences, no commentary).
+Schema:
+{ "type": "bingo", "title": string, "squares": string[] }
+RULES:
+- "squares": EXACTLY 25 strings for a 5x5 grid, in reading order (row by row, left to right)
+- Each square: short phrase, 1-4 words
+- Traditional center square (index 12) is "FREE" unless the theme makes another choice obvious
+- Make all squares thematic and fun — they should relate to the title topic
+Example: {"type":"bingo","title":"Startup Bingo","squares":["Pivoted twice","MVP in a week","YC rejection","Side project","10x engineer","Move fast","Disrupting","Synergy","AI wrapper","Blockchain","Hockey stick","Unicorn","FREE","Series A","Burn rate","Runway","PMF","TAM SAM SOM","Cold email","Demo day","ARR","Exit strategy","Iterate","Founder mode","Zero to one"]}`,
+
+  bracket: `You output ONLY valid JSON for a Tournament Bracket (no markdown fences, no commentary).
+Schema:
+{ "type": "bracket", "title": string, "rounds": [{ "name": string, "matches": [{ "a": string, "b": string, "winner"?: string }] }] }
+RULES:
+- rounds are ordered from earliest to final
+- Standard sizes: 4 (2 rounds), 8 (3 rounds), 16 (4 rounds)
+- "winner" is optional — omit for undecided matches
+- Match count halves each round (e.g. 4 → 2 → 1)
+- Round names: "Round of 16", "Quarterfinals", "Semifinals", "Final"
+Example: {"type":"bracket","title":"Best JS Framework","rounds":[{"name":"Semifinals","matches":[{"a":"React","b":"Vue","winner":"React"},{"a":"Svelte","b":"Solid","winner":"Svelte"}]},{"name":"Final","matches":[{"a":"React","b":"Svelte"}]}]}`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
@@ -1376,6 +1458,59 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
       { x: 0, y: 2, label: "Enterprise Arch" },
       { x: 1, y: 2, label: "DBA" },
       { x: 2, y: 2, label: "Sneaky PM" },
+    ],
+  }, null, 2),
+
+  budget: JSON.stringify({
+    type: "budget",
+    title: "Monthly Budget",
+    total: "$5,000",
+    categories: [
+      { label: "Rent", percent: 36, amount: "$1,800" },
+      { label: "Food", percent: 12, amount: "$600" },
+      { label: "Transport", percent: 6, amount: "$300" },
+      { label: "Savings", percent: 20, amount: "$1,000" },
+      { label: "Other", percent: 26, amount: "$1,300" },
+    ],
+  }, null, 2),
+
+  habits: JSON.stringify({
+    type: "habits",
+    title: "Reading streak — June 2025",
+    habit: "Read 30 min",
+    month: "June 2025",
+    days: [
+      { day: 1, done: true }, { day: 2, done: true }, { day: 3, done: false },
+      { day: 4, done: true }, { day: 5, done: true }, { day: 6, done: false },
+      { day: 7, done: true }, { day: 8, done: true }, { day: 9, done: true },
+      { day: 10, done: false }, { day: 11, done: true }, { day: 12, done: false },
+      { day: 13, done: true }, { day: 14, done: true }, { day: 15, done: true },
+    ],
+  }, null, 2),
+
+  bingo: JSON.stringify({
+    type: "bingo",
+    title: "Startup Bingo",
+    squares: [
+      "Pivoted twice", "MVP in a week", "YC rejection", "Side project", "10x engineer",
+      "Move fast", "Disrupting", "Synergy", "AI wrapper", "Blockchain",
+      "Hockey stick", "Unicorn", "FREE", "Series A", "Burn rate",
+      "Runway", "PMF", "TAM SAM SOM", "Cold email", "Demo day",
+      "ARR", "Exit strategy", "Iterate", "Founder mode", "Zero to one",
+    ],
+  }, null, 2),
+
+  bracket: JSON.stringify({
+    type: "bracket",
+    title: "Best JS Framework",
+    rounds: [
+      { name: "Semifinals", matches: [
+        { a: "React", b: "Vue", winner: "React" },
+        { a: "Svelte", b: "Solid", winner: "Svelte" },
+      ]},
+      { name: "Final", matches: [
+        { a: "React", b: "Svelte" },
+      ]},
     ],
   }, null, 2),
 };

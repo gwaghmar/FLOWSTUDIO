@@ -109,4 +109,55 @@ describe("parseSocialCard", () => {
     assert.equal(parseSocialCard(JSON.stringify({ type: "iceberg", layers: [] })).ok, false);
     assert.equal(parseSocialCard(JSON.stringify({ type: "iceberg" })).ok, false);
   });
+  it("parses a budget card and filters categories without labels", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "budget", title: "Monthly",
+      categories: [{ label: "Rent", percent: 40, amount: "$2k" }, { percent: 20 }, { label: "Food", percent: 30 }],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "budget") {
+      assert.equal(r.card.categories.length, 2);
+      assert.equal(r.card.categories[0].amount, "$2k");
+    }
+  });
+  it("parses a habits card", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "habits", title: "June reading",
+      habit: "Read", month: "June 2025",
+      days: [{ day: 1, done: true }, { day: 2, done: false }],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "habits") {
+      assert.equal(r.card.days.length, 2);
+      assert.equal(r.card.days[0].done, true);
+    }
+  });
+  it("parses a bingo card with fewer than 25 squares", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "bingo", title: "Office Bingo",
+      squares: ["Status update", "Circle back", "Synergy"],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "bingo") {
+      assert.equal(r.card.squares.length, 3);
+    }
+  });
+  it("parses a bracket card and filters rounds with no matches", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "bracket", title: "Tournament",
+      rounds: [
+        { name: "Semis", matches: [{ a: "A", b: "B", winner: "A" }] },
+        { name: "Empty", matches: [] },
+      ],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "bracket") {
+      assert.equal(r.card.rounds.length, 1);
+      assert.equal(r.card.rounds[0].matches[0].winner, "A");
+    }
+  });
+  it("rejects budget with no valid categories", () => {
+    assert.equal(parseSocialCard(JSON.stringify({ type: "budget", categories: [] })).ok, false);
+    assert.equal(parseSocialCard(JSON.stringify({ type: "budget" })).ok, false);
+  });
 });

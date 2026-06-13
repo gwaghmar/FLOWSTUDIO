@@ -130,6 +130,10 @@ export function EmbedViewer({ token }: { token: string }) {
     tierlist: "Tier List",
     iceberg: "Iceberg",
     alignment: "Alignment Chart",
+    budget: "Budget Breakdown",
+    habits: "Habit Tracker",
+    bingo: "Bingo Card",
+    bracket: "Bracket",
   };
   const bg = diagramType === "mermaid" ? (theme.themeVariables.background ?? "#fff") : "#fff";
 
@@ -171,7 +175,7 @@ export function EmbedViewer({ token }: { token: string }) {
       {diagramType === "orgchart" && (
         <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
       )}
-      {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
+      {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment" || diagramType === "budget" || diagramType === "habits" || diagramType === "bingo" || diagramType === "bracket") && (
         <div className="h-full w-full [container-type:size]">
           <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
         </div>

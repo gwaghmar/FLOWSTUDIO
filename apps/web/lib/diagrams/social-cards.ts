@@ -1,4 +1,4 @@
-export type SocialCardType = "timeline" | "versus" | "matrix2x2" | "funnel" | "venn" | "tierlist" | "iceberg" | "alignment";
+export type SocialCardType = "timeline" | "versus" | "matrix2x2" | "funnel" | "venn" | "tierlist" | "iceberg" | "alignment" | "budget" | "habits" | "bingo" | "bracket";
 
 export type TimelineCard = {
   type: "timeline";
@@ -51,7 +51,33 @@ export type AlignmentCard = {
   yAxis: [string, string, string];
   cells: Array<{ x: number; y: number; label: string; description?: string }>;
 };
-export type SocialCard = TimelineCard | VersusCard | MatrixCard | FunnelCard | VennCard | TierListCard | IcebergCard | AlignmentCard;
+export type BudgetCard = {
+  type: "budget";
+  title: string;
+  total?: string;
+  categories: Array<{ label: string; percent: number; amount?: string; color?: string }>;
+};
+export type HabitsCard = {
+  type: "habits";
+  title: string;
+  habit: string;
+  month: string;
+  days: Array<{ day: number; done: boolean }>;
+};
+export type BingoCard = {
+  type: "bingo";
+  title: string;
+  squares: string[];
+};
+export type BracketCard = {
+  type: "bracket";
+  title: string;
+  rounds: Array<{
+    name: string;
+    matches: Array<{ a: string; b: string; winner?: string }>;
+  }>;
+};
+export type SocialCard = TimelineCard | VersusCard | MatrixCard | FunnelCard | VennCard | TierListCard | IcebergCard | AlignmentCard | BudgetCard | HabitsCard | BingoCard | BracketCard;
 
 export type ParseResult = { ok: true; card: SocialCard } | { ok: false; error: string };
 
@@ -170,12 +196,76 @@ export function parseSocialCard(source: string): ParseResult {
         : [];
       return { ok: true, card: { type: "alignment", title, xAxis: axis3(raw.xAxis), yAxis: axis3(raw.yAxis), cells } };
     }
+    case "budget": {
+      const categories = Array.isArray(raw.categories)
+        ? raw.categories
+            .map((c: Record<string, unknown>) => ({
+              label: str(c?.label),
+              percent: clampTo(c?.percent, 100),
+              ...(typeof c?.amount === "string" ? { amount: c.amount } : {}),
+              ...(typeof c?.color === "string" ? { color: c.color } : {}),
+            }))
+            .filter((c) => c.label)
+        : [];
+      if (!categories.length) return { ok: false, error: "budget needs categories[]" };
+      return {
+        ok: true,
+        card: {
+          type: "budget", title,
+          categories,
+          ...(typeof raw.total === "string" ? { total: raw.total } : {}),
+        },
+      };
+    }
+    case "habits": {
+      const days = Array.isArray(raw.days)
+        ? raw.days
+            .map((d: Record<string, unknown>) => ({
+              day: Math.min(31, Math.max(1, Number(d?.day) || 1)),
+              done: Boolean(d?.done),
+            }))
+        : [];
+      return {
+        ok: true,
+        card: {
+          type: "habits",
+          title,
+          habit: str(raw.habit, "Habit"),
+          month: str(raw.month, ""),
+          days,
+        },
+      };
+    }
+    case "bingo": {
+      const squares = Array.isArray(raw.squares)
+        ? raw.squares.map((s) => str(s))
+        : [];
+      return { ok: true, card: { type: "bingo", title, squares } };
+    }
+    case "bracket": {
+      const rounds = Array.isArray(raw.rounds)
+        ? raw.rounds
+            .map((r: Record<string, unknown>) => ({
+              name: str(r?.name, "Round"),
+              matches: Array.isArray(r?.matches)
+                ? r.matches.map((m: Record<string, unknown>) => ({
+                    a: str(m?.a, "?"),
+                    b: str(m?.b, "?"),
+                    ...(typeof m?.winner === "string" ? { winner: m.winner } : {}),
+                  }))
+                : [],
+            }))
+            .filter((r) => r.matches.length)
+        : [];
+      if (!rounds.length) return { ok: false, error: "bracket needs rounds[]" };
+      return { ok: true, card: { type: "bracket", title, rounds } };
+    }
     default:
       return { ok: false, error: `Unknown card type: ${String(raw.type)}` };
   }
 }
 
-export const SOCIAL_CARD_TYPES: SocialCardType[] = ["timeline", "versus", "matrix2x2", "funnel", "venn", "tierlist", "iceberg", "alignment"];
+export const SOCIAL_CARD_TYPES: SocialCardType[] = ["timeline", "versus", "matrix2x2", "funnel", "venn", "tierlist", "iceberg", "alignment", "budget", "habits", "bingo", "bracket"];
 export function isSocialCardType(t: string): t is SocialCardType {
   return (SOCIAL_CARD_TYPES as string[]).includes(t);
 }

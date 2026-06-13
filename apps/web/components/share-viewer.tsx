@@ -132,6 +132,10 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     tierlist: "Tier List",
     iceberg: "Iceberg",
     alignment: "Alignment Chart",
+    budget: "Budget Breakdown",
+    habits: "Habit Tracker",
+    bingo: "Bingo Card",
+    bracket: "Bracket",
   };
 
   return (
@@ -233,7 +237,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
                   <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
-              {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
+              {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment" || diagramType === "budget" || diagramType === "habits" || diagramType === "bingo" || diagramType === "bracket") && (
                 <div className="h-[600px] [container-type:size]">
                   <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>

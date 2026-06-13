@@ -26,6 +26,10 @@ const TYPE_LABELS: Record<string, string> = {
   tierlist: "Tier List",
   iceberg: "Iceberg",
   alignment: "Alignment Chart",
+  budget: "Budget Breakdown",
+  habits: "Habit Tracker",
+  bingo: "Bingo Card",
+  bracket: "Bracket",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {

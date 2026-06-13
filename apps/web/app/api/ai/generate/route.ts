@@ -176,7 +176,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart", "timeline", "versus", "matrix2x2", "funnel", "venn", "tierlist", "iceberg", "alignment"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart", "timeline", "versus", "matrix2x2", "funnel", "venn", "tierlist", "iceberg", "alignment", "budget", "habits", "bingo", "bracket"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -558,6 +558,10 @@ Use the brand colors for the most prominent visual elements (main series, primar
       tierlist:   "Extract: the tier categories (S/A/B/C/D/F or custom) and the items ranked in each tier from best to worst.",
       iceberg:    "Extract: the layers from top to surface level to deepest/darkest level, with items and descriptions at each depth level.",
       alignment:  "Extract: the axis dimensions (each with opposing labels like left-right, good-evil) and plot the items on the alignment chart.",
+      budget:     "Extract: each spending category, its percentage of total, and optional dollar amount. Percentages must sum to 100.",
+      habits:     "Extract: the habit being tracked, the month, and which days were completed. Include ALL days of the month.",
+      bingo:      "Extract: the theme and 25 bingo square phrases. All squares must relate to the theme.",
+      bracket:    "Extract: the tournament subject, all competitors, which round they appear in, and any declared winners.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:
@@ -576,7 +580,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|venn|tierlist|iceberg|alignment|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|venn|tierlist|iceberg|alignment|budget|habits|bingo|bracket|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -611,6 +615,10 @@ Rules:
   - "tier list", "tier ", "ranking", "S tier", "A tier", "rank these", "best to worst" → "tierlist"
   - "iceberg", "hidden depth", "above the surface", "below the surface", "what's below" → "iceberg"
   - "alignment chart", "alignment grid", "3x3 grid", "lawful good", "chaotic evil", "moral alignment" → "alignment"
+  - "budget", "spending breakdown", "expense breakdown", "where my money goes", "income split" → "budget"
+  - "habit tracker", "streak", "daily habit", "30 day challenge", "habit grid" → "habits"
+  - "bingo" → "bingo"
+  - "bracket", "tournament", "single elimination", "who wins" → "bracket"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({
