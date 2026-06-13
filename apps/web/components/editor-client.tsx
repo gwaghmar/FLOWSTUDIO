@@ -29,6 +29,8 @@ import {
   Search,
   ChevronUp,
   X,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -324,6 +326,7 @@ export function EditorClient({
   const [pendingSuggestInput, setPendingSuggestInput] = useState<string>("");
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const [input, setInput] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
 
   const bodyRef = useRef<Record<string, unknown>>({});
   useEffect(() => {
@@ -337,6 +340,19 @@ export function EditorClient({
       mode: forceCreateNext || !source.trim() ? "create" : "patch",
     };
   });
+
+  useEffect(() => {
+    const stored = localStorage.getItem("flowstudio-dark-mode");
+    if (stored !== null) {
+      setDarkMode(stored === "true");
+    } else {
+      setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("flowstudio-dark-mode", String(darkMode));
+  }, [darkMode]);
 
   const transport = useMemo(
     () =>
@@ -1297,7 +1313,7 @@ export function EditorClient({
   const sourceLabel = ["mermaid", "bpmn"].includes(diagramType) ? "Source" : "JSON Source";
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white">
+    <div className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white${darkMode ? " dark" : ""}`}>
       {/* GLOBAL TOP HEADER (Lovable style) */}
       <header className="shrink-0 flex items-center justify-between border-b border-slate-200 px-4 py-1.5 bg-white z-50">
         {/* Left: Logo & Dropdown */}
@@ -1393,7 +1409,7 @@ export function EditorClient({
         </div>
       </header>
 
-      <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden bg-[#fafafa]">
+      <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden bg-[#fafafa] dark:bg-slate-950">
         <AnimatePresence mode="wait">
           {leftPanelOpen && (
             <motion.aside
@@ -1403,11 +1419,11 @@ export function EditorClient({
               transition={{ type: "spring", damping: 28, stiffness: 220 }}
               className="relative z-40 flex flex-col overflow-hidden pl-4 py-3"
             >
-              <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl overflow-hidden">
 
           {/* AI Task List (Plan Mode) */}
           {aiLoading && agentTasks.length > 0 && (
-            <div className="shrink-0 border-b border-white/5 bg-indigo-500/5 px-5 py-3">
+            <div className="shrink-0 border-b border-white/5 bg-indigo-500/5 dark:bg-indigo-500/10 px-5 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">Agent Plan</span>
@@ -1420,7 +1436,7 @@ export function EditorClient({
                     ) : task.status === "loading" ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
                     ) : (
-                      <Circle className="h-3.5 w-3.5 text-slate-700" />
+                      <Circle className="h-3.5 w-3.5 text-slate-700 dark:text-slate-200" />
                     )}
                     <span className={`text-xs ${task.status === "loading" ? "text-white font-medium" : "text-slate-500"}`}>
                       {task.label}
@@ -1435,11 +1451,11 @@ export function EditorClient({
           <div ref={chatListRef} className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-6 no-scrollbar">
             {messages.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center text-center px-4">
-                <div className="mb-4 rounded-2xl bg-indigo-50 p-4">
+                <div className="mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950 p-4">
                   <Sparkles className="h-8 w-8 text-indigo-500" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900">How can I help you build?</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">How can I help you build?</h3>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                   Describe the diagram or process you want to create. I can handle Mermaid, Charts, Whiteboards and more.
                 </p>
               </div>
@@ -1448,9 +1464,9 @@ export function EditorClient({
             {messages.map((msg, i) => (
               <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                 <div className={`relative max-w-[92%] rounded-[20px] px-5 py-4 text-[14px] leading-relaxed shadow-xs ${
-                  msg.role === "user" 
-                    ? "bg-[#f1f0ee] text-slate-900" 
-                    : "bg-white text-slate-700 border border-slate-100"
+                  msg.role === "user"
+                    ? "bg-[#f1f0ee] dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700"
                 }`}>
                   {getMessageText(msg)}
                   {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
@@ -1466,13 +1482,13 @@ export function EditorClient({
                     const toolName: string = tool.toolName ?? String(tool.type).slice(5);
                     const isDone = tool.state === 'output-available';
                     return (
-                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 border border-slate-100 flex flex-col gap-1.5 shadow-xs">
+                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 dark:bg-slate-800 p-2.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 flex flex-col gap-1.5 shadow-xs">
                         <div className="flex items-center gap-2">
                           {isDone ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
                           <span className="font-semibold">{toolName === 'web_search' ? 'Searching web...' : toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
                         </div>
                         {isDone && toolName === 'update_diagram' && (
-                          <span className="text-slate-400 pl-5">Diagram updated successfully.</span>
+                          <span className="text-slate-400 dark:text-slate-500 pl-5">Diagram updated successfully.</span>
                         )}
                       </div>
                     );
@@ -1481,7 +1497,7 @@ export function EditorClient({
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 flex items-center gap-4 px-2 text-slate-400"
+                    className="mt-2 flex items-center gap-4 px-2 text-slate-400 dark:text-slate-500"
                   >
                     <button
                       onClick={handleUndo}
@@ -1505,14 +1521,14 @@ export function EditorClient({
           </div>
 
           {/* Prompt Area with Quick Prompts */}
-          <div className="shrink-0 space-y-4 border-t border-slate-100 bg-white/50 p-5">
+          <div className="shrink-0 space-y-4 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 p-5">
             {messages.length > 0 && QUICK_PROMPTS[diagramType]?.length && (
               <div className="flex flex-wrap gap-2">
                 {QUICK_PROMPTS[diagramType]?.map((q) => (
                   <button
                     key={q}
                     onClick={() => setInput(q)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-xs"
+                    className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:border-indigo-200 dark:hover:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-600 transition-all shadow-xs"
                   >
                     {q}
                   </button>
@@ -1521,12 +1537,12 @@ export function EditorClient({
             )}
             
             {suggestedTemplate && (
-              <div className="mx-3 mb-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+              <div className="mx-3 mb-3 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 p-3">
                 <div className="flex items-start gap-2">
                   <span className="mt-0.5 text-sm">📌</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-indigo-900">{suggestedTemplate.title}</p>
-                    <p className="mt-0.5 text-xs text-indigo-700">{suggestedTemplate.description}</p>
+                    <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{suggestedTemplate.title}</p>
+                    <p className="mt-0.5 text-xs text-indigo-700 dark:text-indigo-300">{suggestedTemplate.description}</p>
                     <div className="mt-2 flex gap-2">
                       <button
                         onClick={() => {
@@ -1548,7 +1564,7 @@ export function EditorClient({
                           setSuggestedTemplate(null);
                           setPendingSuggestInput("");
                         }}
-                        className="rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                        className="rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors dark:bg-slate-800 dark:border-indigo-600 dark:text-indigo-300 dark:hover:bg-indigo-900"
                       >
                         Generate anyway
                       </button>
@@ -1569,13 +1585,13 @@ export function EditorClient({
                 e.preventDefault();
                 handleChatSubmit(e);
               }}
-              className="group relative flex flex-col gap-2 rounded-[24px] border border-slate-200/80 bg-white p-2 shadow-lg shadow-slate-200/30 focus-within:border-indigo-500/50 transition-all"
+              className="group relative flex flex-col gap-2 rounded-[24px] border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 p-2 shadow-lg shadow-slate-200/30 focus-within:border-indigo-500/50 transition-all"
             >
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="How should I change the diagram?"
-                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
+                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden"
                 rows={1}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -1590,7 +1606,7 @@ export function EditorClient({
                   <button
                     type="button"
                     onClick={() => setIsAgentMode(!isAgentMode)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${isAgentMode ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${isAgentMode ? 'border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
                     Agent Mode
@@ -1600,7 +1616,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setForceCreateNext((v) => !v)}
                       title="Next message will regenerate the diagram from scratch instead of patching the existing one"
-                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${forceCreateNext ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${forceCreateNext ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                     >
                       <Sparkles className={`h-3.5 w-3.5 ${forceCreateNext ? 'text-amber-600' : 'text-slate-500'}`} />
                       {forceCreateNext ? "Will regenerate" : "Regenerate"}
@@ -1639,22 +1655,22 @@ export function EditorClient({
       )}
       {/* AI-05: assumption disclosure banner — "Generated as: type · preset · detail" */}
       {assumptionBanner && (
-        <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/80 px-3 text-xs text-slate-600">
+        <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-slate-50/80 px-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
           <span className="truncate">{assumptionBanner}</span>
           <button
             type="button"
             onClick={() => setAssumptionBanner(null)}
-            className="rounded-sm p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            className="rounded-sm p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
             aria-label="Dismiss generation notice"
           >×</button>
         </div>
       )}
-      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-1 justify-between">
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 justify-between">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className={`flex items-center gap-2 rounded-lg border border-slate-200 p-1.5 transition-all ${leftPanelOpen ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-inner' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            className={`flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 transition-all ${leftPanelOpen ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-inner' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
             title="Toggle AI Panel (⌘B)"
           >
             <MessageSquare className="h-4 w-4" />
@@ -1663,7 +1679,7 @@ export function EditorClient({
           <button
             type="button"
             onClick={() => setSourcePanelOpen(!sourcePanelOpen)}
-            className={`flex items-center gap-2 rounded-lg border border-slate-200 p-1.5 transition-all ${sourcePanelOpen ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-inner' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            className={`flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 transition-all ${sourcePanelOpen ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-inner' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
             title="Toggle Source editor"
           >
             <Code2 className="h-4 w-4" />
@@ -1672,21 +1688,21 @@ export function EditorClient({
             
             {/* Zoom */}
             <div className="hidden lg:flex shrink-0 items-center gap-0.5">
-              <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">−</button>
-              <span className="w-11 text-center text-xs tabular-nums text-slate-600">{Math.round(zoom * 100)}%</span>
-              <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100">+</button>
+              <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">−</button>
+              <span className="w-11 text-center text-xs tabular-nums text-slate-600 dark:text-slate-300">{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">+</button>
               <button
                 type="button"
                 onClick={handleResetView}
-                className="rounded-sm px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100"
+                className="rounded-sm px-1.5 py-1 text-xs text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
                 title="Reset zoom & pan (⌘0)"
               >
                 ↺
               </button>
             </div>
             
-            <div className="hidden lg:block h-4 w-px shrink-0 bg-slate-200" />
-            <span className="hidden lg:flex shrink-0 items-center gap-1.5 text-xs text-slate-500">
+            <div className="hidden lg:block h-4 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
+            <span className="hidden lg:flex shrink-0 items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <DiagramTypeIcon type={diagramType} size={13} />
               <span className="font-medium">
                 {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label}
@@ -1695,12 +1711,12 @@ export function EditorClient({
 
             {(["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType) && (
               <>
-                <div className="hidden xl:block h-4 w-px shrink-0 bg-slate-200" />
+                <div className="hidden xl:block h-4 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
                 <div className="hidden xl:flex shrink-0 items-center gap-1.5">
                   <select
                     value={presetId}
                     onChange={(e) => setPresetId(e.target.value as SocialPresetId)}
-                    className="rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:border-slate-300 focus:border-indigo-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-100"
+                    className="rounded-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 focus:border-indigo-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-100"
                     aria-label="Canvas size preset"
                   >
                     {SOCIAL_PRESETS.map((p) => (
@@ -1708,7 +1724,7 @@ export function EditorClient({
                     ))}
                     <option value="custom">Custom</option>
                   </select>
-                  <span className="text-xs tabular-nums text-slate-400" aria-label="Export dimensions">
+                  <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500" aria-label="Export dimensions">
                     {frameW}×{frameH}
                   </span>
                 </div>
@@ -1718,16 +1734,16 @@ export function EditorClient({
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {showWatermark && (
-              <span className="hidden sm:inline-block rounded-sm border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Free plan</span>
+              <span className="hidden sm:inline-block rounded-sm border border-amber-200/80 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-400">Free plan</span>
             )}
             
-            <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+            <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 dark:border-slate-700 pr-2 mr-1">
               <button
                 type="button"
                 onClick={handleUndo}
                 disabled={undoStack.length === 0}
                 title="Undo (⌘Z)"
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Undo className="h-4 w-4" />
               </button>
@@ -1736,7 +1752,7 @@ export function EditorClient({
                 onClick={handleRedo}
                 disabled={redoStack.length === 0}
                 title="Redo (⌘⇧Z)"
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Redo className="h-4 w-4" />
               </button>
@@ -1745,7 +1761,7 @@ export function EditorClient({
                 onClick={handleApplyBrandKit}
                 disabled={applyingBrand}
                 title="Apply your brand kit colors (manage in Settings)"
-                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Palette className="h-4 w-4" />
               </button>
@@ -1755,18 +1771,18 @@ export function EditorClient({
                     type="button"
                     onClick={() => setThemeMenuOpen((v) => !v)}
                     title={`Theme: ${theme.name}`}
-                    className="flex items-center gap-1 px-2 py-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     aria-expanded={themeMenuOpen}
                   >
                     <Paintbrush className="h-4 w-4" />
                     <ChevronDown className="h-3 w-3" />
                   </button>
                   {themeMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-50 w-56 max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
-                      <div className="sticky top-0 border-b border-slate-100 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    <div className="absolute right-0 top-full mt-1 z-50 w-56 max-h-96 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
+                      <div className="sticky top-0 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                         Mermaid theme
                       </div>
-                      <ul className="divide-y divide-slate-100">
+                      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                         {THEMES.map((t) => {
                           const active = t.id === themeId;
                           const swatch =
@@ -1784,10 +1800,10 @@ export function EditorClient({
                                   }
                                   setThemeMenuOpen(false);
                                 }}
-                                className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 ${active ? "bg-indigo-50" : ""}`}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 ${active ? "bg-indigo-50 dark:bg-indigo-950" : ""}`}
                               >
                                 <span
-                                  className="h-5 w-5 shrink-0 rounded-sm border border-slate-200"
+                                  className="h-5 w-5 shrink-0 rounded-sm border border-slate-200 dark:border-slate-700"
                                   style={{ background: bg }}
                                 >
                                   <span
@@ -1797,7 +1813,7 @@ export function EditorClient({
                                     }}
                                   />
                                 </span>
-                                <span className="text-xs font-medium text-slate-700 truncate">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
                                   {t.name}
                                 </span>
                                 {active && (
@@ -1817,7 +1833,7 @@ export function EditorClient({
                   type="button"
                   onClick={() => void handleAutoLayout()}
                   title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : diagramType === "orgchart" ? "Auto-layout the org chart" : "Auto-layout the node graph"}
-                  className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                  className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <Wand2 className="h-4 w-4" />
                 </button>
@@ -1828,33 +1844,33 @@ export function EditorClient({
                   onClick={() => setHistoryOpen((v) => !v)}
                   disabled={!currentProjectId}
                   title={currentProjectId ? "Version history" : "Save first to see history"}
-                  className="flex items-center gap-1 px-2 py-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 px-2 py-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   aria-expanded={historyOpen}
                 >
                   <Clock className="h-4 w-4" />
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 {historyOpen && currentProjectId && (
-                  <div className="absolute right-0 top-full mt-1 z-50 w-80 max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
-                    <div className="sticky top-0 border-b border-slate-100 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                  <div className="absolute right-0 top-full mt-1 z-50 w-80 max-h-96 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
+                    <div className="sticky top-0 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       Version history
                     </div>
                     {revisions.length === 0 ? (
-                      <div className="px-3 py-4 text-xs text-slate-400">Loading…</div>
+                      <div className="px-3 py-4 text-xs text-slate-400 dark:text-slate-500">Loading…</div>
                     ) : (
-                      <ul className="divide-y divide-slate-100">
+                      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                         {revisions.map((r) => (
                           <li key={r.id}>
                             <button
                               type="button"
                               onClick={() => handleRestore(r.id)}
                               disabled={restoringId === r.id}
-                              className="w-full text-left px-3 py-2 hover:bg-slate-50 disabled:opacity-50"
+                              className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                             >
-                              <div className="text-xs font-medium text-slate-700 truncate">
+                              <div className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
                                 {r.label ?? "Manual edit"}
                               </div>
-                              <div className="text-[11px] text-slate-400 tabular-nums">
+                              <div className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">
                                 {r.createdAt.toLocaleString()}
                               </div>
                             </button>
@@ -1867,6 +1883,14 @@ export function EditorClient({
               </div>
             </div>
 
+            <button
+              onClick={() => setDarkMode((d) => !d)}
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            >
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+
             <div className="relative" data-export-menu-root>
               <button
                 type="button"
@@ -1878,22 +1902,22 @@ export function EditorClient({
                 {isExporting ? "…" : "Export ▾"}
               </button>
               {exportOpen && (
-                <div className="absolute right-0 top-full z-30 mt-1 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                <div className="absolute right-0 top-full z-30 mt-1 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-lg">
                   <div className="mb-1.5">
-                    <button type="button" onClick={() => void handleCopyImage()} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">Copy image</button>
+                    <button type="button" onClick={() => void handleCopyImage()} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">Copy image</button>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => void handleExport("png")} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">PNG</button>
-                    <button type="button" onClick={() => void handleExport("svg")} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">SVG</button>
+                    <button type="button" onClick={() => void handleExport("png")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">PNG</button>
+                    <button type="button" onClick={() => void handleExport("svg")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">SVG</button>
                     {diagramType === "mermaid" && (
-                      <button type="button" onClick={() => void handleExport("zip")} className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50" title="All social presets">ZIP</button>
+                      <button type="button" onClick={() => void handleExport("zip")} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800" title="All social presets">ZIP</button>
                     )}
                   </div>
                   {["mermaid", "reactflow", "nivo", "bpmn"].includes(diagramType) && (
                     <div className="mt-3 grid gap-2">
                       <div>
-                        <label htmlFor="editor-export-preset" className="mb-1 block text-[11px] font-medium text-slate-500">Canvas size</label>
-                        <select id="editor-export-preset" value={presetId} onChange={(e) => setPresetId(e.target.value as SocialPresetId)} className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
+                        <label htmlFor="editor-export-preset" className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">Canvas size</label>
+                        <select id="editor-export-preset" value={presetId} onChange={(e) => setPresetId(e.target.value as SocialPresetId)} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1.5 text-xs">
                           {SOCIAL_PRESETS.map((p) => (<option key={p.id} value={p.id}>{p.label} ({p.width}×{p.height})</option>))}
                           <option value="custom">Custom…</option>
                         </select>
@@ -1901,12 +1925,12 @@ export function EditorClient({
                       {presetId === "custom" && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label htmlFor="editor-export-custom-w" className="mb-1 block text-[11px] font-medium text-slate-500">Width</label>
-                            <input id="editor-export-custom-w" type="number" inputMode="numeric" min={200} max={8192} value={customExportWidth} onChange={(e) => setCustomExportWidth(Math.max(200, Math.min(8192, Math.round(Number(e.target.value) || 0))))} className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" />
+                            <label htmlFor="editor-export-custom-w" className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">Width</label>
+                            <input id="editor-export-custom-w" type="number" inputMode="numeric" min={200} max={8192} value={customExportWidth} onChange={(e) => setCustomExportWidth(Math.max(200, Math.min(8192, Math.round(Number(e.target.value) || 0))))} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1.5 text-xs" />
                           </div>
                           <div>
-                            <label htmlFor="editor-export-custom-h" className="mb-1 block text-[11px] font-medium text-slate-500">Height</label>
-                            <input id="editor-export-custom-h" type="number" inputMode="numeric" min={200} max={8192} value={customExportHeight} onChange={(e) => setCustomExportHeight(Math.max(200, Math.min(8192, Math.round(Number(e.target.value) || 0))))} className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" />
+                            <label htmlFor="editor-export-custom-h" className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">Height</label>
+                            <input id="editor-export-custom-h" type="number" inputMode="numeric" min={200} max={8192} value={customExportHeight} onChange={(e) => setCustomExportHeight(Math.max(200, Math.min(8192, Math.round(Number(e.target.value) || 0))))} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1.5 text-xs" />
                           </div>
                         </div>
                       )}
@@ -1914,13 +1938,13 @@ export function EditorClient({
                   )}
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1">
-                      <label htmlFor="editor-export-scale" className="mb-1 block text-[11px] font-medium text-slate-500">PNG scale</label>
-                      <select id="editor-export-scale" value={pngScale} onChange={(e) => setPngScale(Number(e.target.value) as 1 | 2 | 3)} className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
+                      <label htmlFor="editor-export-scale" className="mb-1 block text-[11px] font-medium text-slate-500 dark:text-slate-400">PNG scale</label>
+                      <select id="editor-export-scale" value={pngScale} onChange={(e) => setPngScale(Number(e.target.value) as 1 | 2 | 3)} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1.5 text-xs">
                         <option value={1}>1×</option><option value={2}>2×</option><option value={3}>3×</option>
                       </select>
                     </div>
                     {diagramType === "mermaid" && (
-                      <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                      <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                         <input type="checkbox" checked={zipIncludeCustom} onChange={(e) => setZipIncludeCustom(e.target.checked)} className="rounded-sm" />
                         Add custom
                       </label>
@@ -2033,11 +2057,11 @@ export function EditorClient({
               </div>
             </div>
           )}
-          {diagramType === "excalidraw" && <div className="w-full h-full rounded-xl overflow-hidden shadow-xl bg-white" style={{ minHeight: "600px" }}><ExcalidrawRenderer source={source} onChange={setSource} /></div>}
+          {diagramType === "excalidraw" && <div className="w-full h-full rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900" style={{ minHeight: "600px" }}><ExcalidrawRenderer source={source} onChange={setSource} /></div>}
           {diagramType === "reactflow" && (
             <div
               ref={frameRef}
-              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              className="rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ width: `${frameW}px`, height: `${frameH}px`, transform: `scale(${previewScale})`, transformOrigin: "top center" }}
             >
               <ReactFlowRenderer source={source} onChange={setSource} onNodeClick={handleNodeClick} />
@@ -2046,7 +2070,7 @@ export function EditorClient({
           {diagramType === "cloud" && (
             <div
               ref={frameRef}
-              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <CloudRenderer source={source} onChange={setSource} readOnly={false} />
@@ -2055,7 +2079,7 @@ export function EditorClient({
           {diagramType === "erd" && (
             <div
               ref={frameRef}
-              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <ErdRenderer source={source} onChange={setSource} readOnly={false} />
@@ -2064,7 +2088,7 @@ export function EditorClient({
           {diagramType === "orgchart" && (
             <div
               ref={frameRef}
-              className="w-full rounded-xl overflow-hidden shadow-xl bg-white"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <OrgChartRenderer source={source} onChange={setSource} readOnly={false} />
@@ -2075,7 +2099,7 @@ export function EditorClient({
             || diagramType === "budget" || diagramType === "habits" || diagramType === "bingo" || diagramType === "bracket") && (
             <div
               ref={frameRef}
-              className="w-full rounded-xl overflow-hidden shadow-xl bg-white [container-type:size]"
+              className="w-full rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900 [container-type:size]"
               style={{ minHeight: "600px", height: "100%" }}
             >
               <SocialCardRenderer source={source} onChange={setSource} readOnly={false} />
@@ -2084,7 +2108,7 @@ export function EditorClient({
           {diagramType === "echarts" && (
             <div
               ref={frameRef}
-              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              className="rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ width: "900px", height: "600px", transform: `scale(${previewScale})`, transformOrigin: "top center" }}
             >
               <EChartsRenderer ref={echartsRef} source={source} onChange={setSource} uiTheme={echartsUiTheme} />
@@ -2093,7 +2117,7 @@ export function EditorClient({
           {diagramType === "nivo" && (
             <div
               ref={frameRef}
-              className="rounded-xl overflow-hidden shadow-xl bg-white"
+              className="rounded-xl overflow-hidden shadow-xl bg-white dark:bg-slate-900"
               style={{ width: `${frameW}px`, height: `${frameH}px`, transform: `scale(${previewScale})`, transformOrigin: "top center" }}
             >
               <NivoRenderer source={source} />
@@ -2104,7 +2128,7 @@ export function EditorClient({
             <div className="flex h-full min-h-0 w-full max-w-full flex-col self-stretch">
               <div
                 ref={frameRef}
-                className="flex h-full min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+                className="flex h-full min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-white dark:bg-slate-900 shadow-xl"
                 style={{ transform: `scale(${previewScale})`, transformOrigin: "top center" }}
               >
                 <div className="min-h-0 flex-1">
@@ -2125,18 +2149,18 @@ export function EditorClient({
             transition={{ type: "spring", damping: 28, stiffness: 220 }}
             className="relative z-30 flex flex-col overflow-hidden pr-4 py-3"
           >
-            <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2">
+            <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden dark:border-slate-700/60 dark:bg-slate-900/95">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Code2 className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-700">Source</span>
+                  <Code2 className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Source</span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wide">{diagramType}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={openSearch}
-                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                     aria-label="Find in source (⌘F)"
                     title="Find (⌘F)"
                   >
@@ -2145,7 +2169,7 @@ export function EditorClient({
                   <button
                     type="button"
                     onClick={() => setSourcePanelOpen(false)}
-                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                    className="rounded-sm p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                     aria-label="Close source editor"
                   >
                     ×
@@ -2153,7 +2177,7 @@ export function EditorClient({
                 </div>
               </div>
               {searchOpen && (
-                <div className="border-b border-slate-100 bg-slate-50/50 px-3 py-2 space-y-1.5">
+                <div className="border-b border-slate-100 bg-slate-50/50 px-3 py-2 space-y-1.5 dark:border-slate-800 dark:bg-slate-800/50">
                   <div className="flex items-center gap-1.5">
                     <Search className="h-3 w-3 shrink-0 text-slate-400" />
                     <input
@@ -2175,7 +2199,7 @@ export function EditorClient({
                         }
                       }}
                       placeholder="Find"
-                      className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200"
+                      className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                     />
                     <span className="shrink-0 text-[10px] tabular-nums text-slate-400 w-12 text-right">
                       {searchQuery
@@ -2188,7 +2212,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setSearchCaseSensitive((v) => !v)}
                       title="Match case"
-                      className={`shrink-0 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-bold ${searchCaseSensitive ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                      className={`shrink-0 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-bold ${searchCaseSensitive ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"}`}
                     >
                       Aa
                     </button>
@@ -2197,7 +2221,7 @@ export function EditorClient({
                       onClick={() => focusMatch(searchActiveIdx - 1)}
                       disabled={searchMatches.length === 0}
                       title="Previous match (⇧⏎)"
-                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700"
                     >
                       <ChevronUp className="h-3 w-3" />
                     </button>
@@ -2206,7 +2230,7 @@ export function EditorClient({
                       onClick={() => focusMatch(searchActiveIdx + 1)}
                       disabled={searchMatches.length === 0}
                       title="Next match (⏎)"
-                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700"
                     >
                       <ChevronDown className="h-3 w-3" />
                     </button>
@@ -2214,7 +2238,7 @@ export function EditorClient({
                       type="button"
                       onClick={() => setReplaceOpen((v) => !v)}
                       title="Toggle replace"
-                      className={`shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${replaceOpen ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
+                      className={`shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${replaceOpen ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"}`}
                     >
                       ⇄
                     </button>
@@ -2225,7 +2249,7 @@ export function EditorClient({
                         sourceTextareaRef.current?.focus();
                       }}
                       title="Close (Esc)"
-                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      className="shrink-0 rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -2249,14 +2273,14 @@ export function EditorClient({
                           }
                         }}
                         placeholder="Replace"
-                        className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200"
+                        className="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
                         onClick={replaceCurrent}
                         disabled={searchMatches.length === 0}
                         title="Replace current"
-                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                       >
                         Replace
                       </button>
@@ -2265,7 +2289,7 @@ export function EditorClient({
                         onClick={replaceAll}
                         disabled={searchMatches.length === 0}
                         title="Replace all matches"
-                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+                        className="shrink-0 rounded-sm border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                       >
                         All
                       </button>
@@ -2290,13 +2314,13 @@ export function EditorClient({
               >
                 <pre
                   aria-hidden
-                  className="hl-gutter pointer-events-none absolute left-0 top-0 z-10 m-0 w-10 select-none border-r border-slate-100 bg-slate-50/80 py-3 pr-2 text-right font-mono text-[11px] leading-relaxed text-slate-400"
+                  className="hl-gutter pointer-events-none absolute left-0 top-0 z-10 m-0 w-10 select-none border-r border-slate-100 bg-slate-50/80 py-3 pr-2 text-right font-mono text-[11px] leading-relaxed text-slate-400 dark:border-slate-700 dark:bg-slate-800/80"
                 >
                   {Array.from({ length: Math.max(1, source.split("\n").length) }, (_, i) => i + 1).join("\n")}
                 </pre>
                 <pre
                   aria-hidden
-                  className="hl-pre pointer-events-none absolute left-10 top-0 m-0 w-[calc(100%-2.5rem)] whitespace-pre px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800"
+                  className="hl-pre pointer-events-none absolute left-10 top-0 m-0 w-[calc(100%-2.5rem)] whitespace-pre px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-800 dark:text-slate-200"
                   dangerouslySetInnerHTML={{
                     __html: source ? highlightSource(source, diagramType) : "",
                   }}
@@ -2411,12 +2435,12 @@ export function EditorClient({
                   }}
                   spellCheck={false}
                   wrap="off"
-                  className="relative h-full w-full resize-none bg-transparent py-3 pr-4 pl-14 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-hidden"
+                  className="relative h-full w-full resize-none bg-transparent py-3 pr-4 pl-14 font-mono text-[12px] leading-relaxed text-transparent caret-slate-900 focus:outline-hidden dark:caret-slate-100"
                   style={{ minHeight: "100%" }}
                   placeholder={diagramType === "mermaid" ? "flowchart LR\n  A --> B" : "{}"}
                 />
               </div>
-              <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
+              <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400 dark:border-slate-800">
                 <span>⌘Z to undo · Changes apply live</span>
                 <span className="tabular-nums">
                   Ln {sourceCaret.line}, Col {sourceCaret.col}

@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -77,3 +79,13 @@ body {
 .hl-key       { color: #2563eb; }                     /* blue-600 */
 .hl-number    { color: #d97706; }                     /* amber-600 */
 .hl-literal   { color: #7c3aed; }                     /* violet-600 */
+
+/* Dark mode syntax highlight tokens */
+.dark .hl-keyword   { color: #a78bfa; }  /* violet-400 */
+.dark .hl-direction { color: #60a5fa; }  /* blue-400 */
+.dark .hl-arrow     { color: #f472b6; }  /* pink-400 */
+.dark .hl-string    { color: #34d399; }  /* emerald-400 */
+.dark .hl-comment   { color: #64748b; }  /* slate-500 */
+.dark .hl-key       { color: #60a5fa; }  /* blue-400 */
+.dark .hl-number    { color: #fbbf24; }  /* amber-400 */
+.dark .hl-literal   { color: #a78bfa; }  /* violet-400 */
