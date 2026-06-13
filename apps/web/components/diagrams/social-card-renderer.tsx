@@ -1,6 +1,7 @@
 "use client";
 
-import { parseSocialCard, type SocialCard, type TimelineCard, type VersusCard, type MatrixCard, type FunnelCard } from "@/lib/diagrams/social-cards";
+import React from "react";
+import { parseSocialCard, type SocialCard, type TimelineCard, type VersusCard, type MatrixCard, type FunnelCard, type VennCard, type TierListCard, type IcebergCard, type AlignmentCard } from "@/lib/diagrams/social-cards";
 
 const DEFAULT_ACCENT = "#4f46e5";
 
@@ -29,6 +30,10 @@ function CardBody({ card }: { card: SocialCard }) {
     case "versus": return <VersusLayout card={card} />;
     case "matrix2x2": return <MatrixLayout card={card} />;
     case "funnel": return <FunnelLayout card={card} />;
+    case "venn": return <VennLayout card={card} />;
+    case "tierlist": return <TierListLayout card={card} />;
+    case "iceberg": return <IcebergLayout card={card} />;
+    case "alignment": return <AlignmentLayout card={card} />;
   }
 }
 
@@ -138,6 +143,135 @@ function FunnelLayout({ card }: { card: FunnelCard }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function VennLayout({ card }: { card: VennCard }) {
+  const colors = ["#4f46e5", "#f59e0b"];
+  const [setA, setB] = card.sets.length >= 2 ? [card.sets[0], card.sets[1]] : [{ label: "A", items: [] }, { label: "B", items: [] }];
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="flex flex-1 grid-cols-3 gap-[2%]" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
+        {[
+          { label: setA.label, items: setA.items, color: colors[0] },
+          { label: "Both", items: card.intersection, color: "#6b7280" },
+          { label: setB.label, items: setB.items, color: colors[1] },
+        ].map(({ label, items, color }, i) => (
+          <div key={i} className="flex flex-col rounded-2xl p-[5%]" style={{ backgroundColor: `${color}15`, border: `2px solid ${color}40` }}>
+            <h3 className="mb-[6%] text-center text-[clamp(12px,2.5cqw,22px)] font-bold" style={{ color }}>{label}</h3>
+            <ul className="flex flex-1 flex-col gap-[4%]">
+              {items.map((item, j) => (
+                <li key={j} className="flex items-start gap-2 text-[clamp(10px,1.8cqw,16px)] text-slate-700">
+                  <span className="mt-[0.3em] h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const TIER_COLORS: Record<string, string> = {
+  S: "#ef4444", A: "#f97316", B: "#eab308", C: "#22c55e", D: "#94a3b8",
+};
+
+function TierListLayout({ card }: { card: TierListCard }) {
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="flex flex-1 flex-col justify-around gap-[2%]">
+        {card.tiers.map((tier, i) => {
+          const color = tier.color ?? TIER_COLORS[tier.label] ?? "#94a3b8";
+          return (
+            <div key={i} className="flex min-h-0 items-center gap-[3%] overflow-hidden rounded-xl">
+              <div className="flex h-full w-[14%] shrink-0 items-center justify-center rounded-xl text-[clamp(14px,3cqw,28px)] font-black text-white" style={{ backgroundColor: color }}>
+                {tier.label}
+              </div>
+              <div className="flex flex-1 flex-wrap gap-[2%]">
+                {tier.items.map((item, j) => (
+                  <span key={j} className="rounded-lg px-3 py-1 text-[clamp(10px,1.8cqw,16px)] font-medium" style={{ backgroundColor: `${color}20`, color }}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const ICEBERG_COLORS = ["#bfdbfe", "#60a5fa", "#2563eb", "#1e40af", "#1e3a5f"];
+
+function IcebergLayout({ card }: { card: IcebergCard }) {
+  const n = card.layers.length;
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="flex flex-1 flex-col items-center justify-around gap-[1.5%]">
+        {card.layers.map((layer, i) => {
+          const inset = ((n - 1 - i) / Math.max(n - 1, 1)) * 20;
+          const bgColor = ICEBERG_COLORS[Math.min(i, ICEBERG_COLORS.length - 1)];
+          const textColor = i >= 2 ? "#ffffff" : "#1e3a8a";
+          return (
+            <div key={i} className="flex flex-col items-center rounded-xl px-[4%] py-[2.5%]"
+              style={{ width: `${100 - inset}%`, backgroundColor: bgColor }}>
+              <span className="mb-1 text-[clamp(11px,2cqw,18px)] font-bold" style={{ color: textColor }}>{layer.label}</span>
+              <span className="text-center text-[clamp(9px,1.6cqw,14px)]" style={{ color: textColor, opacity: 0.85 }}>
+                {layer.items.join(" · ")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AlignmentLayout({ card }: { card: AlignmentCard }) {
+  const cellMap = new Map(card.cells.map((c) => [`${c.x},${c.y}`, c]));
+  return (
+    <div className="flex h-full flex-col">
+      <CardTitle>{card.title}</CardTitle>
+      <div className="flex-1 overflow-hidden" style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr", gridTemplateRows: "auto 1fr 1fr 1fr" }}>
+        {/* top-left empty corner */}
+        <div />
+        {/* column headers */}
+        {card.xAxis.map((label, x) => (
+          <div key={x} className="flex items-center justify-center bg-slate-100 p-2 text-[clamp(9px,1.6cqw,14px)] font-semibold text-slate-600">
+            {label}
+          </div>
+        ))}
+        {/* rows */}
+        {card.yAxis.map((rowLabel, y) => (
+          <React.Fragment key={y}>
+            {/* row header */}
+            <div className="flex items-center justify-center bg-slate-100 px-2 text-[clamp(9px,1.6cqw,14px)] font-semibold text-slate-600" style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}>
+              {rowLabel}
+            </div>
+            {/* cells */}
+            {card.xAxis.map((_, x) => {
+              const cell = cellMap.get(`${x},${y}`);
+              return (
+                <div key={`${x},${y}`} className={`flex flex-col items-center justify-center border border-slate-200 p-2 text-center ${(x + y) % 2 === 0 ? "bg-slate-50" : "bg-white"}`}>
+                  {cell ? (
+                    <>
+                      <span className="text-[clamp(10px,1.8cqw,16px)] font-semibold text-slate-900">{cell.label}</span>
+                      {cell.description && <span className="mt-1 text-[clamp(8px,1.4cqw,12px)] text-slate-500">{cell.description}</span>}
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

@@ -51,4 +51,62 @@ describe("parseSocialCard", () => {
     assert.equal(parseSocialCard(JSON.stringify({ type: "bogus" })).ok, false);
     assert.equal(parseSocialCard(JSON.stringify({ type: "timeline" })).ok, false);
   });
+  it("parses a venn card and defaults missing sets to empty arrays", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "venn", title: "A vs B",
+      sets: [{ label: "A", items: ["x", "y"] }, { label: "B" }],
+      intersection: ["z"],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "venn") {
+      assert.equal(r.card.sets.length, 2);
+      assert.deepEqual(r.card.sets[1].items, []);
+      assert.deepEqual(r.card.intersection, ["z"]);
+    }
+  });
+  it("parses a tierlist card", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "tierlist", title: "Frameworks",
+      tiers: [{ label: "S", items: ["React"] }, { label: "A", color: "#f00", items: [] }],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "tierlist") {
+      assert.equal(r.card.tiers.length, 2);
+      assert.equal(r.card.tiers[1].color, "#f00");
+      assert.deepEqual(r.card.tiers[1].items, []);
+    }
+  });
+  it("parses an iceberg card and filters layers without labels", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "iceberg", title: "The iceberg",
+      layers: [{ label: "Visible", items: ["UI"] }, { items: ["hidden"] }, { label: "Deep", items: ["infra"] }],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "iceberg") {
+      assert.equal(r.card.layers.length, 2);
+      assert.equal(r.card.layers[1].label, "Deep");
+    }
+  });
+  it("parses an alignment card and clamps x/y to 0-2", () => {
+    const r = parseSocialCard(JSON.stringify({
+      type: "alignment", title: "Dev chart",
+      xAxis: ["Lawful", "Neutral", "Chaotic"],
+      yAxis: ["Good", "Neutral", "Evil"],
+      cells: [{ x: -1, y: 5, label: "Hacker" }, { x: 1, y: 1, label: "Dev" }],
+    }));
+    assert.equal(r.ok, true);
+    if (r.ok && r.card.type === "alignment") {
+      assert.equal(r.card.cells[0].x, 0);
+      assert.equal(r.card.cells[0].y, 2);
+      assert.equal(r.card.cells.length, 2);
+    }
+  });
+  it("rejects tierlist with no valid tiers", () => {
+    assert.equal(parseSocialCard(JSON.stringify({ type: "tierlist", tiers: [] })).ok, false);
+    assert.equal(parseSocialCard(JSON.stringify({ type: "tierlist" })).ok, false);
+  });
+  it("rejects iceberg with no valid layers", () => {
+    assert.equal(parseSocialCard(JSON.stringify({ type: "iceberg", layers: [] })).ok, false);
+    assert.equal(parseSocialCard(JSON.stringify({ type: "iceberg" })).ok, false);
+  });
 });

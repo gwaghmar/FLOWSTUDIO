@@ -22,6 +22,10 @@ const TYPE_LABELS: Record<string, string> = {
   versus: "Versus",
   matrix2x2: "2x2 Matrix",
   funnel: "Funnel",
+  venn: "Venn Diagram",
+  tierlist: "Tier List",
+  iceberg: "Iceberg",
+  alignment: "Alignment Chart",
 };
 
 function decodeDataUrl(dataUrl: string): { mime: string; bytes: Buffer } | null {

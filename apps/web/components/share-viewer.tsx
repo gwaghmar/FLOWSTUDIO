@@ -128,6 +128,10 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     versus: "Versus",
     matrix2x2: "2x2 Matrix",
     funnel: "Funnel",
+    venn: "Venn Diagram",
+    tierlist: "Tier List",
+    iceberg: "Iceberg",
+    alignment: "Alignment Chart",
   };
 
   return (
@@ -229,7 +233,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
                   <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>
               )}
-              {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+              {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
                 <div className="h-[600px] [container-type:size]">
                   <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
                 </div>

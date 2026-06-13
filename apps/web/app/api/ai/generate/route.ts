@@ -176,7 +176,7 @@ function defaultIntentPlan(prompt: string): IntentPlan {
 }
 
 const VALID_PRESET_IDS: SocialPresetId[] = ["square_feed", "vertical_feed", "story_reel", "landscape", "link_preview"];
-const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart", "timeline", "versus", "matrix2x2", "funnel"];
+const VALID_DIAGRAM_TYPES: DiagramType[] = ["mermaid", "excalidraw", "reactflow", "echarts", "nivo", "tldraw", "bpmn", "cloud", "erd", "orgchart", "timeline", "versus", "matrix2x2", "funnel", "venn", "tierlist", "iceberg", "alignment"];
 
 function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?: boolean } {
   const repaired = parsePossiblyBrokenJson(raw);
@@ -554,6 +554,10 @@ Use the brand colors for the most prominent visual elements (main series, primar
       versus:     "Extract: the two things being compared and parallel comparison dimensions. Point N on each side must address the same dimension.",
       matrix2x2:  "Extract: the two axes (each with a low/high label) and the items to be plotted in each of the four quadrants.",
       funnel:     "Extract: the funnel stage names in order from top to bottom, and any numeric values or percentages associated with each stage.",
+      venn:       "Extract: the two or three sets being compared and the items in each region (exclusive to set A, exclusive to set B, intersection, etc.).",
+      tierlist:   "Extract: the tier categories (S/A/B/C/D/F or custom) and the items ranked in each tier from best to worst.",
+      iceberg:    "Extract: the layers from top to surface level to deepest/darkest level, with items and descriptions at each depth level.",
+      alignment:  "Extract: the axis dimensions (each with opposing labels like left-right, good-evil) and plot the items on the alignment chart.",
     };
     const intentInstruction = `You are analyzing intent for a ${diagramType} diagram. ${typeHints[diagramType]}
 Return ONLY JSON matching this shape:
@@ -572,7 +576,7 @@ Return ONLY JSON matching this shape:
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
-  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|null"
+  "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|venn|tierlist|iceberg|alignment|null"
 }
 Rules:
 - Base ambiguity on missing critical nouns/actors/flow direction.
@@ -603,6 +607,10 @@ Rules:
   - "versus", "compare X and Y", "pros cons", "side by side" → "versus"
   - "2x2", "quadrant", "matrix", "SWOT", "effort impact", "priority matrix" → "matrix2x2"
   - "funnel", "conversion", "signup funnel", "marketing funnel", "drop-off" → "funnel"
+  - "venn diagram", "overlap", "intersection of", "sets", "what do X and Y share" → "venn"
+  - "tier list", "tier ", "ranking", "S tier", "A tier", "rank these", "best to worst" → "tierlist"
+  - "iceberg", "hidden depth", "above the surface", "below the surface", "what's below" → "iceberg"
+  - "alignment chart", "alignment grid", "3x3 grid", "lawful good", "chaotic evil", "moral alignment" → "alignment"
   - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({

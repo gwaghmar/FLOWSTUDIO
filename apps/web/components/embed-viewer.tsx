@@ -111,6 +111,26 @@ export function EmbedViewer({ token }: { token: string }) {
   }
 
   const diagramType = data.diagramType;
+  const DIAGRAM_TYPE_LABELS: Record<DiagramType, string> = {
+    mermaid: "Text flowchart",
+    excalidraw: "Whiteboard",
+    reactflow: "Node graph",
+    echarts: "Chart",
+    nivo: "Chart",
+    tldraw: "Canvas",
+    bpmn: "BPMN process",
+    cloud: "Cloud architecture",
+    erd: "Database schema",
+    orgchart: "Org chart",
+    timeline: "Timeline",
+    versus: "Versus",
+    matrix2x2: "2x2 Matrix",
+    funnel: "Funnel",
+    venn: "Venn Diagram",
+    tierlist: "Tier List",
+    iceberg: "Iceberg",
+    alignment: "Alignment Chart",
+  };
   const bg = diagramType === "mermaid" ? (theme.themeVariables.background ?? "#fff") : "#fff";
 
   return (
@@ -151,7 +171,7 @@ export function EmbedViewer({ token }: { token: string }) {
       {diagramType === "orgchart" && (
         <OrgChartRenderer source={data.source} readOnly onChange={() => {}} />
       )}
-      {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+      {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" || diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
         <div className="h-full w-full [container-type:size]">
           <SocialCardRenderer source={data.source} readOnly onChange={() => {}} />
         </div>

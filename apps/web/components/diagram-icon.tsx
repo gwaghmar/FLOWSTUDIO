@@ -15,6 +15,10 @@ import {
   Columns2,
   Grid2x2,
   Filter,
+  CircleDot,
+  ListOrdered,
+  Triangle,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import type { DiagramType } from "@flowchart/core";
@@ -36,6 +40,10 @@ export function DiagramTypeIcon({ type, className, size }: { type: DiagramType; 
     versus: Columns2,
     matrix2x2: Grid2x2,
     funnel: Filter,
+    venn: CircleDot,
+    tierlist: ListOrdered,
+    iceberg: Triangle,
+    alignment: LayoutGrid,
   };
   const Icon = iconMap[type] ?? GitFork;
   return <Icon size={size ?? 18} className={className} />;

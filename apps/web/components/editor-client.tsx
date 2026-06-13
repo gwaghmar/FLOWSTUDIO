@@ -2070,7 +2070,8 @@ export function EditorClient({
               <OrgChartRenderer source={source} onChange={setSource} readOnly={false} />
             </div>
           )}
-          {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel") && (
+          {(diagramType === "timeline" || diagramType === "versus" || diagramType === "matrix2x2" || diagramType === "funnel" ||
+            diagramType === "venn" || diagramType === "tierlist" || diagramType === "iceberg" || diagramType === "alignment") && (
             <div
               ref={frameRef}
               className="w-full rounded-xl overflow-hidden shadow-xl bg-white [container-type:size]"

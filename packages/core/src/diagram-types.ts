@@ -14,7 +14,11 @@ export type DiagramType =
   | "timeline"       // Milestone timeline social cards
   | "versus"         // Side-by-side comparison social cards
   | "matrix2x2"      // 2x2 quadrant / matrix social cards
-  | "funnel";        // Conversion funnel social cards
+  | "funnel"         // Conversion funnel social cards
+  | "venn"          // 2-set Venn overlap social cards
+  | "tierlist"      // S/A/B/C tier ranking social cards
+  | "iceberg"       // layered depth social cards
+  | "alignment";    // 3x3 grid alignment chart social cards
 
 export type DiagramCategory =
   | "whiteboard"
@@ -171,6 +175,42 @@ export const DIAGRAM_TYPE_META: DiagramTypeMeta[] = [
     icon: "filter",
     color: "#ec4899",
     subtypes: ["marketing", "sales", "conversion"],
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "venn",
+    label: "Venn Diagram",
+    description: "Two overlapping sets — shared traits, skills intersection, pros/cons overlap",
+    category: "social",
+    icon: "circle-dot",
+    color: "#8b5cf6",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "tierlist",
+    label: "Tier List",
+    description: "S/A/B/C/D ranked rows — rate anything from frameworks to life choices",
+    category: "social",
+    icon: "list-ordered",
+    color: "#ef4444",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "iceberg",
+    label: "Iceberg",
+    description: "Visible vs hidden layers — what users see vs what's under the hood",
+    category: "social",
+    icon: "triangle",
+    color: "#0ea5e9",
+    aiOutputFormat: "social-json",
+  },
+  {
+    id: "alignment",
+    label: "Alignment Chart",
+    description: "3×3 grid with two axes — the D&D alignment chart format for anything",
+    category: "social",
+    icon: "grid-3x3",
+    color: "#64748b",
     aiOutputFormat: "social-json",
   },
 ];
@@ -719,6 +759,45 @@ WHEN TO USE orgchart: "org chart", "organizational chart", "reporting structure"
 
 Example — "engineering org: CEO, a CTO and CFO, two eng directors under the CTO":
 {"nodes":[{"id":"ceo","data":{"label":"Jane Smith","title":"CEO"}},{"id":"cto","data":{"label":"Bob Lee","title":"CTO"}},{"id":"cfo","data":{"label":"Mia Chen","title":"CFO"}},{"id":"d1","data":{"label":"Raj Patel","title":"Director, Platform"}},{"id":"d2","data":{"label":"Sara Kim","title":"Director, Product Eng"}}],"edges":[{"id":"e1","source":"ceo","target":"cto"},{"id":"e2","source":"ceo","target":"cfo"},{"id":"e3","source":"cto","target":"d1"},{"id":"e4","source":"cto","target":"d2"}]}`,
+
+  venn: `You output ONLY valid JSON for a Venn diagram card (no markdown fences, no commentary).
+Schema:
+{ "type": "venn", "title": string, "sets": [{ "label": string, "items": string[] }, { "label": string, "items": string[] }], "intersection": string[] }
+RULES:
+- sets must have EXACTLY 2 entries
+- items in sets[] are exclusive to that side; intersection items appear in BOTH
+- aim for 3-6 items per zone; more than 8 per zone hurts readability
+- title names the comparison (e.g. "Design vs Engineering")
+Example: {"type":"venn","title":"Design vs Engineering","sets":[{"label":"Design","items":["Visual craft","Prototyping","UX research"]},{"label":"Engineering","items":["Systems thinking","Performance","Code review"]}],"intersection":["Communication","Problem solving","Empathy"]}`,
+
+  tierlist: `You output ONLY valid JSON for a Tier List card (no markdown fences, no commentary).
+Schema:
+{ "type": "tierlist", "title": string, "tiers": [{ "label": string, "color"?: string, "items": string[] }] }
+RULES:
+- Use conventional labels: S, A, B, C, D (or domain-specific like "Must have", "Nice to have", "Skip")
+- Omit \`color\` on tiers unless the user explicitly requests custom colors — the renderer has built-in defaults (S=red, A=orange, B=yellow, C=green, D=gray)
+- 2-8 items per tier; rank best→worst (S at top, D at bottom)
+Example: {"type":"tierlist","title":"Frontend Frameworks 2025","tiers":[{"label":"S","items":["React","Vue"]},{"label":"A","items":["Svelte","Solid"]},{"label":"B","items":["Angular"]},{"label":"C","items":["jQuery"]}]}`,
+
+  iceberg: `You output ONLY valid JSON for an Iceberg diagram card (no markdown fences, no commentary).
+Schema:
+{ "type": "iceberg", "title": string, "layers": [{ "label": string, "items": string[] }] }
+RULES:
+- layers ordered top to bottom (surface → deep); 2-5 layers
+- first layer = visible/surface; last = deepest/hidden
+- items per layer: 2-6; deeper layers often have more items
+- label names the depth level (e.g. "What users see", "Under the hood", "Dark secrets")
+Example: {"type":"iceberg","title":"What users see vs what we built","layers":[{"label":"Visible","items":["UI","Speed","Features"]},{"label":"Just below","items":["Auth","API","Caching"]},{"label":"Deep","items":["Infrastructure","Security","Data model","Observability"]}]}`,
+
+  alignment: `You output ONLY valid JSON for an Alignment Chart card (no markdown fences, no commentary).
+Schema:
+{ "type": "alignment", "title": string, "xAxis": [string, string, string], "yAxis": [string, string, string], "cells": [{ "x": 0|1|2, "y": 0|1|2, "label": string, "description"?: string }] }
+RULES:
+- xAxis: 3 column labels left→right (e.g. ["Lawful","Neutral","Chaotic"])
+- yAxis: 3 row labels top→bottom (e.g. ["Good","Neutral","Evil"])
+- aim for all 9 cells filled; cells may be omitted for sparse grids
+- x=0 is leftmost column; y=0 is top row; label max 3 words; description optional one-liner
+Example: {"type":"alignment","title":"Developer Alignment Chart","xAxis":["Lawful","Neutral","Chaotic"],"yAxis":["Good","Neutral","Evil"],"cells":[{"x":0,"y":0,"label":"DevOps","description":"Documents everything"},{"x":1,"y":0,"label":"Full Stack"},{"x":2,"y":0,"label":"10x Hacker","description":"Ships at 3am"},{"x":0,"y":1,"label":"Tech Lead"},{"x":1,"y":1,"label":"Backend Dev"},{"x":2,"y":1,"label":"Cowboy Coder"},{"x":0,"y":2,"label":"Enterprise Arch"},{"x":1,"y":2,"label":"DBA"},{"x":2,"y":2,"label":"Sneaky PM"}]}`,
 };
 
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
@@ -1248,6 +1327,55 @@ export const DIAGRAM_TYPE_DEFAULTS: Record<DiagramType, string> = {
       { label: "Started trial", value: "2,400", note: "6% conversion" },
       { label: "Activated", value: "1,100" },
       { label: "Paid plan", value: "310" },
+    ],
+  }, null, 2),
+
+  venn: JSON.stringify({
+    type: "venn",
+    title: "Design vs Engineering",
+    sets: [
+      { label: "Design", items: ["Visual craft", "Prototyping", "UX research"] },
+      { label: "Engineering", items: ["Systems thinking", "Performance", "Code review"] },
+    ],
+    intersection: ["Communication", "Problem solving", "Empathy"],
+  }, null, 2),
+
+  tierlist: JSON.stringify({
+    type: "tierlist",
+    title: "Frontend Frameworks 2025",
+    tiers: [
+      { label: "S", items: ["React", "Vue"] },
+      { label: "A", items: ["Svelte", "Solid"] },
+      { label: "B", items: ["Angular"] },
+      { label: "C", items: ["jQuery"] },
+    ],
+  }, null, 2),
+
+  iceberg: JSON.stringify({
+    type: "iceberg",
+    title: "What users see vs what we built",
+    layers: [
+      { label: "Visible", items: ["UI", "Speed", "Features"] },
+      { label: "Just below", items: ["Auth", "API design", "Caching"] },
+      { label: "Deep", items: ["Infrastructure", "Security", "Data model", "Observability"] },
+    ],
+  }, null, 2),
+
+  alignment: JSON.stringify({
+    type: "alignment",
+    title: "Developer Alignment Chart",
+    xAxis: ["Lawful", "Neutral", "Chaotic"],
+    yAxis: ["Good", "Neutral", "Evil"],
+    cells: [
+      { x: 0, y: 0, label: "DevOps", description: "Documents everything" },
+      { x: 1, y: 0, label: "Full Stack" },
+      { x: 2, y: 0, label: "10x Hacker", description: "Ships at 3am" },
+      { x: 0, y: 1, label: "Tech Lead" },
+      { x: 1, y: 1, label: "Backend Dev" },
+      { x: 2, y: 1, label: "Cowboy Coder" },
+      { x: 0, y: 2, label: "Enterprise Arch" },
+      { x: 1, y: 2, label: "DBA" },
+      { x: 2, y: 2, label: "Sneaky PM" },
     ],
   }, null, 2),
 };
