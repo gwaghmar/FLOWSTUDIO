@@ -8,6 +8,45 @@ type Props = {
   readOnly?: boolean;
 };
 
+type FlowRef = {
+  $type: string;
+  sourceRef?: FlowRef;
+  targetRef?: FlowRef;
+  outgoing?: FlowRef[];
+  incoming?: FlowRef[];
+  rootElements?: FlowRef[];
+  flowElements?: FlowRef[];
+};
+
+/** bpmn-auto-layout walks incoming/outgoing refs; app sources only carry sourceRef/targetRef, so backfill the inverse refs or every edge gets dropped. */
+function linkFlowRefs(container: FlowRef) {
+  for (const el of container.flowElements ?? []) {
+    if (el.$type === "bpmn:SequenceFlow") {
+      const src = el.sourceRef;
+      const tgt = el.targetRef;
+      if (src) { (src.outgoing ??= []); if (!src.outgoing.includes(el)) src.outgoing.push(el); }
+      if (tgt) { (tgt.incoming ??= []); if (!tgt.incoming.includes(el)) tgt.incoming.push(el); }
+    } else if (el.flowElements) {
+      linkFlowRefs(el);
+    }
+  }
+}
+
+/** Re-flow a BPMN process: regenerate DI so bpmn-auto-layout places every shape and edge. */
+export async function autoLayoutBpmn(source: string): Promise<string> {
+  const [{ BpmnModdle }, { layoutProcess }] = await Promise.all([
+    import("bpmn-moddle"),
+    import("bpmn-auto-layout"),
+  ]);
+  const moddle = new BpmnModdle();
+  const { rootElement } = await moddle.fromXML(source);
+  for (const root of (rootElement as unknown as FlowRef).rootElements ?? []) {
+    if (root.$type === "bpmn:Process") linkFlowRefs(root);
+  }
+  const { xml } = await moddle.toXML(rootElement);
+  return layoutProcess(xml);
+}
+
 export function BpmnRenderer({ source, onChange, readOnly = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   type BpmnInstance = {

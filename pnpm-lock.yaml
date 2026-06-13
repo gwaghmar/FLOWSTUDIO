@@ -92,6 +92,9 @@ importers:
       ai:
         specifier: ^6.0.194
         version: 6.0.195(zod@4.4.3)
+      bpmn-auto-layout:
+        specifier: ^1.3.0
+        version: 1.3.0
       bpmn-js:
         specifier: ^18.16.1
         version: 18.16.1
@@ -3567,6 +3570,10 @@ packages:
   body-parser@2.2.2:
     resolution: {integrity: sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA==}
     engines: {node: '>=18'}
+
+  bpmn-auto-layout@1.3.0:
+    resolution: {integrity: sha512-ufjMy1MaaZxkQF7f2wY6EL6TnRMSFr/r9eBhp0QvS41UHXW77aQVt65+dn2MmVMlHdyvZyOMNYXO2qYpgX6bQA==}
+    engines: {node: '>= 18'}
 
   bpmn-js@18.16.1:
     resolution: {integrity: sha512-qdJp/1JbKY3JtqB2L7LF4VEJtVlbl9AGkvyUjzJlBJ8jURNNTx+22OdrZMVNPxaGOjW+nuHK38ObFCmMCp/Kcg==}
@@ -10127,6 +10134,11 @@ snapshots:
       type-is: 2.0.1
     transitivePeerDependencies:
       - supports-color
+
+  bpmn-auto-layout@1.3.0:
+    dependencies:
+      bpmn-moddle: 10.0.0
+      min-dash: 5.0.0
 
   bpmn-js@18.16.1:
     dependencies:

@@ -865,6 +865,8 @@ export function EditorClient({
         next = await (await import("./diagrams/erd-renderer")).autoLayoutErd(source);
       } else if (diagramType === "orgchart") {
         next = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(source);
+      } else if (diagramType === "bpmn") {
+        next = await (await import("./diagrams/bpmn-renderer")).autoLayoutBpmn(source);
       } else {
         return;
       }
@@ -1828,11 +1830,11 @@ export function EditorClient({
                   )}
                 </div>
               )}
-              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart") && (
+              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart" || diagramType === "bpmn") && (
                 <button
                   type="button"
                   onClick={() => void handleAutoLayout()}
-                  title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : diagramType === "orgchart" ? "Auto-layout the org chart" : "Auto-layout the node graph"}
+                  title={diagramType === "cloud" ? "Auto-layout the architecture" : diagramType === "erd" ? "Auto-layout the schema" : diagramType === "orgchart" ? "Auto-layout the org chart" : diagramType === "bpmn" ? "Auto-layout the process" : "Auto-layout the node graph"}
                   className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <Wand2 className="h-4 w-4" />
