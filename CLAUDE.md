@@ -154,16 +154,18 @@ When starting a new phase, create the folder + a `NN-CONTEXT.md` if you need
 planning notes; write the `NN-SUMMARY.md` at the end. Don't create planning
 docs the user didn't ask for.
 
-## Open polish list (not yet shipped)
+## Open polish list — all shipped ✅
 
-If the user says "keep going" without specifying:
-1. Bracket auto-pair in the source editor (`{`, `[`, `"`)
-2. Search/replace in the source panel (⌘F)
-3. Line/column indicator in the source-panel footer
-4. Dark mode for the editor chrome (themes exist for diagrams only)
-5. Auto-layout buttons for BPMN / Excalidraw (they have built-in layout, no UI trigger)
-6. AI-suggested templates ("we recommend the OAuth template for that prompt")
-7. Public profile pages — `/u/[handle]` showing a user's published diagrams
+The original 7-item polish list is fully resolved:
+1. ~~Bracket auto-pair in the source editor~~ — shipped (Phase 12)
+2. ~~Search/replace in the source panel (⌘F)~~ — shipped (Phase 12)
+3. ~~Line/column indicator in the source-panel footer~~ — shipped (Phase 12)
+4. ~~Dark mode for the editor chrome~~ — shipped (Phase 16): Moon/Sun toggle, localStorage + system-pref fallback, scoped to editor root via `.dark` class (app shell stays light)
+5. ~~Auto-layout for BPMN~~ — shipped: Wand2 button via `bpmn-auto-layout`; `autoLayoutBpmn` backfills incoming/outgoing refs through bpmn-moddle first (app sources only have sourceRef/targetRef, else edges drop). **Excalidraw auto-layout is intentionally NOT built** — it's a free-form whiteboard with no node graph to lay out; there's no meaningful arrange operation.
+6. ~~AI-suggested templates~~ — shipped: `template-match.ts` scores the prompt across all 18 templates (specific multi-word keywords outweigh generic ones), shown as a suggestion card before generation
+7. ~~Public profile pages `/u/[handle]`~~ — shipped: profile page + `actions/profile.ts` (handle management, public diagrams via share links), settings-page handle editor, author backlink in share-viewer
+
+If the user says "keep going" without specifying, propose new work — the polish list is done.
 
 ## Things to NOT do
 
