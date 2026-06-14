@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Social Card Engine
+milestone: v1.6
+milestone_name: Agent Mode Polish
 status: All phases complete
-last_updated: "2026-06-12T00:00:00.000Z"
+last_updated: "2026-06-14T00:00:00.000Z"
 progress:
-  total_phases: 13
-  completed_phases: 13
+  total_phases: 16
+  completed_phases: 16
   percent: 100
 ---
 
@@ -19,6 +19,8 @@ progress:
 **Milestone 1.2** — Brand & Distribution — DONE
 **Milestone 1.3** — Legendary — DONE
 **Milestone 1.4** — Social Card Engine — DONE
+**Milestone 1.5** — Social Card Suite Expansion — DONE
+**Milestone 1.6** — Agent Mode Polish — DONE
 
 ## Phase Status
 
@@ -37,6 +39,9 @@ progress:
 | 11 | AI-Aware Brand & Templates | 1.3 | ✅ Complete |
 | 12 | Editor Audit & Polish | 1.3 | ✅ Complete |
 | 13 | Social Card Engine | 1.4 | ✅ Complete |
+| 14 | Fun Pack | 1.5 | ✅ Complete |
+| 15 | Personal & Games | 1.5 | ✅ Complete |
+| 16 | Agent Mode Polish | 1.6 | ✅ Complete |
 
 ## Decisions
 
@@ -48,6 +53,7 @@ progress:
 | D-04 | Use-case drives both preset AND generation style | Single source of truth for "what this diagram is for" |
 | D-05 | All diagram-type prompts get selection rules + extraction checklists + few-shots | Bring all 7 up to Mermaid's quality |
 | D-06 | Assumption banner is separate from chat assistantMessage | Both surfaces have a role |
+| D-07 | Social card icons must be distinct per type | bingo uses Hash, not LayoutGrid (which alignment already uses) |
 
 ## Pending Todos
 
@@ -58,4 +64,4 @@ progress:
 (None)
 
 ---
-*Last updated: June 12, 2026 after Phase 13 completion*
+*Last updated: June 12, 2026 after Phase 15 completion*
