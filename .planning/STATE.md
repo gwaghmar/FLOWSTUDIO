@@ -55,10 +55,12 @@ progress:
 | D-06 | Assumption banner is separate from chat assistantMessage | Both surfaces have a role |
 | D-07 | Social card icons must be distinct per type | bingo uses Hash, not LayoutGrid (which alignment already uses) |
 | D-08 | Agent Mode routes per-request via prepareSendMessagesRequest({api}) | useChat binds transport once; a useMemo keyed on isAgentMode never re-routed |
+| D-09 | PDF export = client-side raster (jsPDF, PNG→single page) | Vector (svg-to-pdfkit) only works for mermaid; PNG capture is universal across all 22 types. Closes the promised-but-unbuilt Pro feature on the pricing page |
 
 ## Pending Todos
 
 - `apps/web/.env` Google AI key is invalid — set a valid key to run the live agent tool-card verifier (`RUN_AGENT_VERIFY=1 pnpm exec playwright test agent-mode-verify`)
+- PDF export embeds a high-res PNG (pixelRatio = pngScale) → files can be large (~10MB for a tall diagram at scale 2). Follow-up if size matters: JPEG-encode or cap the PDF pixelRatio.
 - `validateAndRepairOutput` lives in `lib/diagrams/validate-output.ts` (shared by generate + agent routes); agent `update_diagram` validates and self-corrects within its 5-step loop. apply_patch/update_node results are applied client-side and not server-validated (lower risk — surgical edits)
 
 ## Blockers
