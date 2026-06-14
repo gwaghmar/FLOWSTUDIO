@@ -51,6 +51,7 @@ import {
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
+import { applyPatch } from "@/lib/agent-tools";
 import { matchTemplateId } from "@/lib/template-match";
 import { TEMPLATES } from "@/lib/templates";
 import type { Template } from "@/lib/templates";
@@ -327,11 +328,13 @@ export function EditorClient({
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const [input, setInput] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [toolEffects, setToolEffects] = useState<Record<string, { status: "applied" | "noop" | "error"; label: string; detail?: string }>>({});
 
   const bodyRef = useRef<Record<string, unknown>>({});
   useEffect(() => {
     bodyRef.current = {
       diagramType,
+      themeId,
       title,
       currentSource: source.slice(0, compactAiContext ? 800 : 2000),
       diagramSummary: summarizeDiagramSource(diagramType, source),
@@ -439,73 +442,6 @@ export function EditorClient({
     }
     return out;
   }, [messages]);
-
-  // Handle Tool Results surgically
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== 'assistant') return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parts: any[] = Array.isArray((lastMessage as { parts?: unknown[] }).parts) ? (lastMessage as { parts: unknown[] }).parts as any[] : [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const toolParts = parts.filter((p: any) => typeof p?.type === "string" && p.type.startsWith("tool-"));
-    if (toolParts.length === 0) return;
-
-    // Snapshot once before any tool mutates source
-    const snapshotBeforeTools = sourceRef.current;
-    let mutated = false;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toolParts.forEach((tp: any) => {
-      if (tp.state !== 'output-available') return;
-      const result = tp.output;
-      if (!result || !result.success) return;
-      const toolName: string = tp.toolName ?? String(tp.type).slice(5);
-
-      if (toolName === 'update_diagram' && result.sourceCode) {
-        mutated = true;
-        setSource(result.sourceCode);
-      }
-
-      if (toolName === 'apply_patch' && result.find && result.replace) {
-        setSource(prev => {
-          if (prev.includes(result.find)) {
-            mutated = true;
-            return prev.replace(result.find, result.replace);
-          }
-          return prev;
-        });
-      }
-
-      if (toolName === 'update_node' && diagramType === 'reactflow') {
-        try {
-          const parsed = JSON.parse(sourceRef.current);
-          const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
-          const updatedNodes = nodes.map((n) => {
-            if (n.id === result.id) {
-              return {
-                ...n,
-                data: result.data ? { ...n.data, ...result.data } : n.data,
-                style: result.style ? { ...n.style, ...result.style } : n.style
-              };
-            }
-            return n;
-          });
-          mutated = true;
-          setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
-        } catch (e) {
-          console.error("Failed to update node surgically", e);
-        }
-      }
-    });
-
-    if (mutated) {
-      setUndoStack(prev => {
-        if (prev[prev.length - 1] === snapshotBeforeTools) return prev;
-        return [...prev.slice(-(UNDO_LIMIT - 1)), snapshotBeforeTools];
-      });
-      setRedoStack([]);
-    }
-  }, [messages, diagramType]);
 
   const [assumptionBanner, setAssumptionBanner] = useState<string | null>(null);
 
@@ -883,22 +819,24 @@ export function EditorClient({
     }
   }, [diagramType, source, recordUndo, showToast]);
 
-  const handleApplyBrandKit = useCallback(async () => {
+  const handleApplyBrandKit = useCallback(async (): Promise<boolean> => {
     setApplyingBrand(true);
     try {
       const kit = await getBrandKit();
       if (!kit || !kit.palette) {
         showToast("No brand kit yet — set one in Settings");
-        return;
+        return false;
       }
       recordUndo(source);
       setCustomAccent(kit.palette.primary);
       if (kit.palette.background) setCustomBackground(kit.palette.background);
       setPaletteId("brand");
       showToast(`Applied "${kit.name}" · ⌘Z to undo`);
+      return true;
     } catch (e) {
       console.error("[brand-kit]", e);
       showToast("Could not apply brand kit");
+      return false;
     } finally {
       setApplyingBrand(false);
     }
@@ -964,6 +902,84 @@ export function EditorClient({
     else if (id === "social") setPresetId("square_feed");
     // "documentation" and "custom" do not change the preset
   }, []);
+
+  // Apply agent tool results to editor state; record each outcome in toolEffects.
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parts: any[] = Array.isArray((lastMessage as { parts?: unknown[] }).parts) ? (lastMessage as { parts: unknown[] }).parts as any[] : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolParts = parts.filter((p: any) => typeof p?.type === "string" && p.type.startsWith("tool-"));
+    if (toolParts.length === 0) return;
+
+    const snapshotBeforeTools = sourceRef.current;
+    let mutated = false;
+    const effects: Record<string, { status: "applied" | "noop" | "error"; label: string; detail?: string }> = {};
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toolParts.forEach((tp: any) => {
+      if (tp.state !== "output-available") return;
+      const id: string = tp.toolCallId;
+      if (toolEffects[id]) return; // already applied (idempotent)
+      const result = tp.output;
+      if (!result || !result.success) return;
+      const toolName: string = tp.toolName ?? String(tp.type).slice(5);
+
+      if (toolName === "update_diagram" && result.sourceCode) {
+        mutated = true;
+        setSource(result.sourceCode);
+        effects[id] = { status: "applied", label: "Diagram updated" };
+      } else if (toolName === "apply_patch" && typeof result.find === "string") {
+        const { source: next, replaced } = applyPatch(sourceRef.current, result.find, result.replace ?? "");
+        if (replaced > 0) {
+          mutated = true;
+          setSource(next);
+          effects[id] = { status: "applied", label: `Replaced ${replaced} occurrence${replaced === 1 ? "" : "s"}` };
+        } else {
+          effects[id] = { status: "noop", label: "Couldn't find that text", detail: result.find.slice(0, 60) };
+        }
+      } else if (toolName === "update_node" && diagramType === "reactflow") {
+        try {
+          const parsed = JSON.parse(sourceRef.current);
+          const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+          const updatedNodes = nodes.map((n) => n.id === result.id ? { ...n, data: result.data ? { ...n.data, ...result.data } : n.data, style: result.style ? { ...n.style, ...result.style } : n.style } : n);
+          mutated = true;
+          setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
+          effects[id] = { status: "applied", label: `Updated node ${result.id}` };
+        } catch {
+          effects[id] = { status: "error", label: "Couldn't update node" };
+        }
+      } else if (toolName === "set_title" && result.title) {
+        setTitle(result.title);
+        effects[id] = { status: "applied", label: `Renamed to "${result.title}"` };
+      } else if (toolName === "set_theme" && result.themeId) {
+        setThemeId(result.themeId);
+        effects[id] = { status: "applied", label: `Theme → ${result.themeId}` };
+      } else if (toolName === "set_palette" && result.paletteId) {
+        setPaletteId(result.paletteId);
+        effects[id] = { status: "applied", label: `Palette → ${result.paletteId}` };
+      } else if (toolName === "set_use_case" && result.useCaseId) {
+        handleUseCaseChange(result.useCaseId);
+        effects[id] = { status: "applied", label: `Use case → ${result.useCaseId}` };
+      } else if (toolName === "apply_brand_kit") {
+        void handleApplyBrandKit().then((ok) => {
+          setToolEffects((prev) => ({ ...prev, [id]: ok ? { status: "applied", label: "Applied brand kit" } : { status: "error", label: "No brand kit set" } }));
+        });
+      }
+    });
+
+    if (Object.keys(effects).length > 0) {
+      setToolEffects((prev) => ({ ...prev, ...effects }));
+    }
+    if (mutated) {
+      setUndoStack((prev) => {
+        if (prev[prev.length - 1] === snapshotBeforeTools) return prev;
+        return [...prev.slice(-(UNDO_LIMIT - 1)), snapshotBeforeTools];
+      });
+      setRedoStack([]);
+    }
+  }, [messages, diagramType, toolEffects, handleUseCaseChange, handleApplyBrandKit]);
 
   const downloadBlob = (blob: Blob, name: string) => {
     const a = document.createElement("a");
