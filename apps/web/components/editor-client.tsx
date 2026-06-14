@@ -359,15 +359,21 @@ export function EditorClient({
     localStorage.setItem("flowstudio-dark-mode", String(darkMode));
   }, [darkMode]);
 
+  // useChat binds the transport once; a useMemo keyed on isAgentMode does NOT
+  // re-route after the toggle flips. Route per-request via a ref instead so the
+  // Agent Mode toggle actually reaches /api/ai/agent.
+  const isAgentModeRef = useRef(isAgentMode);
+  isAgentModeRef.current = isAgentMode;
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: isAgentMode ? "/api/ai/agent" : "/api/ai/generate",
+        api: "/api/ai/generate",
         prepareSendMessagesRequest: ({ messages, body }) => ({
+          api: isAgentModeRef.current ? "/api/ai/agent" : "/api/ai/generate",
           body: { messages, ...bodyRef.current, ...(body ?? {}) },
         }),
       }),
-    [isAgentMode]
+    []
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
