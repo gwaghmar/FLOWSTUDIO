@@ -54,10 +54,12 @@ progress:
 | D-05 | All diagram-type prompts get selection rules + extraction checklists + few-shots | Bring all 7 up to Mermaid's quality |
 | D-06 | Assumption banner is separate from chat assistantMessage | Both surfaces have a role |
 | D-07 | Social card icons must be distinct per type | bingo uses Hash, not LayoutGrid (which alignment already uses) |
+| D-08 | Agent Mode routes per-request via prepareSendMessagesRequest({api}) | useChat binds transport once; a useMemo keyed on isAgentMode never re-routed |
 
 ## Pending Todos
 
-- `validateAndRepairOutput` has no handler for social card types, cloud, erd, or orgchart (pre-existing gap — hardening follow-up)
+- Agent route (`/api/ai/agent`) does not validate/repair `update_diagram` tool output (generate route now does for all 22 types; agent path is a separate follow-up)
+- `apps/web/.env` Google AI key is invalid — set a valid key to run the live agent tool-card verifier (`RUN_AGENT_VERIFY=1 pnpm exec playwright test agent-mode-verify`)
 
 ## Blockers
 
