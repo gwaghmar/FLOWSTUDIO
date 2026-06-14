@@ -9,8 +9,10 @@ import { rateLimit } from "@/lib/rate-limit";
 import type { ApiError } from "@flowchart/core";
 import { THEME_IDS } from "@flowchart/core";
 import { buildBrandDirective } from "@/lib/brand-directive";
+import { recordAiEvent } from "@/lib/ai-events";
 
 export async function POST(req: Request) {
+  const requestStart = Date.now();
   const session = await auth();
   const email = session?.user?.email;
   if (!email) {
@@ -109,11 +111,39 @@ export async function POST(req: Request) {
 - use-case: ${useCaseId || "(none)"}
 - brand kit configured: ${hasBrandKit ? "yes" : "no"}`;
 
+  let toolCallCount = 0;
+  const lastUserText = [...messages].reverse().find((m: { role?: string }) => m?.role === "user");
+  const promptLength = JSON.stringify(lastUserText ?? "").length;
+  const sourceLength = (currentSource || "").length;
+
   try {
     const result = streamText({
       model: languageModel,
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
+      onFinish: ({ usage }) => {
+        void recordAiEvent({
+          userId: user.id,
+          diagramType,
+          effectiveDiagramType: diagramType,
+          typeSwitched: false,
+          mode: "agent",
+          provider,
+          model,
+          promptLength,
+          sourceLength,
+          intentLatencyMs: null,
+          genLatencyMs: null,
+          totalLatencyMs: Date.now() - requestStart,
+          inputTokens: usage?.inputTokens ?? null,
+          outputTokens: usage?.outputTokens ?? null,
+          validationStatus: "ok",
+          retryAttempted: false,
+          intentFallback: false,
+          toolCalls: toolCallCount,
+          error: null,
+        });
+      },
       system: `You are an autonomous Lovable-style AI agent building diagrams for the user.
 You can use tools to inspect and update the diagram, its title, theme, palette, and use-case.
 The current diagram type is: ${diagramType}.
@@ -153,6 +183,7 @@ STRATEGY:
             explanation: z.string().describe("Brief explanation of the changes"),
           }),
           execute: async ({ sourceCode, explanation }) => {
+            toolCallCount++;
             return { success: true, explanation, sourceCode };
           },
         }),
@@ -164,6 +195,7 @@ STRATEGY:
             explanation: z.string().describe("Why this change is being made"),
           }),
           execute: async ({ find, replace, explanation }) => {
+            toolCallCount++;
             return { success: true, find, replace, explanation };
           },
         }),
@@ -175,6 +207,7 @@ STRATEGY:
             style: z.any().optional().describe("New styles (color, border, etc)"),
           }),
           execute: async (args) => {
+            toolCallCount++;
             return { success: true, ...args };
           },
         }),
@@ -184,6 +217,7 @@ STRATEGY:
             sourceName: z.string().describe("A URL (https://...) or a descriptive name like 'sales_data.csv'"),
           }),
           execute: async ({ sourceName }) => {
+            toolCallCount++;
             // Real URL → fetch with SSRF guard
             if (sourceName.startsWith("http://") || sourceName.startsWith("https://")) {
               try {
@@ -264,6 +298,7 @@ STRATEGY:
             explanation: z.string().describe("Why this title"),
           }),
           execute: async ({ title, explanation }) => {
+            toolCallCount++;
             return { success: true, title, explanation };
           },
         }),
@@ -274,6 +309,7 @@ STRATEGY:
             explanation: z.string().describe("Why this theme"),
           }),
           execute: async ({ themeId, explanation }) => {
+            toolCallCount++;
             return { success: true, themeId, explanation };
           },
         }),
@@ -284,6 +320,7 @@ STRATEGY:
             explanation: z.string().describe("Why this palette"),
           }),
           execute: async ({ paletteId, explanation }) => {
+            toolCallCount++;
             return { success: true, paletteId, explanation };
           },
         }),
@@ -293,6 +330,7 @@ STRATEGY:
             explanation: z.string().describe("Why apply the brand kit"),
           }),
           execute: async ({ explanation }) => {
+            toolCallCount++;
             return { success: true, explanation };
           },
         }),
@@ -303,6 +341,7 @@ STRATEGY:
             explanation: z.string().describe("Why this use-case"),
           }),
           execute: async ({ useCaseId, explanation }) => {
+            toolCallCount++;
             return { success: true, useCaseId, explanation };
           },
         }),
