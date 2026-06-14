@@ -329,6 +329,7 @@ export function EditorClient({
   const [input, setInput] = useState("");
   const [darkMode, setDarkMode] = useState(false);
   const [toolEffects, setToolEffects] = useState<Record<string, { status: "applied" | "noop" | "error"; label: string; detail?: string }>>({});
+  const brandKitInFlight = useRef<Set<string>>(new Set());
 
   const bodyRef = useRef<Record<string, unknown>>({});
   useEffect(() => {
@@ -914,6 +915,7 @@ export function EditorClient({
     if (toolParts.length === 0) return;
 
     const snapshotBeforeTools = sourceRef.current;
+    let liveSource = sourceRef.current;
     let mutated = false;
     const effects: Record<string, { status: "applied" | "noop" | "error"; label: string; detail?: string }> = {};
 
@@ -927,12 +929,14 @@ export function EditorClient({
       const toolName: string = tp.toolName ?? String(tp.type).slice(5);
 
       if (toolName === "update_diagram" && result.sourceCode) {
+        liveSource = result.sourceCode;
         mutated = true;
         setSource(result.sourceCode);
         effects[id] = { status: "applied", label: "Diagram updated" };
       } else if (toolName === "apply_patch" && typeof result.find === "string") {
-        const { source: next, replaced } = applyPatch(sourceRef.current, result.find, result.replace ?? "");
+        const { source: next, replaced } = applyPatch(liveSource, result.find, result.replace ?? "");
         if (replaced > 0) {
+          liveSource = next;
           mutated = true;
           setSource(next);
           effects[id] = { status: "applied", label: `Replaced ${replaced} occurrence${replaced === 1 ? "" : "s"}` };
@@ -941,11 +945,13 @@ export function EditorClient({
         }
       } else if (toolName === "update_node" && diagramType === "reactflow") {
         try {
-          const parsed = JSON.parse(sourceRef.current);
+          const parsed = JSON.parse(liveSource);
           const nodes: ReactFlowSourceNode[] = Array.isArray(parsed.nodes) ? parsed.nodes : [];
           const updatedNodes = nodes.map((n) => n.id === result.id ? { ...n, data: result.data ? { ...n.data, ...result.data } : n.data, style: result.style ? { ...n.style, ...result.style } : n.style } : n);
+          const next = JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2);
+          liveSource = next;
           mutated = true;
-          setSource(JSON.stringify({ ...parsed, nodes: updatedNodes }, null, 2));
+          setSource(next);
           effects[id] = { status: "applied", label: `Updated node ${result.id}` };
         } catch {
           effects[id] = { status: "error", label: "Couldn't update node" };
@@ -963,9 +969,12 @@ export function EditorClient({
         handleUseCaseChange(result.useCaseId);
         effects[id] = { status: "applied", label: `Use case → ${result.useCaseId}` };
       } else if (toolName === "apply_brand_kit") {
-        void handleApplyBrandKit().then((ok) => {
-          setToolEffects((prev) => ({ ...prev, [id]: ok ? { status: "applied", label: "Applied brand kit" } : { status: "error", label: "No brand kit set" } }));
-        });
+        if (!brandKitInFlight.current.has(id)) {
+          brandKitInFlight.current.add(id);
+          void handleApplyBrandKit().then((ok) => {
+            setToolEffects((prev) => ({ ...prev, [id]: ok ? { status: "applied", label: "Applied brand kit" } : { status: "error", label: "No brand kit set" } }));
+          });
+        }
       }
     });
 
