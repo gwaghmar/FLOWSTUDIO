@@ -1083,10 +1083,51 @@ export function EditorClient({
     }
   }, [currentProjectId, source, diagramType, recordUndo, showToast]);
 
-  const handleExport = useCallback(async (format: "png" | "svg" | "zip") => {
+  const blobToDataUrl = (b: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(b);
+    });
+
+  const capturePngDataUrl = useCallback(async (): Promise<string | null> => {
+    if (diagramType === "mermaid") {
+      const svg = innerRef.current?.querySelector("svg");
+      if (!svg) return null;
+      return await toPng(svg as unknown as HTMLElement, { pixelRatio: pngScale, backgroundColor: bgColor });
+    }
+    if (diagramType === "excalidraw") {
+      const { exportExcalidrawToPng } = await import("./diagrams/excalidraw-renderer");
+      const b = await exportExcalidrawToPng(source);
+      return b ? await blobToDataUrl(b) : null;
+    }
+    if (diagramType === "echarts") {
+      const bg = echartsUiTheme === "dark" ? "#0f172a" : "#ffffff";
+      return echartsRef.current?.getDataURL({ type: "png", pixelRatio: pngScale, backgroundColor: bg }) ?? null;
+    }
+    const node = frameRef.current;
+    if (!node) return null;
+    return await toPng(node, { pixelRatio: pngScale, filter: (n) => !(n as HTMLElement).hasAttribute?.("data-no-export") });
+  }, [diagramType, source, echartsUiTheme, pngScale, bgColor]);
+
+  const handleExport = useCallback(async (format: "png" | "svg" | "zip" | "pdf") => {
     setIsExporting(true);
     try {
       const fn = title || "diagram";
+      if (format === "pdf") {
+        const du = await capturePngDataUrl();
+        if (!du) return;
+        const { jsPDF } = await import("jspdf");
+        const img = new Image();
+        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error("image load failed")); img.src = du; });
+        const w = img.naturalWidth || 1920;
+        const h = img.naturalHeight || 1080;
+        const pdf = new jsPDF({ orientation: w >= h ? "landscape" : "portrait", unit: "px", format: [w, h] });
+        pdf.addImage(du, "PNG", 0, 0, w, h);
+        downloadBlob(pdf.output("blob"), `${fn}.pdf`);
+        return;
+      }
       if (diagramType === "mermaid" && (format === "png" || format === "svg")) {
         const svg = innerRef.current?.querySelector("svg");
         if (!svg) return;
@@ -1172,7 +1213,7 @@ export function EditorClient({
     } finally {
       setIsExporting(false);
     }
-  }, [diagramType, source, title, echartsUiTheme, pngScale, zipIncludeCustom, customExportWidth, customExportHeight, bgColor]);
+  }, [diagramType, source, title, echartsUiTheme, pngScale, zipIncludeCustom, customExportWidth, customExportHeight, bgColor, capturePngDataUrl]);
 
   const handleCopyImage = useCallback(async () => {
     setIsExporting(true);
@@ -1968,6 +2009,7 @@ export function EditorClient({
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => void handleExport("png")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">PNG</button>
                     <button type="button" onClick={() => void handleExport("svg")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">SVG</button>
+                    <button type="button" onClick={() => void handleExport("pdf")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">PDF</button>
                     {diagramType === "mermaid" && (
                       <button type="button" onClick={() => void handleExport("zip")} className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800" title="All social presets">ZIP</button>
                     )}
