@@ -7,6 +7,8 @@ import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypt
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
 import { rateLimit } from "@/lib/rate-limit";
 import type { ApiError } from "@flowchart/core";
+import { THEME_IDS } from "@flowchart/core";
+import { buildBrandDirective } from "@/lib/brand-directive";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -16,7 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json(body, { status: 401 });
   }
 
-  const { user } = await ensureUserAndWorkspace(email);
+  const { user, workspace } = await ensureUserAndWorkspace(email);
 
   const rl = await rateLimit(`ai-agent:${user.id}`, 60, 60_000);
   if (!rl.ok) {
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
   }
 
   const reqBody = await req.json();
-  const { messages, currentSource, diagramType } = reqBody;
+  const { messages, currentSource, diagramType, title, themeId, useCaseId } = reqBody;
 
   if (!messages || !Array.isArray(messages)) {
     const errBody: ApiError = { error: "messages array required", code: "VALIDATION_ERROR" };
@@ -99,14 +101,26 @@ export async function POST(req: Request) {
     return NextResponse.json(errBody, { status: 500 });
   }
 
+  const brandDirective = await buildBrandDirective(workspace.id);
+  const hasBrandKit = brandDirective.length > 0;
+  const stateContext = `CURRENT STATE:
+- title: ${title || "(untitled)"}
+- theme: ${themeId || "(default)"}
+- use-case: ${useCaseId || "(none)"}
+- brand kit configured: ${hasBrandKit ? "yes" : "no"}`;
+
   try {
     const result = streamText({
       model: languageModel,
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       system: `You are an autonomous Lovable-style AI agent building diagrams for the user.
-You can use tools to inspect and update the diagram source code.
+You can use tools to inspect and update the diagram, its title, theme, palette, and use-case.
 The current diagram type is: ${diagramType}.
+
+${stateContext}
+
+${brandDirective}
 
 Current source code:
 \`\`\`
@@ -118,12 +132,19 @@ TOOLS:
 - apply_patch: surgical find-and-replace on existing source
 - update_node: React Flow only — update a node's label/style by ID
 - fetch_external_data: fetch JSON from a URL or generate contextual sample data by keyword
+- set_title: rename the diagram
+- set_theme: change the visual theme (only the listed theme ids)
+- set_palette: change the color palette
+- apply_brand_kit: apply the user's saved brand colors (only if a brand kit is configured)
+- set_use_case: set the diagram's intended use-case
 
 STRATEGY:
 1. For small changes (color, text, 1-2 nodes), prefer 'apply_patch' or 'update_node'.
 2. For large changes or new diagrams, use 'update_diagram' with the full code.
 3. For chart/data diagrams, call 'fetch_external_data' first, then build the diagram from the returned rows.
-4. Always briefly explain what you are doing before calling a tool.`,
+4. To restyle, prefer 'set_theme'/'set_palette'/'apply_brand_kit' over editing colors by hand.
+5. Do not call 'apply_brand_kit' unless a brand kit is configured (see CURRENT STATE).
+6. Always briefly explain what you are doing before calling a tool.`,
       tools: {
         update_diagram: tool({
           description: "Update or create the diagram source code (Full rewrite).",
@@ -234,6 +255,55 @@ STRATEGY:
             }
 
             return { success: true, data, summary: `Generated ${data.length} rows for "${sourceName}"` };
+          },
+        }),
+        set_title: tool({
+          description: "Rename the diagram.",
+          inputSchema: z.object({
+            title: z.string().describe("The new diagram title"),
+            explanation: z.string().describe("Why this title"),
+          }),
+          execute: async ({ title, explanation }) => {
+            return { success: true, title, explanation };
+          },
+        }),
+        set_theme: tool({
+          description: "Change the diagram's visual theme.",
+          inputSchema: z.object({
+            themeId: z.enum(THEME_IDS).describe("One of the allowed theme ids"),
+            explanation: z.string().describe("Why this theme"),
+          }),
+          execute: async ({ themeId, explanation }) => {
+            return { success: true, themeId, explanation };
+          },
+        }),
+        set_palette: tool({
+          description: "Change the color palette.",
+          inputSchema: z.object({
+            paletteId: z.enum(["indigo", "sunset", "ocean", "forest", "default"]).describe("Palette id"),
+            explanation: z.string().describe("Why this palette"),
+          }),
+          execute: async ({ paletteId, explanation }) => {
+            return { success: true, paletteId, explanation };
+          },
+        }),
+        apply_brand_kit: tool({
+          description: "Apply the user's saved brand colors. Only call when a brand kit is configured.",
+          inputSchema: z.object({
+            explanation: z.string().describe("Why apply the brand kit"),
+          }),
+          execute: async ({ explanation }) => {
+            return { success: true, explanation };
+          },
+        }),
+        set_use_case: tool({
+          description: "Set the diagram's intended use-case (affects preset and styling).",
+          inputSchema: z.object({
+            useCaseId: z.enum(["presentation", "social", "documentation", "custom"]).describe("Use-case id"),
+            explanation: z.string().describe("Why this use-case"),
+          }),
+          execute: async ({ useCaseId, explanation }) => {
+            return { success: true, useCaseId, explanation };
           },
         }),
       },
