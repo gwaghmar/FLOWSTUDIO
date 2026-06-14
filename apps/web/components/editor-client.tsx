@@ -932,7 +932,11 @@ export function EditorClient({
       const id: string = tp.toolCallId;
       if (toolEffects[id]) return; // already applied (idempotent)
       const result = tp.output;
-      if (!result || !result.success) return;
+      if (!result) return;
+      if (!result.success) {
+        effects[id] = { status: "error", label: "Output rejected", detail: typeof result.error === "string" ? result.error.slice(0, 80) : undefined };
+        return;
+      }
       const toolName: string = tp.toolName ?? String(tp.type).slice(5);
 
       if (toolName === "update_diagram" && result.sourceCode) {
