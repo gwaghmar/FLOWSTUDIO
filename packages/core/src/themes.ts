@@ -250,3 +250,6 @@ export function buildMermaidConfig(theme: FlowchartTheme) {
     themeVariables: { ...rounded, ...theme.themeVariables },
   };
 }
+
+/** Theme ids as a non-empty tuple, for z.enum() in the agent route. */
+export const THEME_IDS = THEMES.map((t) => t.id) as [string, ...string[]];
