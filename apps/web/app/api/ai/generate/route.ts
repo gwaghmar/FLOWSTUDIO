@@ -9,13 +9,14 @@ import type { ApiError } from "@flowchart/core";
 import { BpmnModdle } from "bpmn-moddle";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users, aiEvents } from "@/lib/db/schema";
+import { users } from "@/lib/db/schema";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
 import { rateLimit } from "@/lib/rate-limit";
 import { lastUserText, toChatTurns, type ChatTurn } from "@/lib/ai-messages";
 import { buildBrandDirective } from "@/lib/brand-directive";
+import { recordAiEvent } from "@/lib/ai-events";
 type DetailLevel = "low" | "medium" | "high";
 type IntentPlan = {
   intentSummary: string;
@@ -342,14 +343,6 @@ async function validateAndRepairOutput(diagramType: DiagramType, raw: string): P
   }
 
   return { ok: false, reason: "Unsupported diagram type" };
-}
-
-async function recordAiEvent(row: typeof aiEvents.$inferInsert): Promise<void> {
-  try {
-    await db.insert(aiEvents).values(row);
-  } catch (e) {
-    console.warn("[ai-event] insert failed:", e instanceof Error ? e.message : e);
-  }
 }
 
 export async function POST(req: Request) {
