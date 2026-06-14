@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { applyPatch } from "./agent-tools.ts";
+import { applyPatch, isValidJson } from "./agent-tools.ts";
+
+describe("isValidJson", () => {
+  it("accepts well-formed JSON", () => {
+    assert.equal(isValidJson('{"nodes":[]}'), true);
+    assert.equal(isValidJson("[1,2,3]"), true);
+  });
+  it("rejects malformed JSON", () => {
+    assert.equal(isValidJson('{"nodes":[}'), false);
+    assert.equal(isValidJson("not json"), false);
+  });
+});
 
 describe("applyPatch", () => {
   it("replaces a single occurrence and reports count", () => {

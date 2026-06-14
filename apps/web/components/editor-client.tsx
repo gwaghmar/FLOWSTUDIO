@@ -52,7 +52,7 @@ import {
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
-import { applyPatch } from "@/lib/agent-tools";
+import { applyPatch, isValidJson } from "@/lib/agent-tools";
 import { matchTemplateId } from "@/lib/template-match";
 import { TEMPLATES } from "@/lib/templates";
 import type { Template } from "@/lib/templates";
@@ -946,13 +946,16 @@ export function EditorClient({
         effects[id] = { status: "applied", label: "Diagram updated" };
       } else if (toolName === "apply_patch" && typeof result.find === "string") {
         const { source: next, replaced } = applyPatch(liveSource, result.find, result.replace ?? "");
-        if (replaced > 0) {
+        const isJsonDiagram = diagramType !== "mermaid" && diagramType !== "bpmn";
+        if (replaced === 0) {
+          effects[id] = { status: "noop", label: "Couldn't find that text", detail: result.find.slice(0, 60) };
+        } else if (isJsonDiagram && !isValidJson(next)) {
+          effects[id] = { status: "error", label: "Patch would break the diagram", detail: "result was not valid JSON" };
+        } else {
           liveSource = next;
           mutated = true;
           setSource(next);
           effects[id] = { status: "applied", label: `Replaced ${replaced} occurrence${replaced === 1 ? "" : "s"}` };
-        } else {
-          effects[id] = { status: "noop", label: "Couldn't find that text", detail: result.find.slice(0, 60) };
         }
       } else if (toolName === "update_node" && diagramType === "reactflow") {
         try {

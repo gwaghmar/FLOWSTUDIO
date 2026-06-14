@@ -8,3 +8,8 @@ export function applyPatch(
   const parts = source.split(find);
   return { source: parts.join(replace), replaced: parts.length - 1 };
 }
+
+/** True when `s` parses as JSON. Used to reject a surgical patch that would corrupt a JSON-based diagram. */
+export function isValidJson(s: string): boolean {
+  try { JSON.parse(s); return true; } catch { return false; }
+}
