@@ -58,8 +58,8 @@ progress:
 
 ## Pending Todos
 
-- Agent route (`/api/ai/agent`) does not validate/repair `update_diagram` tool output (generate route now does for all 22 types; agent path is a separate follow-up)
 - `apps/web/.env` Google AI key is invalid — set a valid key to run the live agent tool-card verifier (`RUN_AGENT_VERIFY=1 pnpm exec playwright test agent-mode-verify`)
+- `validateAndRepairOutput` lives in `lib/diagrams/validate-output.ts` (shared by generate + agent routes); agent `update_diagram` validates and self-corrects within its 5-step loop. apply_patch/update_node results are applied client-side and not server-validated (lower risk — surgical edits)
 
 ## Blockers
 
