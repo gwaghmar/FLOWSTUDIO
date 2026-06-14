@@ -17,6 +17,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { lastUserText, toChatTurns, type ChatTurn } from "@/lib/ai-messages";
 import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
+import { parseSocialCard, isSocialCardType } from "@/lib/diagrams/social-cards";
+import { validateGraphSource } from "@/lib/diagrams/xyflow-base";
 type DetailLevel = "low" | "medium" | "high";
 type IntentPlan = {
   intentSummary: string;
@@ -340,6 +342,20 @@ async function validateAndRepairOutput(diagramType: DiagramType, raw: string): P
     const v = await validateBpmnXml(cleaned);
     if (!v.ok) return { ok: false, reason: v.error };
     return { ok: true, source: cleaned };
+  }
+
+  if (isSocialCardType(diagramType)) {
+    const r = parseSocialCard(parsePossiblyBrokenJson(cleaned) ?? cleaned);
+    if (!r.ok) return { ok: false, reason: r.error };
+    return { ok: true, source: JSON.stringify(r.card, null, 2) };
+  }
+
+  if (diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart") {
+    const repaired = parsePossiblyBrokenJson(cleaned);
+    if (!repaired) return { ok: false, reason: `Invalid JSON for ${diagramType}` };
+    const v = validateGraphSource(repaired);
+    if (!v.ok) return { ok: false, reason: `${diagramType} structure invalid: ${v.reason}` };
+    return { ok: true, source: repaired };
   }
 
   return { ok: false, reason: "Unsupported diagram type" };

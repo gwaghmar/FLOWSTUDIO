@@ -21,6 +21,30 @@ export function serializeGraph(nodes: Node[], edges: Edge[]): string {
   return JSON.stringify({ nodes, edges });
 }
 
+/** Strict validation for cloud/erd/orgchart JSON (parseGraph is deliberately lenient): one+ node with a string id, edges referencing existing nodes. */
+export function validateGraphSource(source: string): { ok: true } | { ok: false; reason: string } {
+  let data: unknown;
+  try { data = JSON.parse(source); } catch { return { ok: false, reason: "Invalid JSON" }; }
+  if (!data || typeof data !== "object") return { ok: false, reason: "Expected an object with a nodes array" };
+  const nodes = (data as { nodes?: unknown }).nodes;
+  if (!Array.isArray(nodes) || nodes.length === 0) return { ok: false, reason: "Needs at least one node" };
+  const ids = new Set<string>();
+  for (const n of nodes) {
+    const id = (n as { id?: unknown } | null)?.id;
+    if (typeof id !== "string" || id.length === 0) return { ok: false, reason: "Every node needs a non-empty string id" };
+    ids.add(id);
+  }
+  const edges = (data as { edges?: unknown }).edges ?? [];
+  if (!Array.isArray(edges)) return { ok: false, reason: "edges must be an array" };
+  for (const e of edges) {
+    const src = (e as { source?: unknown } | null)?.source;
+    const tgt = (e as { target?: unknown } | null)?.target;
+    if (typeof src !== "string" || typeof tgt !== "string") return { ok: false, reason: "Every edge needs a string source and target" };
+    if (!ids.has(src) || !ids.has(tgt)) return { ok: false, reason: `Edge references unknown node: ${src} -> ${tgt}` };
+  }
+  return { ok: true };
+}
+
 export type LayoutOpts = {
   rankdir?: "LR" | "TB";
   nodeWidth?: number;
