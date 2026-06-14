@@ -64,3 +64,24 @@ test("cloud graph: empty nodes is not ok", async () => {
   const r = await validateAndRepairOutput("cloud", JSON.stringify({ nodes: [] }));
   assert.equal(r.ok, false);
 });
+
+test("bpmn: valid definitions is ok", async () => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" id="d" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn2:process id="P1" isExecutable="false">
+    <bpmn2:startEvent id="S1"/>
+  </bpmn2:process>
+</bpmn2:definitions>`;
+  const r = await validateAndRepairOutput("bpmn", xml);
+  assert.equal(r.ok, true);
+});
+
+test("bpmn: non-XML is not ok", async () => {
+  const r = await validateAndRepairOutput("bpmn", "this is not bpmn xml");
+  assert.equal(r.ok, false);
+});
+
+test("unsupported type falls through to not ok", async () => {
+  const r = await validateAndRepairOutput("excalidraw", "{ not valid json");
+  assert.equal(r.ok, false);
+});
