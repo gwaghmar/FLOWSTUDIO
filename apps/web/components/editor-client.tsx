@@ -17,6 +17,7 @@ import {
   Settings2,
   Play,
   CheckCircle2,
+  AlertCircle,
   Circle,
   Loader2,
   ChevronDown,
@@ -1507,16 +1508,29 @@ export function EditorClient({
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   .map((tool: any) => {
                     const toolName: string = tool.toolName ?? String(tool.type).slice(5);
-                    const isDone = tool.state === 'output-available';
+                    const isDone = tool.state === "output-available";
+                    const effect = toolEffects[tool.toolCallId];
+                    const verbs: Record<string, string> = {
+                      update_diagram: "Updating diagram…",
+                      apply_patch: "Patching…",
+                      update_node: "Updating node…",
+                      fetch_external_data: "Fetching data…",
+                      set_title: "Renaming…",
+                      set_theme: "Setting theme…",
+                      set_palette: "Setting palette…",
+                      apply_brand_kit: "Applying brand kit…",
+                      set_use_case: "Setting use-case…",
+                    };
+                    const explanation: string | undefined = tool.output?.explanation;
+                    const failed = effect?.status === "noop" || effect?.status === "error";
                     return (
                       <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 dark:bg-slate-800 p-2.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 flex flex-col gap-1.5 shadow-xs">
                         <div className="flex items-center gap-2">
-                          {isDone ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" />}
-                          <span className="font-semibold">{toolName === 'web_search' ? 'Searching web...' : toolName === 'update_diagram' ? 'Updating diagram...' : 'Using tool...'}</span>
+                          {!isDone ? <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" /> : failed ? <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                          <span className="font-semibold">{isDone && effect ? effect.label : (verbs[toolName] ?? "Using tool…")}</span>
                         </div>
-                        {isDone && toolName === 'update_diagram' && (
-                          <span className="text-slate-400 dark:text-slate-500 pl-5">Diagram updated successfully.</span>
-                        )}
+                        {explanation && <span className="pl-5 text-slate-400 dark:text-slate-500">{explanation}</span>}
+                        {effect?.detail && <span className="pl-5 font-mono text-slate-400 dark:text-slate-500">{effect.detail}</span>}
                       </div>
                     );
                   })}
@@ -1629,10 +1643,10 @@ export function EditorClient({
               />
               <div className="flex items-center justify-between px-2 pb-1">
                 <div className="flex items-center gap-1">
-                  {/* Visual edits — placeholder, not yet implemented */}
                   <button
                     type="button"
                     onClick={() => setIsAgentMode(!isAgentMode)}
+                    title="Agent takes multiple steps — edit, theme, fetch data — to build your diagram"
                     className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${isAgentMode ? 'border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
@@ -1658,6 +1672,11 @@ export function EditorClient({
                   {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2.5} />}
                 </button>
               </div>
+              {isAgentMode && (
+                <p className="px-2 pb-1 text-[11px] text-slate-400 dark:text-slate-500">
+                  Agent mode: the AI takes multiple steps — editing, theming, and fetching data — to build your diagram.
+                </p>
+              )}
             </form>
           </div>
           </div>
