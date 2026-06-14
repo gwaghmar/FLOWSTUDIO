@@ -152,6 +152,7 @@ export const aiEvents = pgTable("ai_event", {
   totalLatencyMs: integer("total_latency_ms").notNull(),
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
+  toolCalls: integer("tool_calls"),
   validationStatus: text("validation_status").notNull(),
   retryAttempted: boolean("retry_attempted").notNull().default(false),
   intentFallback: boolean("intent_fallback").notNull().default(false),
@@ -159,7 +160,7 @@ export const aiEvents = pgTable("ai_event", {
 }, (t) => [
   index("ai_event_user_idx").on(t.userId),
   index("ai_event_created_idx").on(t.createdAt),
-  check("ai_event_mode_chk", sql`mode IN ('patch', 'create')`),
+  check("ai_event_mode_chk", sql`mode IN ('patch', 'create', 'agent')`),
   check("ai_event_validation_chk", sql`validation_status IN ('ok', 'repaired', 'failed_after_retry', 'error')`),
 ]);
 
