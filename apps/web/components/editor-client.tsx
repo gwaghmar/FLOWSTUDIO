@@ -671,11 +671,22 @@ export function EditorClient({
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  useEffect(() => {
+    if (!exportOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [exportOpen]);
   const [isMermaidPanning, setIsMermaidPanning] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const exportWrapId = useId();
+  const exportRef = useRef<HTMLDivElement>(null);
   const sourcePanelBodyId = useId();
   const leftPanelHydrated = useRef(false);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -1991,7 +2002,7 @@ export function EditorClient({
               {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
-            <div className="relative" data-export-menu-root>
+            <div ref={exportRef} className="relative" data-export-menu-root>
               <button
                 type="button"
                 onClick={() => setExportOpen((p) => !p)}
