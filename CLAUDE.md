@@ -1,9 +1,38 @@
-# CLAUDE.md — FlowStudio working notes
+# CLAUDE.md
 
-> Read this first. It captures the shape of the project, what's been built, and
-> the conventions to follow. Update it as state changes.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> This captures the shape of the project, what's been built, and the conventions to follow. Update it as state changes.
 
 ---
+
+## Commands
+
+```bash
+# Dev
+pnpm --filter @flowchart/web dev          # start Next.js on :3040
+
+# Type-check (do after every fix)
+pnpm --filter @flowchart/web exec tsc --noEmit
+
+# Build (catches issues tsc misses)
+pnpm --filter @flowchart/web build
+
+# Unit tests (node --test, no framework)
+pnpm test:unit                            # all 12 suites
+
+# Run a single test file
+node --experimental-strip-types apps/web/lib/diagrams/social-cards.test.ts
+
+# E2E (Playwright)
+pnpm test                                 # full suite
+pnpm exec playwright test --grep "pdf"   # filter by name
+
+# DB
+pnpm --filter @flowchart/web db:generate  # generate migration from schema changes
+pnpm --filter @flowchart/web db:push      # apply to Supabase (requires DATABASE_URL)
+pnpm --filter @flowchart/web db:studio    # Drizzle Studio UI
+```
 
 ## What this is
 
@@ -23,7 +52,7 @@ share / embed / export.
 - Monorepo (pnpm): `apps/web` (Next app) + `packages/core` (shared types, prompts, themes)
 - Mermaid + Excalidraw + ReactFlow (@xyflow) + ECharts + Nivo + tldraw + bpmn-js for diagram rendering
 
-## Diagram types supported (14)
+## Diagram types supported (22)
 
 | Type | What it's for | Editing model |
 |---|---|---|
@@ -37,10 +66,20 @@ share / embed / export.
 | `cloud` | AWS/GCP/Azure system & infra diagrams with service icons | drag-to-edit + source (xyflow) |
 | `erd` | Visual database schema — table nodes with typed columns, PK/FK/UK, relationships | drag-to-edit + source (xyflow) |
 | `orgchart` | Reporting hierarchy — person nodes (avatar/name/title) in a top-down tree | drag-to-edit + source (xyflow) |
-| `timeline` | Milestone timelines — product roadmaps, company journeys, career paths | source + AI (social-json) |
+| `timeline` | Milestone timelines | source + AI (social-json) |
 | `versus` | Side-by-side comparison — X vs Y with pros, cons, and a verdict | source + AI (social-json) |
-| `matrix2x2` | Quadrant charts — SWOT, effort vs impact, competitor positioning | source + AI (social-json) |
-| `funnel` | Conversion funnels — marketing, sales, and signup stages with numbers | source + AI (social-json) |
+| `matrix2x2` | 2×2 quadrant charts — SWOT, effort vs impact | source + AI (social-json) |
+| `funnel` | Conversion funnels — marketing/sales stages with numbers | source + AI (social-json) |
+| `venn` | 2-set Venn overlap | source + AI (social-json) |
+| `tierlist` | S/A/B/C tier rankings | source + AI (social-json) |
+| `iceberg` | Layered depth diagrams (visible vs hidden) | source + AI (social-json) |
+| `alignment` | 3×3 alignment chart grid | source + AI (social-json) |
+| `budget` | Income/expense breakdown | source + AI (social-json) |
+| `habits` | Monthly habit streak grid (GitHub-style) | source + AI (social-json) |
+| `bingo` | 5×5 bingo card with labeled squares | source + AI (social-json) |
+| `bracket` | Single-elimination tournament bracket | source + AI (social-json) |
+
+The 12 `social-json` types all route through `social-card-renderer.tsx` (single dispatcher). Their AI output format is JSON validated by `parseSocialCard()` in `apps/web/lib/diagrams/social-cards.ts`.
 
 All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud, erd, and orgchart renderers (`cloud-renderer.tsx`, `erd-renderer.tsx`, `orgchart-renderer.tsx`) are the Group A xyflow family — all consume the shared helpers in `apps/web/lib/diagrams/` (`xyflow-base.ts` = parse/serialize/dagre-layout/change-handlers; `cloud-icons.ts`, `cloud-glyphs.tsx` = cloud-only icon registry). erd/orgchart need no icon registry — just a `TableNode` / `PersonNode`. NOTE: each Group A canvas render branch in `editor-client.tsx` MUST use `w-full` on the wrapper — the flex parent is `items-start justify-center`, so without an explicit width the xyflow canvas collapses to 0px and renders nothing. Editor is
 `apps/web/components/editor-client.tsx` (one big file — every diagram type
@@ -69,11 +108,21 @@ branches inside its render section).
 - **Templates gallery** — `/app/templates` with 6 curated starters (onboarding funnel, OAuth, web arch, revenue chart, blog ER, roadmap gantt)
 
 ### Milestone 1.4 — Social Card Engine ✅
-- **4 new diagram types**: timeline, versus, matrix2x2, funnel — all wired from AI generation through editor, share, embed, OG, and templates gallery
-- **Copy image** — Export ▾ → Copy image writes a PNG to the clipboard; covers all diagram types including excalidraw and echarts dark mode
-- **Social card renderer** — single renderer dispatching to 4 layout sub-components (pure HTML/Tailwind, `cqw` fluid sizing)
-- **Parse module** — `parseSocialCard()` with normalizing parser, coordinate clamping, empty-array defaults, TDD-verified (5 tests)
-- **Templates** — 4 starter templates in the gallery
+- **4 social card types** (timeline, versus, matrix2x2, funnel) fully wired from AI → editor → share/embed/OG/templates
+- **Copy image** — Export ▾ → Copy image writes PNG to clipboard; covers all types including excalidraw and echarts dark mode
+- **Social card renderer** — single dispatcher to layout sub-components (pure HTML/Tailwind, `cqw` fluid sizing)
+- **Parse module** — `parseSocialCard()` in `apps/web/lib/diagrams/social-cards.ts`
+
+### Milestone 1.5 — Social Card Suite Expansion ✅
+- **8 more social card types** (Phases 14–15): venn, tierlist, iceberg, alignment, budget, habits, bingo, bracket
+- All 12 social card types share the same renderer, parse module, and AI pipeline
+
+### Milestone 1.6 — Agent Mode Polish ✅
+- **Agent Mode** — alternate `/api/ai/agent/route.ts` pipeline using Vercel AI SDK tool calls; toggled in the editor UI
+- **Dark mode** — Moon/Sun toggle in editor, `localStorage` + system-pref fallback, scoped via `.dark` class on editor root (app shell stays light)
+- **PDF export** — client-side raster via jsPDF (PNG → single page, sized to diagram); works across all 22 types
+- **`validateAndRepairOutput`** — `lib/diagrams/validate-output.ts`; shared by generate + agent routes; agent's `update_diagram` tool self-corrects within a 5-step loop
+- `apply_patch` server tool rejects patches that would corrupt JSON-based diagram source
 
 ### Editor polish pass (post-1.3) ✅
 - Full audit of all 7 renderers — fixed 5 real bugs (BPMN/ECharts couldn't recover from parse errors, ReactFlow crashed on AI nodes without positions, Mermaid re-init on every render, silent failure on broken hand edits)
@@ -91,18 +140,22 @@ branches inside its render section).
 - `apps/web/components/editor-client.tsx` — the main editor (~1700 lines, one big component). Holds all state: source, themeId, paletteId, customBackground/Accent, fontId, undoStack, redoStack, AI message state via `useChat`. Branches on `diagramType` in render.
 - `apps/web/components/diagrams/*-renderer.tsx` — one renderer per diagram type. Common contract: `{ source: string, onChange?: (s: string) => void, readOnly?: boolean }`.
 - `apps/web/lib/source-highlight.tsx` — tiny syntax highlighter used by the Source panel (Mermaid + JSON grammars).
+- `apps/web/lib/template-match.ts` — scores prompt text against all templates using keyword weights; shown as suggestion card before generation.
 
 ### AI pipeline
 - `apps/web/app/api/ai/generate/route.ts` — main generation route. Two-pass (intent → generation). Honors `mode` (patch / create) and injects brand-kit palette when present.
-- `apps/web/app/api/ai/agent/route.ts` — alternate "Agent Mode" pipeline with tool calls.
+- `apps/web/app/api/ai/agent/route.ts` — Agent Mode pipeline; uses Vercel AI SDK tool calls (`update_diagram`, `apply_patch`, `update_node`). Selected in editor via `isAgentMode` state.
 - `packages/core/src/diagram-types.ts` — `DIAGRAM_SYSTEM_PROMPTS` (one per type, each with type-selection rules + few-shot).
 - `packages/core/src/use-cases.ts` — `USE_CASE_STYLE_INSTRUCTIONS` (presentation / social / documentation / custom).
+- `apps/web/lib/diagrams/validate-output.ts` — `validateAndRepairOutput`; used by both generate and agent routes.
+- `apps/web/lib/diagrams/social-cards.ts` — `parseSocialCard()` discriminated-union parser for all 12 social card types.
 
 ### Server actions
 - `apps/web/app/actions/project.ts` — `createProject`, `saveProject`, `listProjects`, `getProject`, `deleteProject`, `listRevisions`, `restoreRevision`
 - `apps/web/app/actions/share.ts` — `createShareLink(projectId, previewDataUrl?)`, `updateSharePreview`
 - `apps/web/app/actions/brand-kit.ts` — `getBrandKit`, `saveBrandKit`
 - `apps/web/app/actions/templates.ts` — `forkTemplate(id)`
+- `apps/web/app/actions/profile.ts` — handle management, public diagrams list; powers `/u/[handle]` profile pages
 
 ### Public pages
 - `/s/[token]` — public share viewer (HTML + branded OG)
@@ -138,7 +191,7 @@ branches inside its render section).
 ### Verification
 - After every fix: `pnpm --filter @flowchart/web exec tsc --noEmit` (filter `.test.ts` errors, those are pre-existing).
 - After every UI change: `pnpm --filter @flowchart/web build` (catches issues tsc misses).
-- `pnpm test:unit` — 44 tests across 8 suites. Should stay green.
+- `pnpm test:unit` — 12 test files (node --test, no framework). Should stay green.
 
 ### Lint warnings to ignore
 There are ~41 pre-existing `@typescript-eslint/no-unused-vars` warnings in `editor-client.tsx` from old state that was never wired (e.g. `setShowTypePanel`, `setEchartsUiTheme`, `setShowStylePanel`). Don't fix unless explicitly asked — could break implicit dependencies.
@@ -154,18 +207,14 @@ When starting a new phase, create the folder + a `NN-CONTEXT.md` if you need
 planning notes; write the `NN-SUMMARY.md` at the end. Don't create planning
 docs the user didn't ask for.
 
-## Open polish list — all shipped ✅
+## Known pending items
 
-The original 7-item polish list is fully resolved:
-1. ~~Bracket auto-pair in the source editor~~ — shipped (Phase 12)
-2. ~~Search/replace in the source panel (⌘F)~~ — shipped (Phase 12)
-3. ~~Line/column indicator in the source-panel footer~~ — shipped (Phase 12)
-4. ~~Dark mode for the editor chrome~~ — shipped (Phase 16): Moon/Sun toggle, localStorage + system-pref fallback, scoped to editor root via `.dark` class (app shell stays light)
-5. ~~Auto-layout for BPMN~~ — shipped: Wand2 button via `bpmn-auto-layout`; `autoLayoutBpmn` backfills incoming/outgoing refs through bpmn-moddle first (app sources only have sourceRef/targetRef, else edges drop). **Excalidraw auto-layout is intentionally NOT built** — it's a free-form whiteboard with no node graph to lay out; there's no meaningful arrange operation.
-6. ~~AI-suggested templates~~ — shipped: `template-match.ts` scores the prompt across all 18 templates (specific multi-word keywords outweigh generic ones), shown as a suggestion card before generation
-7. ~~Public profile pages `/u/[handle]`~~ — shipped: profile page + `actions/profile.ts` (handle management, public diagrams via share links), settings-page handle editor, author backlink in share-viewer
+- `apps/web/.env` Google AI key is invalid — set a valid key to run the live agent tool-card verifier (`RUN_AGENT_VERIFY=1 pnpm exec playwright test agent-mode-verify`).
+- PDF export embeds a high-res PNG (pixelRatio = pngScale) — files can be large (~10 MB at scale 2). Follow-up if size matters: JPEG-encode or cap the PDF pixelRatio.
+- `apply_patch` / `update_node` results are applied client-side and not server-validated (lower risk — surgical edits). Only `update_diagram` goes through `validateAndRepairOutput`.
+- Excalidraw auto-layout is intentionally NOT built — it's a free-form whiteboard with no node graph to lay out.
 
-If the user says "keep going" without specifying, propose new work — the polish list is done.
+If the user says "keep going" without specifying, propose new work from the roadmap.
 
 ## Things to NOT do
 
@@ -178,7 +227,7 @@ If the user says "keep going" without specifying, propose new work — the polis
 
 ## Quick how-tos
 
-### Add a new diagram type
+### Add a new diagram type (canvas renderer)
 1. Add it to `DiagramType` union in `packages/core/src/diagram-types.ts`
 2. Add a system prompt in `DIAGRAM_SYSTEM_PROMPTS`
 3. Create `apps/web/components/diagrams/<type>-renderer.tsx` with `{ source, onChange?, readOnly? }` contract
@@ -186,6 +235,14 @@ If the user says "keep going" without specifying, propose new work — the polis
 5. Add a render branch in the canvas section (search "diagramType ===")
 6. Add label to `TYPE_LABELS` in `/s/[token]/page.tsx` and `/og/route.tsx`
 7. Add support in `share-viewer.tsx` and `embed-viewer.tsx`
+
+### Add a new social card type (social-json)
+Social card types share `social-card-renderer.tsx` and `social-cards.ts` — no new renderer file needed.
+1. Add type to `DiagramType` union and `DIAGRAM_SYSTEM_PROMPTS`
+2. Add a parse branch in `parseSocialCard()` in `social-cards.ts`
+3. Add a layout sub-component in `social-card-renderer.tsx` and dispatch to it
+4. Add label to `TYPE_LABELS`, `share-viewer.tsx`, `embed-viewer.tsx`
+5. Add a template in `apps/web/lib/templates.ts` if desired
 
 ### Add a new server action
 - Drop in `apps/web/app/actions/<name>.ts`
