@@ -89,3 +89,89 @@ body {
 .dark .hl-key       { color: #60a5fa; }  /* blue-400 */
 .dark .hl-number    { color: #fbbf24; }  /* amber-400 */
 .dark .hl-literal   { color: #a78bfa; }  /* violet-400 */
+
+/* ── Design tokens ── */
+:root {
+  --cream:            #F5F0EA;
+  --cream-dark:       #EDE8E1;
+  --charcoal:         #1E1E1E;
+  --charcoal-mid:     #383838;
+  --charcoal-light:   #666666;
+  --fs-indigo:        #4F46E5;
+  --fs-indigo-bg:     #EEF2FF;
+  --fs-indigo-border: #C7D2FE;
+  --fs-border:        rgba(30,30,30,0.13);
+  --font-mono-fs:     var(--font-dm-mono), 'DM Mono', ui-monospace, monospace;
+  --font-sans-fs:     var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Motion keyframes ── */
+@keyframes fs-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+@keyframes fs-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.7); }
+}
+@keyframes fs-bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes fs-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fs-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fs-highlight-flash {
+  0%, 100% { background: transparent; }
+  25%       { background: rgba(79,70,229,0.15); }
+}
+@keyframes fs-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+@keyframes fs-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes fs-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fs-saved-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Motion utility classes ── */
+.fs-shimmer {
+  background: linear-gradient(90deg, #ede8e1 25%, #e4dfd8 50%, #ede8e1 75%);
+  background-size: 600px 100%;
+  animation: fs-shimmer 1.6s ease-in-out infinite;
+}
+.fs-shimmer-dark {
+  background: linear-gradient(90deg, #252525 25%, #2e2e2e 50%, #252525 75%);
+  background-size: 600px 100%;
+  animation: fs-shimmer 1.6s ease-in-out infinite;
+}
+.fs-fade-in-up  { animation: fs-fade-in-up 0.35s ease both; }
+.fs-toast-in    { animation: fs-toast-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+.fs-saved-pop   { animation: fs-saved-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+.fs-spin        { animation: fs-spin 0.75s linear infinite; }
+.fs-cursor      { animation: fs-cursor-blink 0.75s step-end infinite; }
+.fs-pulse-dot   { animation: fs-pulse-dot 1.5s ease-in-out infinite; }
+
+/* ── Canvas dot-grid background ── */
+.fs-dot-grid {
+  background-color: #FFFFFF;
+  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Button micro-interaction ── */
+.fs-btn-press:active { transform: scale(0.97); }
+.fs-btn-press { transition: transform 0.1s ease, background-color 0.12s ease; }

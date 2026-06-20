@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
   subsets: ["latin"],
+  weight: ["300", "400", "500"],
 });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Flowchart Studio — Text diagrams to post-ready exports",
+  title: "FlowStudio — AI Diagram Generator",
   description:
-    "Theme text-based flowcharts, export PNG/SVG for every network, automate with REST + MCP. Built for teams shipping diagrams from AI-native editors.",
+    "Describe it. Get a diagram. Export anywhere. AI picks from 22 diagram types instantly.",
 };
 
 export default function RootLayout({
@@ -25,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
+        className={`${dmMono.variable} ${inter.variable} min-h-screen antialiased`}
       >
         {children}
       </body>
