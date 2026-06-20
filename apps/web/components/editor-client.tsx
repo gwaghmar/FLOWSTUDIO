@@ -255,6 +255,30 @@ type Props = {
   userName?: string;
 };
 
+function useClickOutside(
+  ref: React.RefObject<HTMLElement | null>,
+  open: boolean,
+  onClose: () => void,
+) {
+  const openRef = useRef(open);
+  openRef.current = open;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    function handler(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (!target || !openRef.current) return;
+      if (ref.current && !ref.current.contains(target)) onCloseRef.current();
+    }
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, []); // stable listener — reads live state via refs
+}
+
 export function EditorClient({
   initialSource,
   initialThemeId,
@@ -671,22 +695,16 @@ export function EditorClient({
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  useEffect(() => {
-    if (!exportOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setExportOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [exportOpen]);
   const [isMermaidPanning, setIsMermaidPanning] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const exportWrapId = useId();
   const exportRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const themeRef = useRef<HTMLDivElement>(null);
+  useClickOutside(exportRef, exportOpen, () => setExportOpen(false));
   const sourcePanelBodyId = useId();
   const leftPanelHydrated = useRef(false);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -1038,27 +1056,9 @@ export function EditorClient({
     return () => { cancelled = true; };
   }, [historyOpen, currentProjectId, revisionsDirty]);
 
-  // Close the History dropdown when clicking outside it
-  useEffect(() => {
-    if (!historyOpen) return;
-    function onMouseDown(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-history-menu-root]")) setHistoryOpen(false);
-    }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [historyOpen]);
-
-  // Close the Theme dropdown when clicking outside it
-  useEffect(() => {
-    if (!themeMenuOpen) return;
-    function onMouseDown(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-theme-menu-root]")) setThemeMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [themeMenuOpen]);
+  useClickOutside(historyRef, historyOpen, () => setHistoryOpen(false));
+  useClickOutside(themeRef, themeMenuOpen, () => setThemeMenuOpen(false));
+  useClickOutside(navRef, isNavMenuOpen, () => setIsNavMenuOpen(false));
 
   const handleRestore = useCallback(async (revisionId: string) => {
     if (!currentProjectId) return;
@@ -1407,16 +1407,17 @@ export function EditorClient({
 
   return (
     <div className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white${darkMode ? " dark" : ""}`}>
-      {/* GLOBAL TOP HEADER (Lovable style) */}
-      <header className="shrink-0 flex items-center justify-between border-b border-slate-200 px-4 py-1.5 bg-white z-50">
+      {/* GLOBAL TOP HEADER */}
+      <header className="shrink-0 flex items-center justify-between px-4 py-1.5 z-50" style={{ background: "var(--cream)", borderBottom: "1.5px solid var(--fs-border)", height: 52 }}>
         {/* Left: Logo & Dropdown */}
-        <div className="flex items-center gap-4 relative">
-          <button 
+        <div ref={navRef} className="flex items-center gap-3 relative">
+          <button
             onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-slate-50"
+            className="flex items-center gap-1.5 transition-colors p-1 rounded fs-btn-press"
+            style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal)" }}
           >
             <Logo className="h-5 w-5 shadow-xs rounded-sm shadow-orange-500/20" />
-            <span className="font-semibold text-slate-900 tracking-tight">{title || "Flowchart Studio"}</span>
+            <span style={{ fontFamily: "var(--font-mono-fs)", fontWeight: 500, color: "var(--charcoal)" }}>{title || "FlowStudio"}</span>
             <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
 
@@ -1435,21 +1436,53 @@ export function EditorClient({
                 <div className="h-4 w-4 border-2 border-slate-300 rounded-full border-t-transparent animate-spin-slow" title="History" />
              </button>
           </div>
+          {/* Save status */}
+          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+            {saveState === "saving" && (
+              <>
+                <span className="fs-spin" style={{ width: 11, height: 11, border: "2px solid rgba(79,70,229,0.2)", borderTopColor: "var(--fs-indigo)", borderRadius: "50%", display: "inline-block" }} />
+                <span style={{ color: "#999" }}>Saving…</span>
+              </>
+            )}
+            {saveState === "saved" && (
+              <span style={{ color: "#22C55E" }}>· Saved</span>
+            )}
+            {saveState === "unsaved" && (
+              <>
+                <span className="fs-pulse-dot" style={{ width: 6, height: 6, background: "var(--fs-indigo)", borderRadius: "50%", display: "inline-block" }} />
+                <span style={{ color: "#999" }}>Unsaved</span>
+              </>
+            )}
+          </span>
         </div>
 
-        {/* Center: Tabs & Preview/Code */}
-        <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center bg-slate-100 p-1 rounded-xl">
+        {/* Center: Preview/Code toggle */}
+        <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-0.5" style={{ background: "#F3F4F6", padding: 4, borderRadius: 4 }}>
            <button
              onClick={() => setSourceExpanded(false)}
-             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${!sourceExpanded ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+             className="flex items-center gap-1.5 fs-btn-press"
+             style={{
+               fontFamily: "var(--font-mono-fs)", fontSize: 12, padding: "5px 14px", borderRadius: 3,
+               background: !sourceExpanded ? "white" : "transparent",
+               color: !sourceExpanded ? "var(--charcoal)" : "#6B7280",
+               boxShadow: !sourceExpanded ? "0 1px 3px rgba(0,0,0,0.07)" : "none",
+               border: "none", cursor: "pointer",
+             }}
            >
-              <Play className="h-3.5 w-3.5" /> Preview
+              <Play className="h-3 w-3" /> Preview
            </button>
            <button
              onClick={() => setSourceExpanded(true)}
-             className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${sourceExpanded ? "bg-white shadow-xs text-slate-900" : "text-slate-500 hover:text-slate-900"}`}
+             className="flex items-center gap-1.5 fs-btn-press"
+             style={{
+               fontFamily: "var(--font-mono-fs)", fontSize: 12, padding: "5px 14px", borderRadius: 3,
+               background: sourceExpanded ? "white" : "transparent",
+               color: sourceExpanded ? "var(--charcoal)" : "#6B7280",
+               boxShadow: sourceExpanded ? "0 1px 3px rgba(0,0,0,0.07)" : "none",
+               border: "none", cursor: "pointer",
+             }}
            >
-              <div className="h-3 w-3 border border-slate-400 rounded-xs" /> Code
+              <Code2 className="h-3 w-3" /> Code
            </button>
         </div>
 
@@ -1458,24 +1491,27 @@ export function EditorClient({
            <button
              onClick={() => void handleShare()}
              disabled={isSharing}
-             className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
+             className="hidden sm:flex items-center gap-2 disabled:opacity-60 fs-btn-press"
+             style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal)", background: "transparent", border: "1.5px solid var(--fs-border)", padding: "6px 12px", borderRadius: 2, cursor: "pointer" }}
            >
-             <Share2 className="h-3.5 w-3.5" /> {isSharing ? "Sharing…" : "Share"}
+             <Share2 className="h-3 w-3" /> {isSharing ? "Sharing…" : "Share"}
            </button>
            <button
              onClick={() => void handleCopyEmbed()}
              disabled={isSharing}
              title="Copy <iframe> embed code"
-             className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 disabled:opacity-60"
+             className="hidden sm:flex items-center gap-2 disabled:opacity-60 fs-btn-press"
+             style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal)", background: "transparent", border: "1.5px solid var(--fs-border)", padding: "6px 12px", borderRadius: 2, cursor: "pointer" }}
            >
-             <Code2 className="h-3.5 w-3.5" /> Embed
+             <Code2 className="h-3 w-3" /> Embed
            </button>
            <button
              onClick={() => void handleShare()}
              disabled={isSharing}
-             className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-xs disabled:opacity-60"
+             className="flex items-center gap-2 disabled:opacity-60 fs-btn-press"
+             style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "white", background: "var(--charcoal)", border: "1.5px solid var(--charcoal)", padding: "6px 12px", borderRadius: 2, cursor: "pointer" }}
            >
-             Publish
+             Publish ↗
            </button>
            {presenceOthers.length > 0 && (
              <div className="flex items-center" style={{ marginLeft: 4 }}>
@@ -1502,7 +1538,7 @@ export function EditorClient({
         </div>
       </header>
 
-      <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden bg-[#fafafa] dark:bg-slate-950">
+      <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden dark:bg-slate-950" style={{ background: "var(--cream-dark)" }}>
         <AnimatePresence mode="wait">
           {leftPanelOpen && (
             <motion.aside
@@ -1563,7 +1599,7 @@ export function EditorClient({
                 }`}>
                   {getMessageText(msg)}
                   {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
-                    <span className="inline-block h-4 w-1 animate-pulse bg-indigo-400 ml-1 translate-y-0.5" />
+                    <span className="fs-cursor" style={{ display: "inline-block", width: 2, height: 14, background: "var(--fs-indigo)", marginLeft: 2, verticalAlign: "middle" }} />
                   )}
                 </div>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -1776,7 +1812,7 @@ export function EditorClient({
           >×</button>
         </div>
       )}
-      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 justify-between">
+      <div className="flex shrink-0 items-center gap-2 dark:border-slate-700 dark:bg-slate-900 px-3 py-1 justify-between" style={{ background: "white", borderBottom: "1px solid var(--fs-border)", height: 40 }}>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1844,8 +1880,14 @@ export function EditorClient({
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            {aiLoading && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--fs-indigo)", color: "white", padding: "3px 10px", borderRadius: 2, fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em" }}>
+                <span className="fs-pulse-dot" style={{ width: 5, height: 5, background: "rgba(255,255,255,0.8)", borderRadius: "50%", display: "inline-block" }} />
+                Streaming
+              </span>
+            )}
             {showWatermark && (
-              <span className="hidden sm:inline-block rounded-sm border border-amber-200/80 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-400">Free plan</span>
+              <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", background: "#FEF3C7", color: "#92400E", padding: "2px 7px", borderRadius: 2 }}>Free plan</span>
             )}
             
             <div className="hidden lg:flex items-center gap-1 border-r border-slate-200 dark:border-slate-700 pr-2 mr-1">
@@ -1877,7 +1919,7 @@ export function EditorClient({
                 <Palette className="h-4 w-4" />
               </button>
               {diagramType === "mermaid" && (
-                <div className="relative" data-theme-menu-root>
+                <div ref={themeRef} className="relative" data-theme-menu-root>
                   <button
                     type="button"
                     onClick={() => setThemeMenuOpen((v) => !v)}
@@ -1949,7 +1991,7 @@ export function EditorClient({
                   <Wand2 className="h-4 w-4" />
                 </button>
               )}
-              <div className="relative" data-history-menu-root>
+              <div ref={historyRef} className="relative" data-history-menu-root>
                 <button
                   type="button"
                   onClick={() => setHistoryOpen((v) => !v)}
@@ -2074,8 +2116,8 @@ export function EditorClient({
         <div
           className={
             diagramType === "bpmn"
-              ? "flex min-h-0 flex-1 items-stretch justify-center overflow-auto bg-transparent p-3"
-              : "flex min-h-0 flex-1 items-start justify-center overflow-auto bg-transparent p-3"
+              ? "fs-dot-grid flex min-h-0 flex-1 items-stretch justify-center overflow-auto p-3"
+              : "fs-dot-grid flex min-h-0 flex-1 items-start justify-center overflow-auto p-3"
           }
         >
           {diagramType === "mermaid" && (
@@ -2565,8 +2607,20 @@ export function EditorClient({
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 text-sm text-white shadow-xl animate-fade-in">
-          {toast}
+        <div
+          className="fs-toast-in"
+          style={{
+            position: "fixed", bottom: 24, right: 24, zIndex: 9999,
+            display: "flex", alignItems: "center", gap: 12,
+            background: "white", border: "1px solid var(--fs-border)", borderRadius: 6,
+            padding: "12px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.10)",
+            fontFamily: "var(--font-sans-fs)", fontSize: 13, color: "var(--charcoal)",
+            minWidth: 240,
+          }}
+        >
+          <span style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>✦</span>
+          <span style={{ flex: 1 }}>{toast}</span>
+          <button onClick={() => setToast(null)} style={{ color: "#9CA3AF", cursor: "pointer", background: "none", border: "none", fontSize: 14 }}>✕</button>
         </div>
       )}
     </div>
