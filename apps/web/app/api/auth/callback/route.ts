@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUserAndWorkspace } from "@/lib/user-sync";
 
-/**
- * Supabase OAuth callback handler.
- *
- * After the user signs in via Google / GitHub / Apple, Supabase redirects here
- * with a one-time `code` in the query string.  We exchange it for a session
- * (this sets the auth cookies) and then redirect the user onward.
- *
- * Set the "Redirect URL" in your Supabase project dashboard to:
- *   https://your-domain.com/api/auth/callback
- *   http://localhost:3040/api/auth/callback   (dev)
- */
+const WELCOME_PROMPT = "Map the user signup flow for a SaaS app";
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -20,16 +12,32 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Ensure redirect target is safe (same origin only)
-      const forwardSlash = next.startsWith("/") && !next.startsWith("//");
-      const destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
+      const email = data.session?.user?.email;
+      let destination: string;
+
+      if (email) {
+        const { isNewUser } = await ensureUserAndWorkspace(email);
+        if (isNewUser) {
+          const welcomeParams = new URLSearchParams({
+            prompt: WELCOME_PROMPT,
+            welcome: "1",
+          });
+          destination = `${origin}/app/editor?${welcomeParams.toString()}`;
+        } else {
+          const forwardSlash = next.startsWith("/") && !next.startsWith("//");
+          destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
+        }
+      } else {
+        const forwardSlash = next.startsWith("/") && !next.startsWith("//");
+        destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
+      }
+
       return NextResponse.redirect(destination);
     }
   }
 
-  // Something went wrong — send back to login with an error flag
   return NextResponse.redirect(
     new URL("/login?error=auth_callback_failed", origin)
   );
