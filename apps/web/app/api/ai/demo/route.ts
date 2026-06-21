@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { DIAGRAM_SYSTEM_PROMPTS } from "@flowchart/core";
 import { buildLanguageModel } from "@/lib/ai-providers";
 import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_DEMO_USES = 3;
 const COOKIE_NAME = "fs_demo_uses";
@@ -27,6 +28,13 @@ function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google" } | 
 }
 
 export async function POST(req: Request) {
+  // IP-based rate limit: 20 requests per minute per IP
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+  const ipRl = await rateLimit(`demo:ip:${ip}`, 20, 60_000);
+  if (!ipRl.ok) {
+    return NextResponse.json({ error: "limit" }, { status: 429 });
+  }
+
   const uses = getDemoUses(req.headers.get("cookie"));
 
   if (uses >= MAX_DEMO_USES) {
@@ -83,6 +91,7 @@ export async function POST(req: Request) {
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
   });
   return response;
 }
