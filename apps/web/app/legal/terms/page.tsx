@@ -14,7 +14,7 @@ export default function TermsPage() {
           Terms
         </h1>
         <p className="mt-4 text-slate-600 leading-relaxed">
-          Flowchart Studio is under active development. The service is provided
+          FlowStudio is under active development. The service is provided
           as-is; don’t use it for safety-critical, medical, or regulated
           decisions without your own validation.
         </p>

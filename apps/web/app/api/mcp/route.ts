@@ -1,5 +1,5 @@
 /**
- * MCP HTTP endpoint — Flowchart Studio
+ * MCP HTTP endpoint — FlowStudio
  *
  * Exposes MCP tools over HTTP (Streamable HTTP transport) so AI IDEs like
  * Cursor and Claude Code can call generate_diagram directly.
@@ -41,7 +41,7 @@ function buildMcpServer(): Server {
       {
         name: "generate_diagram",
         description:
-          "Generate a diagram from a natural-language prompt. Returns the diagram source (Mermaid syntax, JSON, XML, etc.) ready to paste into Flowchart Studio or save to a file.",
+          "Generate a diagram from a natural-language prompt. Returns the diagram source (Mermaid syntax, JSON, XML, etc.) ready to paste into FlowStudio or save to a file.",
         inputSchema: {
           type: "object" as const,
           properties: {
@@ -61,7 +61,7 @@ function buildMcpServer(): Server {
             },
             baseUrl: {
               type: "string",
-              description: "Flowchart Studio server URL. Default: http://localhost:3040",
+              description: "FlowStudio server URL. Default: http://localhost:3040",
             },
           },
           required: ["prompt"],

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const spec = {
   openapi: "3.1.0",
   info: {
-    title: "Flowchart Studio API",
+    title: "FlowStudio API",
     version: "1.0.0",
     description: "REST API mirroring MCP tools. Use Authorization: Bearer fc_…",
   },

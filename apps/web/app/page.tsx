@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { Logo } from "@/components/logo";
 import { LandingDemoSection } from "@/components/landing-demo-section";
+import { LandingHeader } from "@/components/landing-header";
 
 const DIAGRAM_TYPES = [
   "Flowchart", "Sequence", "ER diagram", "Gantt", "Mindmap",
@@ -30,35 +31,7 @@ export default async function HomePage() {
       </a>
 
       {/* NAV */}
-      <header style={{ background: "var(--cream)", borderBottom: "1.5px solid var(--fs-border)", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", position: "sticky", top: 0, zIndex: 50 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <Logo className="h-7 w-7 rounded-sm shadow-xs shadow-orange-500/20" />
-          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 15, color: "var(--charcoal)", fontWeight: 500 }}>FlowStudio</span>
-        </Link>
-        <nav style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          {["Pricing", "Docs", "Templates"].map((label) => (
-            <Link key={label} href={`/${label.toLowerCase()}`} style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal-light)", textDecoration: "none", letterSpacing: "0.01em" }}>
-              {label}
-            </Link>
-          ))}
-          {isLoggedIn ? (
-            <Link href="/app" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal-light)", textDecoration: "none" }}>
-              My projects
-            </Link>
-          ) : (
-            <Link href="/login" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal-light)", textDecoration: "none" }}>
-              Sign in
-            </Link>
-          )}
-          <Link
-            href={editorHref}
-            className="fs-btn-press"
-            style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.04em", background: "var(--charcoal)", color: "#fff", padding: "8px 18px", borderRadius: 2, textDecoration: "none", display: "inline-block" }}
-          >
-            Open editor →
-          </Link>
-        </nav>
-      </header>
+      <LandingHeader isLoggedIn={isLoggedIn} editorHref={editorHref} />
 
       <main id="main-content" tabIndex={-1}>
 

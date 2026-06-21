@@ -34,7 +34,7 @@ export default function PricingPage() {
           href="/"
           className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
         >
-          Flowchart Studio
+          FlowStudio
         </Link>
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
           <Link

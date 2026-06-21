@@ -14,7 +14,7 @@ export default function DocsPage() {
           Docs
         </h1>
         <p className="not-prose mt-3 text-base leading-relaxed text-slate-600">
-          Wire Flowchart Studio into your IDE, agents, or backend. Below is the
+          Wire FlowStudio into your IDE, agents, or backend. Below is the
           minimum to be productive; the product UI is the source of truth for
           anything that moves fast.
         </p>

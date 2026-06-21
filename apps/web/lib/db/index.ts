@@ -23,18 +23,22 @@ function mockRowsQuery(rows: unknown[] = []) {
   });
 }
 
+function mockChain(rows: unknown[] = []) {
+  const p = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
+  const chain: Record<string, unknown> = {
+    orderBy: () => mockChain(rows),
+    limit: () => mockChain(rows),
+    where: () => mockChain(rows),
+    then: (cb: PromiseThen) => Promise.resolve(rows).then(cb),
+    catch: (cb: (e: unknown) => unknown) => Promise.resolve(rows).catch(cb),
+    finally: (cb: () => void) => Promise.resolve(rows).finally(cb),
+  };
+  return Object.assign(p, chain);
+}
+
 const mockDb = {
   select: () => ({
-    from: () => ({
-      where: () => ({
-        orderBy: () => Promise.resolve([]),
-        limit: () => Promise.resolve([]),
-        then: (cb: PromiseThen) => Promise.resolve([]).then(cb),
-      }),
-      orderBy: () => Promise.resolve([]),
-      limit: () => Promise.resolve([]),
-      then: (cb: PromiseThen) => Promise.resolve([]).then(cb),
-    }),
+    from: () => mockChain(),
   }),
   insert: () => ({
     values: () => mockRowsQuery([{ id: "mock-id" }]),

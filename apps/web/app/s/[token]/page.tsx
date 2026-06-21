@@ -46,12 +46,12 @@ export async function generateMetadata({
   const { token } = await params;
   const result = await resolveShare(token);
   if (result.kind !== "ok") {
-    return { title: "Shared Diagram — Flowchart Studio" };
+    return { title: "Shared Diagram — FlowStudio" };
   }
 
   const typeLabel = TYPE_LABELS[result.diagramType] ?? "Diagram";
-  const title = result.title ? `${result.title} — Flowchart Studio` : "Shared Diagram — Flowchart Studio";
-  const description = `View this ${typeLabel} created with Flowchart Studio.`;
+  const title = result.title ? `${result.title} — FlowStudio` : "Shared Diagram — FlowStudio";
+  const description = `View this ${typeLabel} created with FlowStudio.`;
   const ogImageUrl = `/s/${encodeURIComponent(token)}/og`;
 
   return {
@@ -61,7 +61,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      siteName: "Flowchart Studio",
+      siteName: "FlowStudio",
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
     },
     twitter: {

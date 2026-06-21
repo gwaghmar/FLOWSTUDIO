@@ -2272,7 +2272,7 @@ export function EditorClient({
                       <span className="font-mono">{mermaidRenderError}</span>
                     </div>
                   )}
-                  {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with Flowchart Studio</div>}
+                  {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with FlowStudio</div>}
                 </div>
               </div>
             </div>
