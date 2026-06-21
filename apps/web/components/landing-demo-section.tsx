@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import mermaid from "mermaid";
+import { buildMermaidConfig, THEMES } from "@flowchart/core";
 
 const PLACEHOLDERS = [
   "Map the OAuth login flow",
@@ -52,7 +53,8 @@ export function LandingDemoSection() {
   useEffect(() => {
     if (mermaidInitialized.current) return;
     mermaidInitialized.current = true;
-    mermaid.initialize({ startOnLoad: false, theme: "default", suppressErrorRendering: true });
+    const defaultTheme = THEMES[0];
+    mermaid.initialize({ ...buildMermaidConfig(defaultTheme), startOnLoad: false, suppressErrorRendering: true });
     mermaid.render(nextId(), INITIAL_SOURCE)
       .then(({ svg }) => setSvgDataUrl(svgToDataUrl(svg)))
       .catch(() => {/* ignore initial render failure */});
