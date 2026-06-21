@@ -1,8 +1,6 @@
-import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { users, workspaces } from "./db/schema";
-import { resolveRoleForNewUser } from "./admin";
-import { isMockAuthEnabled } from "./auth-mode";
+import type { users, workspaces } from "./db/schema.ts";
+import { resolveRoleForNewUser } from "./admin.ts";
+import { isMockAuthEnabled } from "./auth-mode.ts";
 
 type UserRecord = typeof users.$inferSelect;
 type WorkspaceRecord = typeof workspaces.$inferSelect;
@@ -50,7 +48,7 @@ function getMockUserAndWorkspace(email: string) {
     createdAt: new Date(0),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { user: mockUser as any, workspace: mockWorkspace as any };
+  return { user: mockUser as any, workspace: mockWorkspace as any, isNewUser: false };
 }
 
 export async function ensureUserAndWorkspaceCore(
@@ -59,6 +57,7 @@ export async function ensureUserAndWorkspaceCore(
 ) {
   const normalizedEmail = email.trim().toLowerCase();
   let user = await deps.selectUserByEmail(normalizedEmail);
+  const isNewUser = !user;
 
   if (!user) {
     user = await deps.createUser({
@@ -76,36 +75,40 @@ export async function ensureUserAndWorkspaceCore(
     });
   }
 
-  return { user, workspace };
+  return { user, workspace, isNewUser };
 }
 
 export async function ensureUserAndWorkspace(email: string) {
   if (isMockAuthEnabled()) return getMockUserAndWorkspace(email);
 
+  const { eq } = await import("drizzle-orm");
+  const { db } = await import("./db");
+  const { users: usersTable, workspaces: workspacesTable } = await import("./db/schema");
+
   return ensureUserAndWorkspaceCore(email, {
     selectUserByEmail: async (userEmail) => {
       const [user] = await db
         .select()
-        .from(users)
-        .where(eq(users.email, userEmail))
+        .from(usersTable)
+        .where(eq(usersTable.email, userEmail))
         .limit(1);
       return user ?? null;
     },
     createUser: async (values) => {
-      const [user] = await db.insert(users).values(values).returning();
+      const [user] = await db.insert(usersTable).values(values).returning();
       if (!user) throw new Error("Failed to create user");
       return user;
     },
     selectWorkspaceByOwnerId: async (ownerId) => {
       const [workspace] = await db
         .select()
-        .from(workspaces)
-        .where(eq(workspaces.ownerId, ownerId))
+        .from(workspacesTable)
+        .where(eq(workspacesTable.ownerId, ownerId))
         .limit(1);
       return workspace ?? null;
     },
     createWorkspace: async (values) => {
-      const [workspace] = await db.insert(workspaces).values(values).returning();
+      const [workspace] = await db.insert(workspacesTable).values(values).returning();
       if (!workspace) throw new Error("Failed to create workspace");
       return workspace;
     },
