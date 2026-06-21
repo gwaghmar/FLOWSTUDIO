@@ -1543,12 +1543,27 @@ export function EditorClient({
           {leftPanelOpen && (
             <motion.aside
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 380, opacity: 1 }}
+              animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              transition={{ type: "spring", damping: 28, stiffness: 220 }}
-              className="relative z-40 flex flex-col overflow-hidden pl-4 py-3"
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="relative z-40 flex flex-col overflow-hidden"
+              style={{ background: "var(--cream)", borderRight: "1.5px solid var(--fs-border)", flexShrink: 0 }}
             >
-              <div className="h-full w-[360px] flex flex-col rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <div className="h-full w-[280px] flex flex-col overflow-hidden">
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--fs-border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "var(--charcoal)", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                    <span className="fs-pulse-dot" style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />
+                    AI Chat
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLeftPanelOpen(false)}
+                    style={{ width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 3, cursor: "pointer", color: "#999", border: "none", background: "transparent", fontSize: 14 }}
+                    title="Collapse panel"
+                  >
+                    ←
+                  </button>
+                </div>
 
           {/* AI Task List (Plan Mode) */}
           {aiLoading && agentTasks.length > 0 && (
@@ -1577,26 +1592,26 @@ export function EditorClient({
           )}
 
           {/* Chat History */}
-          <div ref={chatListRef} className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-6 no-scrollbar">
+          <div ref={chatListRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4 no-scrollbar">
             {messages.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center text-center px-4">
-                <div className="mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950 p-4">
-                  <Sparkles className="h-8 w-8 text-indigo-500" />
+                <div style={{ width: 44, height: 44, background: "#EEF2FF", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, fontSize: 22, flexShrink: 0 }}>✦</div>
+                <div style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal)", marginBottom: 6 }}>How can I help you build?</div>
+                <div style={{ fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "#999", lineHeight: 1.5, fontWeight: 300 }}>
+                  Describe the diagram or process you want to create. I handle Mermaid, Charts, Whiteboards and more.
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">How can I help you build?</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                  Describe the diagram or process you want to create. I can handle Mermaid, Charts, Whiteboards and more.
-                </p>
               </div>
             )}
             
             {messages.map((msg, i) => (
               <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                <div className={`relative max-w-[92%] rounded-[20px] px-5 py-4 text-[14px] leading-relaxed shadow-xs ${
-                  msg.role === "user"
-                    ? "bg-[#f1f0ee] dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700"
-                }`}>
+                <div
+                  className="relative max-w-[92%] px-3 py-2 text-[13px] leading-relaxed"
+                  style={msg.role === "user"
+                    ? { background: "var(--charcoal)", color: "white", borderRadius: 4, fontFamily: "var(--font-sans-fs)" }
+                    : { background: "white", border: "1px solid var(--fs-border)", borderRadius: 4, color: "var(--charcoal-mid)", fontFamily: "var(--font-sans-fs)" }
+                  }
+                >
                   {getMessageText(msg)}
                   {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
                     <span className="fs-cursor" style={{ display: "inline-block", width: 2, height: 14, background: "var(--fs-indigo)", marginLeft: 2, verticalAlign: "middle" }} />
@@ -1625,7 +1640,7 @@ export function EditorClient({
                     const explanation: string | undefined = tool.output?.explanation;
                     const failed = effect?.status === "noop" || effect?.status === "error";
                     return (
-                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] rounded-xl bg-slate-50 dark:bg-slate-800 p-2.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 flex flex-col gap-1.5 shadow-xs">
+                      <div key={tool.toolCallId} className="mt-2 w-full max-w-[92%] p-2.5 text-xs text-slate-500 flex flex-col gap-1.5" style={{ background: "white", border: "1px solid var(--fs-border)", borderRadius: 3 }}>
                         <div className="flex items-center gap-2">
                           {!isDone ? <Settings2 className="h-3.5 w-3.5 text-indigo-400 animate-spin" /> : failed ? <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                           <span className="font-semibold">{isDone && effect ? effect.label : (verbs[toolName] ?? "Using tool…")}</span>
@@ -1662,15 +1677,27 @@ export function EditorClient({
             ))}
           </div>
 
+          {/* 3-dot thinking indicator — before first token */}
+          {aiLoading && (messages.length === 0 || messages[messages.length - 1]?.role === "user") && (
+            <div className="flex items-start px-3 pb-2">
+              <div style={{ display: "flex", gap: 5, padding: "8px 12px", background: "white", border: "1px solid var(--fs-border)", borderRadius: 4 }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="fs-bounce-dot" style={{ width: 5, height: 5, background: "var(--charcoal-light)", borderRadius: "50%", display: "inline-block", animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Prompt Area with Quick Prompts */}
-          <div className="shrink-0 space-y-4 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 p-5">
+          <div className="shrink-0 space-y-3" style={{ borderTop: "1px solid var(--fs-border)", padding: "10px 12px", background: "var(--cream)" }}>
             {messages.length > 0 && QUICK_PROMPTS[diagramType]?.length && (
               <div className="flex flex-wrap gap-2">
                 {QUICK_PROMPTS[diagramType]?.map((q) => (
                   <button
                     key={q}
                     onClick={() => setInput(q)}
-                    className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:border-indigo-200 dark:hover:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-600 transition-all shadow-xs"
+                    className="fs-btn-press"
+                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.02em", padding: "3px 9px", border: "1px solid var(--fs-border)", borderRadius: 2, background: "white", color: "var(--charcoal-light)", cursor: "pointer" }}
                   >
                     {q}
                   </button>
@@ -1727,13 +1754,15 @@ export function EditorClient({
                 e.preventDefault();
                 handleChatSubmit(e);
               }}
-              className="group relative flex flex-col gap-2 rounded-[24px] border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 p-2 shadow-lg shadow-slate-200/30 focus-within:border-indigo-500/50 transition-all"
+              className="relative flex flex-col"
+              style={{ border: "1.5px solid var(--fs-border)", borderRadius: 4, background: "white", overflow: "hidden" }}
             >
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="How should I change the diagram?"
-                className="w-full resize-none bg-transparent px-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden"
+                className="w-full resize-none bg-transparent px-3 py-2.5 placeholder:text-slate-400 focus:outline-none"
+                style={{ fontFamily: "var(--font-sans-fs)", fontSize: 13, color: "var(--charcoal)", border: "none", minHeight: 56 }}
                 rows={1}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -1742,35 +1771,36 @@ export function EditorClient({
                   }
                 }}
               />
-              <div className="flex items-center justify-between px-2 pb-1">
+              <div className="flex items-center justify-between" style={{ padding: "5px 8px", borderTop: "1px solid #F0EDE8" }}>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setIsAgentMode(!isAgentMode)}
                     title="Agent takes multiple steps — edit, theme, fetch data — to build your diagram"
-                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${isAgentMode ? 'border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    className="fs-btn-press"
+                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", padding: "3px 8px", border: "1px solid var(--fs-border)", borderRadius: 2, cursor: "pointer", background: isAgentMode ? "var(--charcoal)" : "transparent", color: isAgentMode ? "white" : "var(--charcoal-light)" }}
                   >
-                    <Bot className={`h-3.5 w-3.5 ${isAgentMode ? 'text-indigo-600' : 'text-slate-500'}`} />
-                    Agent Mode
+                    ⚡ Agent
                   </button>
                   {source.trim() && (
                     <button
                       type="button"
                       onClick={() => setForceCreateNext((v) => !v)}
                       title="Next message will regenerate the diagram from scratch instead of patching the existing one"
-                      className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold shadow-xs transition-all ${forceCreateNext ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                      className="fs-btn-press"
+                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", padding: "3px 8px", border: "1px solid var(--fs-border)", borderRadius: 2, cursor: "pointer", background: forceCreateNext ? "#FEF3C7" : "transparent", color: forceCreateNext ? "#92400E" : "var(--charcoal-light)" }}
                     >
-                      <Sparkles className={`h-3.5 w-3.5 ${forceCreateNext ? 'text-amber-600' : 'text-slate-500'}`} />
-                      {forceCreateNext ? "Will regenerate" : "Regenerate"}
+                      ↺ Regen
                     </button>
                   )}
                 </div>
                 <button
                   type="submit"
                   disabled={!input?.trim() || aiLoading}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 transition-all shadow-md"
+                  className="flex items-center justify-center disabled:opacity-30 transition-all"
+                  style={{ width: 26, height: 26, background: "var(--charcoal)", borderRadius: 4, color: "white", border: "none", cursor: "pointer", flexShrink: 0 }}
                 >
-                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2.5} />}
+                  {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />}
                 </button>
               </div>
               {isAgentMode && (
@@ -1817,22 +1847,23 @@ export function EditorClient({
           <button
             type="button"
             onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className={`flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 transition-all ${leftPanelOpen ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-inner' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className="fs-btn-press"
+            style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono-fs)", fontSize: 11, color: leftPanelOpen ? "var(--fs-indigo)" : "var(--charcoal-light)", padding: "4px 10px", borderRadius: 3, background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.02em" }}
             title="Toggle AI Panel (⌘B)"
           >
-            <MessageSquare className="h-4 w-4" />
-            <span className="text-xs font-semibold pr-1">AI Chat</span>
+            ✦ AI Chat
           </button>
+          <div style={{ width: 1, height: 20, background: "var(--fs-border)", flexShrink: 0 }} />
           <button
             type="button"
             onClick={() => setSourcePanelOpen(!sourcePanelOpen)}
-            className={`flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 transition-all ${sourcePanelOpen ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-inner' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className="fs-btn-press"
+            style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono-fs)", fontSize: 11, color: sourcePanelOpen ? "var(--fs-indigo)" : "var(--charcoal-light)", padding: "4px 10px", borderRadius: 3, background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.02em" }}
             title="Toggle Source editor"
           >
-            <Code2 className="h-4 w-4" />
-            <span className="text-xs font-semibold pr-1 hidden md:inline">Source</span>
+            {"</>"} Source
           </button>
-            
+            <div className="hidden lg:block h-4 w-px shrink-0" style={{ background: "var(--fs-border)" }} />
             {/* Zoom */}
             <div className="hidden lg:flex shrink-0 items-center gap-0.5">
               <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">−</button>
@@ -1848,13 +1879,16 @@ export function EditorClient({
               </button>
             </div>
             
-            <div className="hidden lg:block h-4 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
-            <span className="hidden lg:flex shrink-0 items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <DiagramTypeIcon type={diagramType} size={13} />
-              <span className="font-medium">
-                {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label}
-              </span>
-            </span>
+            <div className="hidden lg:block h-4 w-px shrink-0" style={{ background: "var(--fs-border)" }} />
+            <button
+              type="button"
+              className="hidden lg:flex shrink-0 items-center gap-1.5 fs-btn-press"
+              style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", padding: "3px 10px", borderRadius: 2, border: "1px solid var(--fs-indigo-border)", cursor: "default" }}
+              title="Diagram type"
+            >
+              <DiagramTypeIcon type={diagramType} size={10} />
+              {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label} ▾
+            </button>
 
             {(["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType) && (
               <>
@@ -2119,7 +2153,11 @@ export function EditorClient({
               ? "fs-dot-grid flex min-h-0 flex-1 items-stretch justify-center overflow-auto p-3"
               : "fs-dot-grid flex min-h-0 flex-1 items-start justify-center overflow-auto p-3"
           }
+          style={{ position: "relative" }}
         >
+          <div style={{ position: "absolute", top: 12, left: 12, zIndex: 10, fontFamily: "var(--font-mono-fs)", fontSize: 10, color: "#999", letterSpacing: "0.06em", textTransform: "uppercase", background: "white", border: "1px solid var(--fs-border)", padding: "4px 8px", borderRadius: 2, pointerEvents: "none" }}>
+            {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label}
+          </div>
           {diagramType === "mermaid" && (
             <div
               ref={mermaidViewportRef}

@@ -164,6 +164,7 @@ body {
 .fs-spin        { animation: fs-spin 0.75s linear infinite; }
 .fs-cursor      { animation: fs-cursor-blink 0.75s step-end infinite; }
 .fs-pulse-dot   { animation: fs-pulse-dot 1.5s ease-in-out infinite; }
+.fs-bounce-dot  { animation: fs-bounce-dot 1.2s ease-in-out infinite; }
 
 /* ── Canvas dot-grid background ── */
 .fs-dot-grid {
