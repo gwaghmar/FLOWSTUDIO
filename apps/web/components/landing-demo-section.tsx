@@ -83,6 +83,11 @@ export function LandingDemoSection() {
 
       const data = await res.json() as { diagramType: string; source: string };
 
+      if (data.diagramType !== "mermaid") {
+        setErrorMsg("Could not render — open in editor to see full output.");
+        return;
+      }
+
       try {
         const { svg } = await mermaid.render(nextId(), data.source);
         setSvgDataUrl(svgToDataUrl(svg));
