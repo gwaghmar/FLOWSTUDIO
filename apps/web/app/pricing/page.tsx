@@ -21,6 +21,7 @@ const focusRing =
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen dot-grid-bg">
       <a
@@ -29,40 +30,43 @@ export default function PricingPage() {
       >
         Skip to content
       </a>
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link
-          href="/"
-          className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
-        >
-          FlowStudio
-        </Link>
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
+      <header className="relative z-50 border-b border-slate-200 bg-[var(--cream,#faf9f7)]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link
-            href="/pricing"
-            className={`rounded-xs font-medium text-slate-900 ${focusRing}`}
-            aria-current="page"
+            href="/"
+            className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
           >
-            Pricing
+            FlowStudio
           </Link>
-          <Link
-            href="/docs"
-            className={`rounded-xs hover:text-slate-900 ${focusRing}`}
+          {/* Desktop nav */}
+          <nav className="hidden sm:flex items-center gap-x-6 text-sm text-slate-600">
+            <Link href="/pricing" className={`rounded-xs font-medium text-slate-900 ${focusRing}`} aria-current="page">Pricing</Link>
+            <Link href="/docs" className={`rounded-xs hover:text-slate-900 ${focusRing}`}>Docs</Link>
+            <Link href="/legal/privacy" className={`rounded-xs hover:text-slate-900 ${focusRing}`}>Privacy</Link>
+            <Link href="/login" className={`rounded-xs font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}>Sign in</Link>
+          </nav>
+          {/* Mobile hamburger */}
+          <button
+            className="sm:hidden p-1 text-slate-700"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
           >
-            Docs
-          </Link>
-          <Link
-            href="/legal/privacy"
-            className={`rounded-xs hover:text-slate-900 ${focusRing}`}
-          >
-            Privacy
-          </Link>
-          <Link
-            href="/login"
-            className={`rounded-xs font-medium text-indigo-600 hover:text-indigo-800 ${focusRing}`}
-          >
-            Sign in
-          </Link>
-        </nav>
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 3l14 14M17 3L3 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            )}
+          </button>
+        </div>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="sm:hidden border-t border-slate-200 bg-[var(--cream,#faf9f7)] px-6 py-4 flex flex-col gap-4 text-sm shadow-md">
+            <Link href="/pricing" onClick={() => setMenuOpen(false)} className="font-medium text-slate-900">Pricing</Link>
+            <Link href="/docs" onClick={() => setMenuOpen(false)} className="text-slate-600">Docs</Link>
+            <Link href="/legal/privacy" onClick={() => setMenuOpen(false)} className="text-slate-600">Privacy</Link>
+            <Link href="/login" onClick={() => setMenuOpen(false)} className="font-medium text-indigo-600">Sign in</Link>
+          </div>
+        )}
       </header>
 
       <main
