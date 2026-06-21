@@ -4,9 +4,9 @@ import { usePathname } from "next/navigation";
 
 export function HeaderWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // Hide the global header when we are on the editor page,
-  // so the EditorClient can render its own full-width Lovable-style header.
-  if (pathname === "/app/editor") return null;
+  // Hide the global header on pages that render their own nav.
+  const SELF_NAVD = ["/app/editor", "/app/templates"];
+  if (SELF_NAVD.some(p => pathname === p || pathname.startsWith(p + "/"))) return null;
   
   return <>{children}</>;
 }

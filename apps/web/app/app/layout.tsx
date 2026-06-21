@@ -38,55 +38,48 @@ export default async function AppLayout({
         </div>
       ) : null}
       <HeaderWrapper>
-        <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/app" className="flex items-center gap-2 text-sm font-semibold text-slate-900 sm:text-base">
-              <Logo className="h-6 w-6 shadow-xs rounded-sm shadow-orange-500/20" />
-              <span>Flowchart Studio</span>
+        <header style={{ background: "var(--cream)", borderBottom: "1.5px solid var(--fs-border)", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", flexShrink: 0 }}>
+          <Link href="/app" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+            <Logo className="h-6 w-6 shadow-xs rounded-sm shadow-orange-500/20" />
+            <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 14, color: "var(--charcoal)", fontWeight: 500 }}>FlowStudio</span>
+          </Link>
+          <nav style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <Link href="/app" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal-light)", textDecoration: "none", letterSpacing: "0.01em" }}>
+              Projects
             </Link>
-            <nav className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600 sm:justify-end sm:text-sm">
-              <Link href="/" className="hidden hover:text-slate-900 sm:inline">
-                Home
+            <Link href="/app/editor" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal-light)", textDecoration: "none" }}>
+              Editor
+            </Link>
+            {creditsLabel ? (
+              <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", padding: "3px 10px", borderRadius: 2, border: "1px solid var(--fs-indigo-border)" }}>
+                {creditsLabel}
+              </span>
+            ) : null}
+            {showAdmin ? (
+              <Link href="/app/admin" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal-light)", textDecoration: "none" }}>
+                Admin
               </Link>
-              <Link href="/app" className="font-medium text-slate-800 hover:text-slate-900">
-                Projects
-              </Link>
-              <Link href="/app/editor" className="hover:text-slate-900">
-                Editor
-              </Link>
-              {creditsLabel ? (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                  {creditsLabel}
-                </span>
-              ) : null}
-              {showAdmin ? (
-                <Link href="/app/admin" className="hidden hover:text-slate-900 sm:inline">
-                  Admin
-                </Link>
-              ) : null}
-              <Link href="/app/billing" className="hidden hover:text-slate-900 sm:inline">
-                Billing
-              </Link>
-              <Link href="/app/settings" className="hover:text-slate-900">
-                Settings
-              </Link>
-              {headerIdentity ? (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                  {headerIdentity}
-                </span>
-              ) : null}
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut();
-                }}
-              >
-                <button type="submit" className="text-indigo-600">
-                  Sign out
-                </button>
-              </form>
-            </nav>
-          </div>
+            ) : null}
+            <Link href="/app/settings" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal-light)", textDecoration: "none" }}>
+              Settings
+            </Link>
+            {headerIdentity ? (
+              <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#999", letterSpacing: "0.02em" }}>
+                {headerIdentity}
+              </span>
+            ) : null}
+            <form action={async () => { "use server"; await signOut(); }}>
+              <button type="submit" style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "var(--charcoal-light)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                Sign out
+              </button>
+            </form>
+            <Link
+              href="/app/editor"
+              style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, letterSpacing: "0.04em", background: "var(--charcoal)", color: "#fff", padding: "6px 14px", borderRadius: 2, textDecoration: "none" }}
+            >
+              Open editor →
+            </Link>
+          </nav>
         </header>
       </HeaderWrapper>
       {/* Fills viewport under header; children use flex-1 + overflow for scroll vs full-bleed editor */}
