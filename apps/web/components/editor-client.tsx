@@ -442,7 +442,11 @@ export function EditorClient({
       console.error("[ai-chat]", err);
       setAgentTasks([]);
       if (forceCreateNext) setForceCreateNext(false);
-      showToast("Could not update diagram — see console");
+      const msg = err instanceof Error ? err.message : String(err);
+      setAiError(msg.includes("API") || msg.includes("key") || msg.includes("auth")
+        ? "AI unavailable — check your API key in Settings"
+        : "AI request failed — please try again");
+      showToast("AI request failed — please try again");
     },
   });
 
@@ -920,6 +924,7 @@ export function EditorClient({
 
   const handleChatSubmit = useCallback((_e?: React.FormEvent<HTMLFormElement> | React.KeyboardEvent) => {
     if (!input.trim() || aiLoading) return;
+    setAiError(null);
     const match = matchTemplate(input);
     if (match && !suggestedTemplate) {
       setPendingSuggestInput(input);
@@ -1687,6 +1692,13 @@ export function EditorClient({
               </div>
             </div>
           )}
+          {/* AI error inline — cleared on next submit */}
+          {aiError && !aiLoading && (
+            <div className="mx-3 mb-2 flex items-start justify-between gap-2 rounded" style={{ background: "#FEF2F2", border: "1px solid #FECACA", padding: "8px 10px" }}>
+              <span style={{ fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "#991B1B", lineHeight: 1.4 }}>{aiError}</span>
+              <button type="button" onClick={() => setAiError(null)} style={{ color: "#F87171", background: "none", border: "none", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0 }}>×</button>
+            </div>
+          )}
 
           {/* Prompt Area with Quick Prompts */}
           <div className="shrink-0 space-y-3" style={{ borderTop: "1px solid var(--fs-border)", padding: "10px 12px", background: "var(--cream)" }}>
@@ -1842,7 +1854,7 @@ export function EditorClient({
           >×</button>
         </div>
       )}
-      <div className="flex shrink-0 items-center gap-2 dark:border-slate-700 dark:bg-slate-900 px-3 py-1 justify-between" style={{ background: "white", borderBottom: "1px solid var(--fs-border)", height: 40 }}>
+      <div className="flex shrink-0 items-center gap-2 px-3 py-1 justify-between" style={{ background: darkMode ? "#0f172a" : "var(--cream)", borderBottom: "1px solid var(--fs-border)", height: 40 }}>
         <div className="flex items-center gap-2">
           <button
             type="button"
