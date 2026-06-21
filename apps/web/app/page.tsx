@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { Logo } from "@/components/logo";
+import { LandingDemoSection } from "@/components/landing-demo-section";
 
 const DIAGRAM_TYPES = [
   "Flowchart", "Sequence", "ER diagram", "Gantt", "Mindmap",
@@ -67,21 +68,21 @@ export default async function HomePage() {
             AI Diagram Generator
           </p>
           <h1 style={{ fontFamily: "var(--font-mono-fs)", fontSize: "clamp(36px,6vw,64px)", fontWeight: 400, textTransform: "uppercase", letterSpacing: "-0.01em", lineHeight: 1.05, color: "var(--charcoal)", marginBottom: 24 }}>
-            Describe it. Get a{" "}
-            <span style={{ color: "var(--fs-indigo)" }}>diagram.</span>
-            <br />Export anywhere.
+            Go from idea to{" "}
+            <span style={{ color: "var(--fs-indigo)" }}>diagram</span>
+            <br />in seconds.
           </h1>
-          <p style={{ fontFamily: "var(--font-sans-fs)", fontSize: 20, fontWeight: 300, lineHeight: 1.6, color: "var(--charcoal-light)", maxWidth: 540, margin: "0 auto 40px" }}>
-            Type what you want in plain English — AI picks the right diagram type and draws it instantly. 22 types. No design skills needed.
+          <p style={{ fontFamily: "var(--font-sans-fs)", fontSize: 20, fontWeight: 300, lineHeight: 1.6, color: "var(--charcoal-light)", maxWidth: 560, margin: "0 auto 40px" }}>
+            Describe what you need. FlowStudio picks the right diagram type and generates it instantly — flowcharts, timelines, org charts, and 19 more.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 16 }}>
-            <Link
-              href={editorHref}
+            <a
+              href="#try-it"
               className="fs-btn-press"
               style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.05em", textTransform: "uppercase", background: "var(--charcoal)", color: "#fff", border: "1.5px solid var(--charcoal)", padding: "13px 28px", borderRadius: 2, textDecoration: "none" }}
             >
-              Open editor →
-            </Link>
+              Try it free →
+            </a>
             <Link
               href="/app/templates"
               className="fs-btn-press"
@@ -98,49 +99,17 @@ export default async function HomePage() {
           )}
         </div>
 
-        {/* HERO PREVIEW CARD */}
-        <div style={{ maxWidth: 820, margin: "0 auto", padding: "0 40px 64px" }}>
-          <div className="fs-fade-in-up" style={{ background: "white", border: "1.5px solid var(--fs-border)", borderRadius: 6, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.05)" }}>
-            {/* Browser chrome */}
-            <div style={{ background: "#F8F8F8", borderBottom: "1px solid var(--fs-border)", height: 40, display: "flex", alignItems: "center", padding: "0 16px", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF5F57" }} />
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FFBD2E" }} />
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#28C840" }} />
-              <span style={{ marginLeft: 12, fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#999" }}>OAuth Login Flow — FlowStudio</span>
-            </div>
-            {/* Two-column body */}
-            <div style={{ display: "flex", height: 260 }}>
-              <div style={{ width: 220, borderRight: "1px solid var(--fs-border)", background: "#FAFAFA", padding: 20, display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
-                <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 9, color: "#999", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>Prompt</p>
-                <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 4, padding: "10px 12px", fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "#374151", lineHeight: 1.5 }}>
-                  &ldquo;Show the OAuth 2.0 login flow between browser, app server and auth provider&rdquo;
-                </div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", padding: "4px 10px", borderRadius: 2, fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.03em" }}>
-                  ✦ AI generated · Mermaid
-                </div>
-              </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "white" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  {["Browser", "App Server", "Auth Server"].map((node, i) => (
-                    <div key={node} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                      <div style={{ border: "1.5px solid var(--fs-indigo-border)", borderRadius: 4, padding: "6px 20px", fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "#4338CA", background: "var(--fs-indigo-bg)" }}>
-                        {node}
-                      </div>
-                      {i < 2 && <div style={{ fontSize: 16, color: "#C7D2FE" }}>↓</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* TRUST STRIP */}
         <div style={{ background: "var(--charcoal)", padding: "20px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>Supports</span>
           {["Mermaid", "Excalidraw", "ReactFlow", "ECharts", "BPMN", "tldraw", "+ 16 more"].map((t) => (
             <span key={t} style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "#aaa", letterSpacing: "0.04em" }}>{t}</span>
           ))}
+        </div>
+
+        {/* LIVE DEMO */}
+        <div id="try-it">
+          <LandingDemoSection />
         </div>
 
         {/* FEATURES */}
