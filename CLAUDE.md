@@ -214,6 +214,79 @@ docs the user didn't ask for.
 - `apply_patch` / `update_node` results are applied client-side and not server-validated (lower risk — surgical edits). Only `update_diagram` goes through `validateAndRepairOutput`.
 - Excalidraw auto-layout is intentionally NOT built — it's a free-form whiteboard with no node graph to lay out.
 
+## Supabase situation (as of 2026-06-21)
+
+**Old Supabase project (`flowchart` project) is PAUSED** — hit the free-tier limit.
+Govind created a **new Supabase account** to replace it. Steps needed when ready:
+1. Get new `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the new project
+2. Get new `DATABASE_URL` (postgres connection string)
+3. Set all three in Vercel → Settings → Environment Variables (production + preview)
+4. Update `apps/web/.env` for local dev
+5. Run `pnpm --filter @flowchart/web db:push` to apply the Drizzle schema to the new DB
+6. Redeploy on Vercel
+
+**Current production state:** All server-rendered pages return 500 because Supabase client throws
+`"Error: Your project's URL and API key are required"` — env vars point to paused/dummy project.
+Pages still visually render via client-side fallback / error boundaries.
+Production URL: `https://flowstudio-govw.vercel.app`
+
+## What's been accomplished (full milestone history)
+
+### Milestone 1.0 — AI Diagram Quality & Precision ✅
+- WYSIWYG canvas locked to export aspect ratio
+- Use-case awareness (presentation / social / docs / custom)
+- Smarter type selection, ambiguityScore gate, assumption banner
+
+### Milestone 1.1 — AI Iteration & Sharing ✅
+- Surgical AI edits (patch vs create mode)
+- Persistent version history with restore
+- Public share links + branded OG previews (`/s/[token]`)
+
+### Milestone 1.2 — Brand & Distribution ✅
+- Brand kit (palette table + Settings panel + Palette button)
+- Iframe embeds (`/embed/[token]`)
+
+### Milestone 1.3 — Legendary ✅
+- Real OG previews (client PNG capture → stored on share_link)
+- Streaming live Mermaid preview with last-good-SVG fallback
+- AI-aware brand kit (palette injected into generation prompt)
+- Templates gallery (`/app/templates`, 6 starters)
+
+### Milestone 1.4 — Social Card Engine ✅
+- 4 social card types: timeline, versus, matrix2x2, funnel
+- Copy image to clipboard (all diagram types)
+- Single `social-card-renderer.tsx` dispatcher
+- `parseSocialCard()` parse module
+
+### Milestone 1.5 — Social Card Suite Expansion ✅
+- 8 more social card types: venn, tierlist, iceberg, alignment, budget, habits, bingo, bracket
+- All 12 share the same renderer + parse module + AI pipeline
+
+### Milestone 1.6 — Agent Mode Polish ✅
+- Agent Mode (Vercel AI SDK tool calls pipeline)
+- Dark mode (Moon/Sun toggle, localStorage + system pref, scoped `.dark`)
+- PDF export (client-side jsPDF, works across all 22 types)
+- `validateAndRepairOutput` — shared by generate + agent routes
+- `apply_patch` server tool rejects corrupting patches
+
+### Editor polish pass ✅
+- Full renderer audit — fixed 5 real bugs across BPMN/ECharts/ReactFlow/Mermaid
+- Source code editor panel (right-side monospaced textarea, was missing entirely)
+- ReactFlow auto-layout button (Wand2)
+- Reset zoom + pan (⌘0)
+- Brand-kit colors reach Mermaid theme variables
+- Syntax highlighting in Source panel (zero-dep)
+- Mermaid theme picker (11 themes)
+- Tab key indents in source; line numbers gutter; empty-state CTA
+
+### UX / Landing polish (post-1.6) ✅
+- Landing page live demo section (unauthenticated mermaid render)
+- Hero CTA auth-aware (returning users go to editor, new users to sign-up)
+- Responsive mobile nav + hamburger menu on pricing page
+- Brand name consistency ("FlowStudio" everywhere)
+- IP rate limiting + secure cookie flag on demo endpoint
+- `mockDb` chain fix
+
 If the user says "keep going" without specifying, propose new work from the roadmap.
 
 ## Things to NOT do
