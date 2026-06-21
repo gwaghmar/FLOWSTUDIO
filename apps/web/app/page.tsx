@@ -76,13 +76,23 @@ export default async function HomePage() {
             Describe what you need. FlowStudio picks the right diagram type and generates it instantly — flowcharts, timelines, org charts, and 19 more.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 16 }}>
-            <a
-              href="#try-it"
-              className="fs-btn-press"
-              style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.05em", textTransform: "uppercase", background: "var(--charcoal)", color: "#fff", border: "1.5px solid var(--charcoal)", padding: "13px 28px", borderRadius: 2, textDecoration: "none" }}
-            >
-              Try it free →
-            </a>
+            {isLoggedIn ? (
+              <Link
+                href="/app/editor"
+                className="fs-btn-press"
+                style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.05em", textTransform: "uppercase", background: "var(--charcoal)", color: "#fff", border: "1.5px solid var(--charcoal)", padding: "13px 28px", borderRadius: 2, textDecoration: "none" }}
+              >
+                Open editor →
+              </Link>
+            ) : (
+              <a
+                href="#try-it"
+                className="fs-btn-press"
+                style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.05em", textTransform: "uppercase", background: "var(--charcoal)", color: "#fff", border: "1.5px solid var(--charcoal)", padding: "13px 28px", borderRadius: 2, textDecoration: "none" }}
+              >
+                Try it free →
+              </a>
+            )}
             <Link
               href="/app/templates"
               className="fs-btn-press"
@@ -91,12 +101,6 @@ export default async function HomePage() {
               Browse templates
             </Link>
           </div>
-          {isLoggedIn && (
-            <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 12, color: "#999" }}>
-              Signed in —{" "}
-              <Link href="/app/editor" style={{ color: "var(--fs-indigo)", textDecoration: "none" }}>jump to editor</Link>
-            </p>
-          )}
         </div>
 
         {/* TRUST STRIP */}
