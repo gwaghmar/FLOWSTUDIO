@@ -1,5 +1,7 @@
 import type { DiagramType } from "@flowchart/core";
 
+export type TemplateCategory = "flowchart" | "sequence" | "architecture" | "erd" | "charts" | "social" | "bpmn" | "orgchart";
+
 export type Template = {
   id: string;
   title: string;
@@ -11,6 +13,8 @@ export type Template = {
   gradient: string;
   /** Short use-case tag shown on the card. */
   tag: string;
+  /** Filter category for the templates page filter bar. */
+  category: TemplateCategory;
 };
 
 /**
@@ -25,6 +29,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "mermaid",
     themeId: "stage_pipeline",
     tag: "Product",
+    category: "flowchart",
     gradient: "from-indigo-500 via-violet-500 to-fuchsia-500",
     source: `flowchart LR
   L["Landing page"] --> S["Sign up"]
@@ -46,6 +51,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "mermaid",
     themeId: "stage_pipeline",
     tag: "Engineering",
+    category: "sequence",
     gradient: "from-cyan-500 via-sky-500 to-blue-600",
     source: `sequenceDiagram
   participant U as User
@@ -73,6 +79,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "mermaid",
     themeId: "stage_pipeline",
     tag: "Architecture",
+    category: "architecture",
     gradient: "from-slate-700 via-slate-600 to-zinc-700",
     source: `flowchart TB
   subgraph Clients
@@ -116,6 +123,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "echarts",
     themeId: "stage_pipeline",
     tag: "Reporting",
+    category: "charts",
     gradient: "from-emerald-500 via-teal-500 to-cyan-500",
     source: JSON.stringify({
       title: { text: "Quarterly Revenue ($M)", left: "center" },
@@ -137,6 +145,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "mermaid",
     themeId: "stage_pipeline",
     tag: "Data model",
+    category: "erd",
     gradient: "from-amber-500 via-orange-500 to-rose-500",
     source: `erDiagram
   USER ||--o{ POST : authors
@@ -175,6 +184,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "mermaid",
     themeId: "stage_pipeline",
     tag: "Planning",
+    category: "flowchart",
     gradient: "from-pink-500 via-rose-500 to-red-500",
     source: `gantt
   title Q3 Roadmap
@@ -199,6 +209,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "timeline",
     themeId: "stage_pipeline",
     tag: "Story",
+    category: "social",
     gradient: "from-sky-500 via-blue-500 to-indigo-500",
     source: JSON.stringify({
       type: "timeline", title: "From idea to 10k users",
@@ -217,6 +228,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "versus",
     themeId: "stage_pipeline",
     tag: "Compare",
+    category: "social",
     gradient: "from-amber-500 via-orange-500 to-yellow-500",
     source: JSON.stringify({
       type: "versus", title: "Remote vs Office",
@@ -231,6 +243,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "matrix2x2",
     themeId: "stage_pipeline",
     tag: "Strategy",
+    category: "social",
     gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
     source: JSON.stringify({
       type: "matrix2x2", title: "Feature priorities",
@@ -250,6 +263,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "funnel",
     themeId: "stage_pipeline",
     tag: "Growth",
+    category: "social",
     gradient: "from-pink-500 via-rose-500 to-red-500",
     source: JSON.stringify({
       type: "funnel", title: "SaaS signup funnel",
@@ -268,6 +282,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "venn",
     themeId: "stage_pipeline",
     tag: "Team",
+    category: "social",
     gradient: "from-indigo-500 via-violet-500 to-purple-500",
     source: JSON.stringify({
       type: "venn",
@@ -286,6 +301,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "tierlist",
     themeId: "stage_pipeline",
     tag: "Tools",
+    category: "social",
     gradient: "from-red-500 via-orange-400 to-yellow-400",
     source: JSON.stringify({
       type: "tierlist",
@@ -305,6 +321,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "iceberg",
     themeId: "stage_pipeline",
     tag: "Story",
+    category: "social",
     gradient: "from-sky-400 via-blue-500 to-blue-900",
     source: JSON.stringify({
       type: "iceberg",
@@ -323,6 +340,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "alignment",
     themeId: "stage_pipeline",
     tag: "Fun",
+    category: "social",
     gradient: "from-slate-700 via-slate-600 to-slate-500",
     source: JSON.stringify({
       type: "alignment",
@@ -349,6 +367,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "budget",
     themeId: "stage_pipeline",
     tag: "Finance",
+    category: "social",
     gradient: "from-emerald-500 via-teal-500 to-cyan-500",
     source: JSON.stringify({
       type: "budget",
@@ -370,6 +389,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "habits",
     themeId: "stage_pipeline",
     tag: "Wellness",
+    category: "social",
     gradient: "from-indigo-500 via-blue-500 to-violet-500",
     source: JSON.stringify({
       type: "habits",
@@ -397,6 +417,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "bingo",
     themeId: "stage_pipeline",
     tag: "Fun",
+    category: "social",
     gradient: "from-amber-500 via-orange-500 to-yellow-400",
     source: JSON.stringify({
       type: "bingo",
@@ -417,6 +438,7 @@ export const TEMPLATES: Template[] = [
     diagramType: "bracket",
     themeId: "stage_pipeline",
     tag: "Engineering",
+    category: "social",
     gradient: "from-red-500 via-rose-500 to-pink-500",
     source: JSON.stringify({
       type: "bracket",
