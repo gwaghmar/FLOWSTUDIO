@@ -35,7 +35,7 @@ function buildAiAssistantHint(ai: Awaited<ReturnType<typeof getAiSettingsForUser
 export default async function EditorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; template?: string; type?: string; prompt?: string }>;
+  searchParams: Promise<{ id?: string; template?: string; type?: string; prompt?: string; welcome?: string }>;
 }) {
   const sp = await searchParams;
   const session = await auth();
@@ -57,6 +57,7 @@ export default async function EditorPage({
   const templateId = sp.template ?? null;
   const typeParam = sp.type as DiagramType | undefined;
   const initialPrompt = sp.prompt ?? null;
+  const initialWelcome = sp.welcome === "1";
 
   const plan = await getPlanForEmail(email);
   const showWatermark = plan !== "pro";
@@ -84,6 +85,7 @@ export default async function EditorPage({
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
         initialPrompt={initialPrompt}
+        initialWelcome={initialWelcome}
         userEmail={email}
         userName={userName}
       />
@@ -103,6 +105,7 @@ export default async function EditorPage({
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}
         initialPrompt={initialPrompt}
+        initialWelcome={initialWelcome}
         userEmail={email}
         userName={userName}
       />
@@ -142,6 +145,7 @@ export default async function EditorPage({
         aiAssistantHint={aiAssistantHint}
         isExample={true}
         initialPrompt={initialPrompt}
+        initialWelcome={initialWelcome}
         userEmail={email}
         userName={userName}
       />
@@ -163,6 +167,7 @@ export default async function EditorPage({
       creditsBalance={creditsBalance}
       aiAssistantHint={aiAssistantHint}
       initialPrompt={initialPrompt}
+      initialWelcome={initialWelcome}
       userEmail={email}
       userName={userName}
     />

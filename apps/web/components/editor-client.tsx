@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import mermaid from "mermaid";
 import { toPng, toSvg } from "html-to-image";
 import JSZip from "jszip";
@@ -251,6 +252,7 @@ type Props = {
   isExample?: boolean;
   creditsBalance?: number;
   initialPrompt?: string | null;
+  initialWelcome?: boolean;
   userEmail?: string;
   userName?: string;
 };
@@ -290,9 +292,11 @@ export function EditorClient({
   isExample = false,
   creditsBalance,
   initialPrompt,
+  initialWelcome = false,
   userEmail = "user@example.com",
   userName = "You",
 }: Props) {
+  const router = useRouter();
   const parsedInitial = useMemo(() => parseUiFromSource(initialSource), [initialSource]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId);
   const [source, setSource] = useState(parsedInitial.source);
@@ -738,9 +742,23 @@ export function EditorClient({
       setTimeout(() => {
         setLeftPanelOpen(true);
         sendChatMessage(initialPrompt);
+        // Strip ?prompt and ?welcome from URL so a refresh doesn't re-trigger
+        const params = new URLSearchParams(window.location.search);
+        params.delete("prompt");
+        params.delete("welcome");
+        const newQuery = params.toString();
+        router.replace(
+          newQuery ? `/app/editor?${newQuery}` : "/app/editor",
+          // @ts-ignore — scroll option is valid at runtime
+          { scroll: false }
+        );
+        if (initialWelcome) {
+          showToast("Welcome! Here's a sample diagram to get you started.");
+        }
       }, 100);
     }
-  }, [initialPrompt, sendChatMessage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt, initialWelcome, sendChatMessage, router]);
 
   const typeMeta = useMemo(() => getDiagramTypeMeta(diagramType), [diagramType]);
   const theme = useMemo(() => THEMES.find((t) => t.id === themeId) ?? THEMES[0], [themeId]);
