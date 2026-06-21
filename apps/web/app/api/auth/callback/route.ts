@@ -11,30 +11,34 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next") ?? "/app/editor";
 
   if (code) {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      const email = data.session?.user?.email;
-      let destination: string;
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        const email = data.session?.user?.email;
+        let destination: string;
 
-      if (email) {
-        const { isNewUser } = await ensureUserAndWorkspace(email);
-        if (isNewUser) {
-          const welcomeParams = new URLSearchParams({
-            prompt: WELCOME_PROMPT,
-            welcome: "1",
-          });
-          destination = `${origin}/app/editor?${welcomeParams.toString()}`;
+        if (email) {
+          const { isNewUser } = await ensureUserAndWorkspace(email);
+          if (isNewUser) {
+            const welcomeParams = new URLSearchParams({
+              prompt: WELCOME_PROMPT,
+              welcome: "1",
+            });
+            destination = `${origin}/app/editor?${welcomeParams.toString()}`;
+          } else {
+            const forwardSlash = next.startsWith("/") && !next.startsWith("//");
+            destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
+          }
         } else {
           const forwardSlash = next.startsWith("/") && !next.startsWith("//");
           destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
         }
-      } else {
-        const forwardSlash = next.startsWith("/") && !next.startsWith("//");
-        destination = forwardSlash ? `${origin}${next}` : `${origin}/app/editor`;
-      }
 
-      return NextResponse.redirect(destination);
+        return NextResponse.redirect(destination);
+      }
+    } catch {
+      // DB or auth failure — fall through to error redirect
     }
   }
 
