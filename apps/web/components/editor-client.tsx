@@ -702,6 +702,7 @@ export function EditorClient({
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
   const [exportOpen, setExportOpen] = useState(false);
   const [isMermaidPanning, setIsMermaidPanning] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -757,8 +758,7 @@ export function EditorClient({
         }
       }, 100);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrompt, initialWelcome, sendChatMessage, router]);
+  }, [initialPrompt, initialWelcome, sendChatMessage, router, showToast]);
 
   const typeMeta = useMemo(() => getDiagramTypeMeta(diagramType), [diagramType]);
   const theme = useMemo(() => THEMES.find((t) => t.id === themeId) ?? THEMES[0], [themeId]);
@@ -846,8 +846,6 @@ export function EditorClient({
   }, [sourceWithUi, themeId, title, projectId]);
   /** Derive from isDirty + saving — avoid useEffect(setState) on isDirty (can contribute to update loops). */
   const saveState: "saved" | "saving" | "unsaved" = saving ? "saving" : isDirty ? "unsaved" : "saved";
-
-  const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
 
   const handleAutoLayout = useCallback(async () => {
     try {
