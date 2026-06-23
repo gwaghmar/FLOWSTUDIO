@@ -10,7 +10,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
-import { getMockSession, isMockAuthEnabled } from "@/lib/auth-mode";
+import { getMockSession, hasSupabaseConfig, isMockAuthEnabled } from "@/lib/auth-mode";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -31,27 +31,37 @@ export type AuthSession = {
 export async function auth(): Promise<AuthSession> {
   if (isMockAuthEnabled()) return getMockSession();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Without Supabase config the client would throw on construction, hard-500ing
+  // every server-rendered page. Treat it as "signed out" so the app degrades to
+  // its public surface instead of crashing.
+  if (!hasSupabaseConfig()) return null;
 
-  if (!user?.email) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name:
-        (user.user_metadata?.full_name as string | undefined) ??
-        (user.user_metadata?.name as string | undefined) ??
-        user.email.split("@")[0],
-      image:
-        (user.user_metadata?.avatar_url as string | undefined) ??
-        (user.user_metadata?.picture as string | undefined) ??
-        null,
-    },
-  };
+    if (!user?.email) return null;
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name:
+          (user.user_metadata?.full_name as string | undefined) ??
+          (user.user_metadata?.name as string | undefined) ??
+          user.email.split("@")[0],
+        image:
+          (user.user_metadata?.avatar_url as string | undefined) ??
+          (user.user_metadata?.picture as string | undefined) ??
+          null,
+      },
+    };
+  } catch (err) {
+    console.error("[auth] Supabase unreachable, treating request as signed out:", err);
+    return null;
+  }
 }
 
 /**
@@ -59,12 +69,16 @@ export async function auth(): Promise<AuthSession> {
  * Use in Server Actions.
  */
 export async function signOut() {
-  if (isMockAuthEnabled()) {
+  if (isMockAuthEnabled() || !hasSupabaseConfig()) {
     redirect("/");
   }
 
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error("[auth] signOut failed, redirecting home anyway:", err);
+  }
   redirect("/");
 }
 

@@ -12,6 +12,37 @@ import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
 import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
 
+export const maxDuration = 60;
+
+// Block fetches to loopback, private ranges, link-local, and the cloud metadata
+// endpoint. Defends fetch_external_data against SSRF. Hostnames that resolve to
+// private IPs via DNS are NOT covered here — redirect:"error" on the fetch plus
+// these literal checks cover the documented bypasses.
+function isBlockedFetchHost(rawHost: string): boolean {
+  const host = rawHost.replace(/^\[|\]$/g, "").toLowerCase();
+
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "0.0.0.0" || host === "::" || host === "::1") return true;
+  if (host.startsWith("::ffff:")) {
+    return isBlockedFetchHost(host.slice("::ffff:".length));
+  }
+  // IPv6 unique-local (fc00::/7) and link-local (fe80::/10)
+  if (/^f[cd][0-9a-f]{2}:/.test(host)) return true;
+  if (/^fe[89ab][0-9a-f]:/.test(host)) return true;
+
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = ipv4.slice(1).map(Number);
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata (169.254.169.254)
+    if (a === 100 && b >= 64 && b <= 127) return true; // carrier-grade NAT
+  }
+
+  return false;
+}
+
 export async function POST(req: Request) {
   const requestStart = Date.now();
   const session = await auth();
@@ -122,6 +153,7 @@ export async function POST(req: Request) {
       model: languageModel,
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
+      abortSignal: AbortSignal.timeout(45_000),
       onFinish: ({ usage }) => {
         void recordAiEvent({
           userId: user.id,
@@ -228,10 +260,11 @@ STRATEGY:
             if (sourceName.startsWith("http://") || sourceName.startsWith("https://")) {
               try {
                 const url = new URL(sourceName);
-                if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url.hostname)) {
+                if (isBlockedFetchHost(url.hostname)) {
                   return { success: false, error: "Private/internal URLs are not allowed." };
                 }
-                const res = await fetch(sourceName, { signal: AbortSignal.timeout(6_000) });
+                // redirect: "error" stops a public URL from bouncing to an internal one.
+                const res = await fetch(sourceName, { signal: AbortSignal.timeout(6_000), redirect: "error" });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const ct = res.headers.get("content-type") ?? "";
                 if (ct.includes("json")) {

@@ -15,6 +15,14 @@ import { lastUserText, toChatTurns, type ChatTurn } from "@/lib/ai-messages";
 import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
 import { validateAndRepairOutput, parsePossiblyBrokenJson } from "@/lib/diagrams/validate-output";
+
+export const maxDuration = 60;
+
+// Cap each AI call so a hung provider can't block the request for the full
+// function budget. Kept under maxDuration so the abort fires first.
+const GENERATION_TIMEOUT_MS = 25_000;
+const CORRECTIVE_TIMEOUT_MS = 15_000;
+
 type DetailLevel = "low" | "medium" | "high";
 type IntentPlan = {
   intentSummary: string;
@@ -40,6 +48,13 @@ async function tryDecrementCredit(userId: string): Promise<boolean> {
     .where(and(eq(users.id, userId), gt(users.creditsBalance, 0)))
     .returning({ id: users.id });
   return out.length > 0;
+}
+
+async function refundCredit(userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ creditsBalance: sql`${users.creditsBalance} + 1` })
+    .where(eq(users.id, userId));
 }
 
 function clampAmbiguityScore(value: unknown): number {
@@ -455,17 +470,37 @@ Quality requirements:
         });
 
         const genStart = Date.now();
+
+        // Reserve the credit atomically BEFORE generation. Charging afterwards
+        // let concurrent requests all pass the up-front gate and get charged
+        // once collectively. tryDecrementCredit only succeeds if balance > 0, so
+        // losing the race here means there genuinely was no credit left.
+        let creditReserved = false;
+        if (user.plan === "free" && !skipCredits) {
+          creditReserved = await tryDecrementCredit(user.id);
+          if (!creditReserved) {
+            writer.write({
+              type: "data-meta",
+              data: {
+                error: "No credits left. Add an AI key in Settings, upgrade to Pro, or wait for an admin grant.",
+                code: "INSUFFICIENT_CREDITS",
+              },
+            });
+            return;
+          }
+        }
+
         const result = streamText({
           model: languageModel,
           system: `${effectiveSystemPrompt}\n\n${generationInstruction}`,
           messages,
           temperature: 0.3,
           maxOutputTokens: maxTokens,
+          abortSignal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
         });
 
         writer.merge(result.toUIMessageStream());
 
-        let creditCharged = false;
         let validationStatus: "ok" | "repaired" | "failed_after_retry" | "error" = "ok";
         let retryAttempted = false;
         let inputTokens: number | undefined;
@@ -501,6 +536,7 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
                 ],
                 temperature: 0.1,
                 maxOutputTokens: maxTokens,
+                abortSignal: AbortSignal.timeout(CORRECTIVE_TIMEOUT_MS),
               });
               const recheck = await validateAndRepairOutput(effectiveDiagramType, corrective.text);
               if (recheck.ok) {
@@ -537,16 +573,14 @@ Return ONLY the corrected ${effectiveDiagramType} source. No prose, no explanati
             }
           }
 
-          if (user.plan === "free" && !skipCredits) {
-            await tryDecrementCredit(user.id);
-            creditCharged = true;
-          }
         } catch (e) {
           validationStatus = "error";
           errorMessage = e instanceof Error ? e.message : String(e);
           console.error("[AI generate] post-stream error:", e);
-          if (!creditCharged && user.plan === "free" && !skipCredits) {
-            await tryDecrementCredit(user.id);
+          // Generation never produced usable output — give the reserved credit back.
+          if (creditReserved) {
+            await refundCredit(user.id);
+            creditReserved = false;
           }
         }
 
