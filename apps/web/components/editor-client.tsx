@@ -425,7 +425,6 @@ export function EditorClient({
           } else if (diagramType === "orgchart" && cloudNeedsLayout(cleaned)) {
             cleaned = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(cleaned);
           }
-          recordUndo(source);
           setSource(cleaned);
         }
       }
@@ -466,9 +465,20 @@ export function EditorClient({
     }
   }, [status]);
 
+  const recordUndo = useCallback((snapshot: string) => {
+    setUndoStack(prev => {
+      if (prev[prev.length - 1] === snapshot) return prev;
+      return [...prev.slice(-(UNDO_LIMIT - 1)), snapshot];
+    });
+    setRedoStack([]);
+  }, []);
+
   const sendChatMessage = useCallback((text: string) => {
+    // Snapshot pre-generation source here: the streaming effect mutates `source`
+    // live, so recording undo in onFinish would capture the generated result.
+    recordUndo(sourceRef.current);
     void sendMessage({ text });
-  }, [sendMessage]);
+  }, [sendMessage, recordUndo]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const streamData = useMemo<any[]>(() => {
@@ -565,14 +575,6 @@ export function EditorClient({
 
   const lastGoodSvgRef = useRef<string | null>(null);
   const renderSeqRef = useRef(0);
-
-  const recordUndo = useCallback((snapshot: string) => {
-    setUndoStack(prev => {
-      if (prev[prev.length - 1] === snapshot) return prev;
-      return [...prev.slice(-(UNDO_LIMIT - 1)), snapshot];
-    });
-    setRedoStack([]);
-  }, []);
 
   const handleUndo = useCallback(() => {
     setUndoStack(prev => {
@@ -994,6 +996,12 @@ export function EditorClient({
         mutated = true;
         setSource(result.sourceCode);
         effects[id] = { status: "applied", label: "Diagram updated" };
+      } else if (toolName === "apply_patch" && typeof result.sourceCode === "string") {
+        // Server already applied + validated (and possibly repaired) the patch.
+        liveSource = result.sourceCode;
+        mutated = true;
+        setSource(result.sourceCode);
+        effects[id] = { status: "applied", label: "Patch applied" };
       } else if (toolName === "apply_patch" && typeof result.find === "string") {
         const { source: next, replaced } = applyPatch(liveSource, result.find, result.replace ?? "");
         const isJsonDiagram = diagramType !== "mermaid" && diagramType !== "bpmn";

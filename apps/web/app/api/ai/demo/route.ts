@@ -8,6 +8,13 @@ import { rateLimit } from "@/lib/rate-limit";
 const MAX_DEMO_USES = 3;
 const COOKIE_NAME = "fs_demo_uses";
 
+// Cookie counter is per-device and trivially cleared, so it's only a UX hint.
+// The real cap is a server-side daily quota keyed on IP that cookie-clearing
+// can't reset. Set above the per-device cookie limit so a few devices behind one
+// NAT/office IP each still get their demo runs.
+const DEMO_IP_DAILY_LIMIT = 15;
+const DEMO_DAY_MS = 24 * 60 * 60 * 1000;
+
 function getDemoUses(cookieHeader: string | null): number {
   if (!cookieHeader) return 0;
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=(\\d+)`));
@@ -56,6 +63,13 @@ export async function POST(req: Request) {
   const credentials = buildDemoApiKey();
   if (!credentials) {
     return NextResponse.json({ error: "no_api_key" }, { status: 503 });
+  }
+
+  // Hard server-side cap, consumed only now that the request is well-formed so a
+  // malformed prompt can't burn a legitimate user's quota. Survives cookie reset.
+  const dailyRl = await rateLimit(`demo:ip:daily:${ip}`, DEMO_IP_DAILY_LIMIT, DEMO_DAY_MS);
+  if (!dailyRl.ok) {
+    return NextResponse.json({ error: "limit" }, { status: 429 });
   }
 
   const googleModelFromEnv = process.env.GOOGLE_MODEL?.trim();

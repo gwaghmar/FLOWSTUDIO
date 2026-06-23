@@ -33,7 +33,7 @@ export const users = pgTable("user", {
 }, () => [
   check("user_plan_chk", sql`plan IN ('free', 'pro')`),
   check("user_role_chk", sql`role IN ('user', 'admin')`),
-]);
+]).enableRLS();
 
 export const workspaces = pgTable("workspace", {
   id: text("id")
@@ -46,7 +46,7 @@ export const workspaces = pgTable("workspace", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
-}, (t) => [index("workspace_owner_idx").on(t.ownerId)]);
+}, (t) => [index("workspace_owner_idx").on(t.ownerId)]).enableRLS();
 
 export const projects = pgTable("project", {
   id: text("id")
@@ -65,7 +65,7 @@ export const projects = pgTable("project", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
-}, (t) => [index("project_workspace_idx").on(t.workspaceId)]);
+}, (t) => [index("project_workspace_idx").on(t.workspaceId)]).enableRLS();
 
 export const revisions = pgTable("revision", {
   id: text("id")
@@ -80,7 +80,7 @@ export const revisions = pgTable("revision", {
     .notNull()
     .defaultNow(),
   createdBy: text("created_by").references(() => users.id),
-}, (t) => [index("revision_project_idx").on(t.projectId)]);
+}, (t) => [index("revision_project_idx").on(t.projectId)]).enableRLS();
 
 export const shareLinks = pgTable("share_link", {
   id: text("id")
@@ -98,7 +98,7 @@ export const shareLinks = pgTable("share_link", {
   // image route to render a real preview of the diagram (vs a generic card).
   previewDataUrl: text("preview_data_url"),
   rawToken: text("raw_token"),
-}, (t) => [index("share_link_project_idx").on(t.projectId)]);
+}, (t) => [index("share_link_project_idx").on(t.projectId)]).enableRLS();
 
 export const apiKeys = pgTable("api_key", {
   id: text("id")
@@ -114,7 +114,7 @@ export const apiKeys = pgTable("api_key", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
-}, (t) => [index("api_key_user_idx").on(t.userId), index("api_key_hash_idx").on(t.keyHash)]);
+}, (t) => [index("api_key_user_idx").on(t.userId), index("api_key_hash_idx").on(t.keyHash)]).enableRLS();
 
 export const brandKits = pgTable("brand_kit", {
   id: text("id")
@@ -129,7 +129,7 @@ export const brandKits = pgTable("brand_kit", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
-}, (t) => [index("brand_kit_workspace_idx").on(t.workspaceId)]);
+}, (t) => [index("brand_kit_workspace_idx").on(t.workspaceId)]).enableRLS();
 
 export const aiEvents = pgTable("ai_event", {
   id: text("id")
@@ -162,7 +162,7 @@ export const aiEvents = pgTable("ai_event", {
   index("ai_event_created_idx").on(t.createdAt),
   check("ai_event_mode_chk", sql`mode IN ('patch', 'create', 'agent')`),
   check("ai_event_validation_chk", sql`validation_status IN ('ok', 'repaired', 'failed_after_retry', 'error')`),
-]);
+]).enableRLS();
 
 export const exportJobs = pgTable("export_job", {
   id: text("id")
@@ -180,4 +180,4 @@ export const exportJobs = pgTable("export_job", {
 }, (t) => [
   index("export_job_user_idx").on(t.userId),
   check("export_job_status_chk", sql`status IN ('queued', 'processing', 'done', 'failed')`),
-]);
+]).enableRLS();

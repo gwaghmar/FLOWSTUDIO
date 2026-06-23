@@ -11,6 +11,7 @@ import { THEME_IDS } from "@flowchart/core";
 import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
 import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
+import { applyPatch } from "@/lib/agent-tools";
 
 export const maxDuration = 60;
 
@@ -144,6 +145,9 @@ export async function POST(req: Request) {
 - brand kit configured: ${hasBrandKit ? "yes" : "no"}`;
 
   let toolCallCount = 0;
+  // Mutable working copy so chained patches validate against the latest source,
+  // not the original request snapshot.
+  let workingSource = currentSource || "";
   const lastUserText = [...messages].reverse().find((m: { role?: string }) => m?.role === "user");
   const promptLength = JSON.stringify(lastUserText ?? "").length;
   const sourceLength = (currentSource || "").length;
@@ -222,6 +226,7 @@ STRATEGY:
             if (!validation.ok) {
               return { success: false, explanation, error: `Output failed validation: ${validation.reason}. Fix the issue and call update_diagram again with corrected output.` };
             }
+            workingSource = validation.source;
             return { success: true, explanation, sourceCode: validation.source };
           },
         }),
@@ -234,7 +239,16 @@ STRATEGY:
           }),
           execute: async ({ find, replace, explanation }) => {
             toolCallCount++;
-            return { success: true, find, replace, explanation };
+            const { source: patched, replaced } = applyPatch(workingSource, find, replace);
+            if (replaced === 0) {
+              return { success: false, explanation, error: `Could not find the text to replace. Re-read the current source and try update_diagram instead.` };
+            }
+            const validation = await validateAndRepairOutput(diagramType, patched);
+            if (!validation.ok) {
+              return { success: false, explanation, error: `Patch would corrupt the diagram: ${validation.reason}. Fix it and call update_diagram with the full corrected source.` };
+            }
+            workingSource = validation.source;
+            return { success: true, explanation, find, replace, sourceCode: validation.source };
           },
         }),
         update_node: tool({
