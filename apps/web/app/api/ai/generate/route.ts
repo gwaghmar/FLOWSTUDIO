@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateText, streamText, createUIMessageStream, createUIMessageStreamResponse, type UIMessageStreamWriter } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
-import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta } from "@flowchart/core";
+import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta, buildComplexityDirective } from "@flowchart/core";
 import type { DiagramType, SocialPresetId, UseCaseId } from "@flowchart/core";
 import type { ApiError } from "@flowchart/core";
 import { auth } from "@/auth";
@@ -428,7 +428,13 @@ Rules:
 - Output the FULL new source (still emit a complete diagram), but the diff from the current source should be minimal and surgical.
 `
       : "";
-    const generationInstruction = `${brandDirective}${patchDirective}Intent plan:
+    const complexityDirective = buildComplexityDirective(effectiveDiagramType, {
+      entities: intentPlan.entities.length,
+      steps: intentPlan.steps.length,
+      relationships: intentPlan.relationships.length,
+      detailLevel: intentPlan.detailLevel,
+    });
+    const generationInstruction = `${brandDirective}${patchDirective}${complexityDirective}Intent plan:
 ${JSON.stringify(intentPlan, null, 2)}
 ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype ? `\nUse diagram subtype: ${(intentPlan as { suggestedSubtype?: string }).suggestedSubtype}` : ""}
 Quality requirements:

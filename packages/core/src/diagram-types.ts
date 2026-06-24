@@ -882,6 +882,44 @@ RULES:
 Example: {"type":"bracket","title":"Best JS Framework","rounds":[{"name":"Semifinals","matches":[{"a":"React","b":"Vue","winner":"React"},{"a":"Svelte","b":"Solid","winner":"Svelte"}]},{"name":"Final","matches":[{"a":"React","b":"Svelte"}]}]}`,
 };
 
+// ─── Large / complex diagram guidance ────────────────────────────────────────
+// Graph-structured types degrade into spaghetti past ~25 nodes. When the intent
+// implies a big system, steer the model toward grouped, readable layouts instead
+// of one flat tangle. Charts and fixed-layout social cards are unaffected.
+
+export const GRAPH_STRUCTURED_TYPES: DiagramType[] = [
+  "mermaid", "reactflow", "bpmn", "cloud", "erd", "orgchart",
+];
+
+export function buildComplexityDirective(
+  type: DiagramType,
+  signal: { entities?: number; steps?: number; relationships?: number; detailLevel?: string },
+): string {
+  if (!GRAPH_STRUCTURED_TYPES.includes(type)) return "";
+  const size = (signal.entities ?? 0) + (signal.steps ?? 0) + (signal.relationships ?? 0);
+  const isLarge = size >= 8 || signal.detailLevel === "high";
+  if (!isLarge) return "";
+
+  const grouping =
+    type === "mermaid"
+      ? "- Group related nodes into labeled `subgraph` blocks (e.g. subgraph Auth, subgraph Storage) so the structure reads as sections, not one flat mesh.\n- Pick a single rank direction (LR or TD) and keep it consistent."
+      : type === "cloud"
+        ? "- Group services by tier or provider zone using container/parent nodes; keep each group visually distinct."
+        : type === "orgchart"
+          ? "- Keep the hierarchy strictly top-down; balance breadth so no single parent has an unreadable fan-out."
+          : type === "erd"
+            ? "- Cluster tables by domain (e.g. billing, auth) and place related tables adjacent to minimize relationship line crossings."
+            : "- Group related nodes into clusters/sections; keep spacing uniform and minimize crossing edges.";
+
+  return `
+LARGE / COMPLEX DIAGRAM — this request implies many elements. Prioritize readability over completeness:
+${grouping}
+- Cap the diagram at roughly 25-30 nodes. If the system is larger, summarize leaf detail into representative nodes rather than drawing every item.
+- Keep edge labels short (1-3 words). Avoid long chains of single-child nodes — collapse them.
+- A clear, grouped diagram of the core flow beats an exhaustive tangle.
+`;
+}
+
 // ─── Mermaid subtypes ────────────────────────────────────────────────────────
 
 export type MermaidSubtype =
