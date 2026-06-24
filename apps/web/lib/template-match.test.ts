@@ -28,6 +28,8 @@ describe("matchTemplateId", () => {
       "habits_reading": "a habit tracker for my reading streak",
       "bingo_startup": "a startup buzzword bingo card",
       "bracket_frameworks": "a tournament bracket of frameworks",
+      "cloud-aws-webapp": "an aws cloud architecture diagram",
+      "startup-orgchart": "an org chart of our reporting structure",
     };
     for (const [id, prompt] of Object.entries(cases)) {
       assert.equal(matchTemplateId(prompt), id, `prompt "${prompt}" should match ${id}`);
@@ -50,8 +52,8 @@ describe("matchTemplateId", () => {
     }
   });
 
-  it("covers all 18 templates", () => {
-    assert.equal(TEMPLATE_KEYWORDS.length, 18);
-    assert.equal(TEMPLATES.length, 18);
+  it("covers all 20 templates", () => {
+    assert.equal(TEMPLATE_KEYWORDS.length, 20);
+    assert.equal(TEMPLATES.length, 20);
   });
 });

@@ -17,6 +17,8 @@ export const TEMPLATE_KEYWORDS: { id: string; keywords: string[] }[] = [
   { id: "habits_reading",           keywords: ["habit tracker", "streak", "daily habit", "habit", "consistency", "calendar grid"] },
   { id: "bingo_startup",            keywords: ["bingo", "buzzword", "bingo card", "5x5 grid", "squares"] },
   { id: "bracket_frameworks",       keywords: ["bracket", "tournament", "knockout", "playoff", "single elimination", "march madness"] },
+  { id: "cloud-aws-webapp",         keywords: ["aws", "cloud architecture", "cloud diagram", "serverless architecture", "vpc", "cloud infrastructure", "gcp", "azure"] },
+  { id: "startup-orgchart",         keywords: ["org chart", "orgchart", "reporting structure", "reporting hierarchy", "who reports to", "team structure", "org structure"] },
 ];
 
 /**
