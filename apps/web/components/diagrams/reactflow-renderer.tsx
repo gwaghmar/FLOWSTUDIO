@@ -160,13 +160,17 @@ export function ReactFlowRenderer({ source, onChange, onNodeClick, readOnly = fa
   );
 }
 
-export async function autoLayoutReactFlow(source: string): Promise<string> {
+export async function autoLayoutReactFlow(
+  source: string,
+  opts: { rankdir?: "LR" | "TB"; spacingScale?: number } = {},
+): Promise<string> {
   try {
     const dagre = (await import("@dagrejs/dagre")).default;
     const data = JSON.parse(source) as ReactFlowData;
     const graph = new dagre.graphlib.Graph();
     graph.setDefaultEdgeLabel(() => ({}));
-    graph.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 120 });
+    const s = opts.spacingScale ?? 1;
+    graph.setGraph({ rankdir: opts.rankdir ?? "LR", nodesep: Math.round(80 * s), ranksep: Math.round(120 * s) });
     data.nodes.forEach((n) => graph.setNode(n.id, { width: 160, height: 60 }));
     data.edges.forEach((e) => graph.setEdge(e.source, e.target));
     dagre.layout(graph);

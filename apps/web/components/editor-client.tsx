@@ -346,6 +346,8 @@ export function EditorClient({
   const [compactAiContext, setCompactAiContext] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(false);
   const [forceCreateNext, setForceCreateNext] = useState(false);
+  const [layoutDir, setLayoutDir] = useState<"LR" | "TB">("LR");
+  const [layoutSpacing, setLayoutSpacing] = useState(1);
   const [pendingRevisionLabel, setPendingRevisionLabel] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [revisions, setRevisions] = useState<{ id: string; label: string | null; createdAt: Date }[]>([]);
@@ -872,14 +874,15 @@ export function EditorClient({
   const handleAutoLayout = useCallback(async () => {
     try {
       let next = source;
+      const lo = { rankdir: layoutDir, spacingScale: layoutSpacing };
       if (diagramType === "reactflow") {
-        next = await (await import("./diagrams/reactflow-renderer")).autoLayoutReactFlow(source);
+        next = await (await import("./diagrams/reactflow-renderer")).autoLayoutReactFlow(source, lo);
       } else if (diagramType === "cloud") {
-        next = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(source);
+        next = await (await import("./diagrams/cloud-renderer")).autoLayoutCloud(source, lo);
       } else if (diagramType === "erd") {
-        next = await (await import("./diagrams/erd-renderer")).autoLayoutErd(source);
+        next = await (await import("./diagrams/erd-renderer")).autoLayoutErd(source, lo);
       } else if (diagramType === "orgchart") {
-        next = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(source);
+        next = await (await import("./diagrams/orgchart-renderer")).autoLayoutOrgChart(source, lo);
       } else if (diagramType === "bpmn") {
         next = await (await import("./diagrams/bpmn-renderer")).autoLayoutBpmn(source);
       } else {
@@ -896,7 +899,7 @@ export function EditorClient({
       console.error("[auto-layout]", e);
       showToast("Could not auto-layout");
     }
-  }, [diagramType, source, recordUndo, showToast]);
+  }, [diagramType, source, recordUndo, showToast, layoutDir, layoutSpacing]);
 
   const handleApplyBrandKit = useCallback(async (): Promise<boolean> => {
     setApplyingBrand(true);
@@ -2110,6 +2113,28 @@ export function EditorClient({
                       </ul>
                     </div>
                   )}
+                </div>
+              )}
+              {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart") && (
+                <div className="flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 p-0.5" title="Layout direction & spacing — then click the wand to re-layout">
+                  <button
+                    type="button"
+                    onClick={() => setLayoutDir((d) => (d === "LR" ? "TB" : "LR"))}
+                    title={layoutDir === "LR" ? "Direction: left-to-right (click for top-down)" : "Direction: top-down (click for left-to-right)"}
+                    className="rounded-md px-1.5 py-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    {layoutDir === "LR" ? "→" : "↓"}
+                  </button>
+                  <select
+                    value={layoutSpacing}
+                    onChange={(e) => setLayoutSpacing(Number(e.target.value))}
+                    title="Spacing between nodes"
+                    className="rounded-md bg-transparent px-1 py-1 text-[11px] text-slate-500 dark:text-slate-400 focus:outline-none"
+                  >
+                    <option value={0.7}>Compact</option>
+                    <option value={1}>Normal</option>
+                    <option value={1.5}>Spacious</option>
+                  </select>
                 </div>
               )}
               {(diagramType === "reactflow" || diagramType === "cloud" || diagramType === "erd" || diagramType === "orgchart" || diagramType === "bpmn") && (

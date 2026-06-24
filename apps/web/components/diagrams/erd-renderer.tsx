@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Handle, Position, BackgroundVariant, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { KeyRound, Link2 } from "lucide-react";
-import { parseGraph, serializeGraph, makeChangeHandlers, autoLayoutGraph, type GraphData } from "@/lib/diagrams/xyflow-base";
+import { parseGraph, serializeGraph, makeChangeHandlers, autoLayoutGraph, type GraphData, type ManualLayoutOpts } from "@/lib/diagrams/xyflow-base";
 
 const ReactFlowProvider = dynamic(async () => (await import("@xyflow/react")).ReactFlowProvider, { ssr: false });
 const ReactFlow = dynamic(async () => (await import("@xyflow/react")).ReactFlow, {
@@ -116,6 +116,7 @@ export function ErdRenderer({ source, onChange, readOnly = false }: Props) {
   );
 }
 
-export function autoLayoutErd(source: string): Promise<string> {
-  return autoLayoutGraph(source, { rankdir: "LR", nodeWidth: 200, nodeHeight: 140, nodesep: 60, ranksep: 160 });
+export function autoLayoutErd(source: string, opts: ManualLayoutOpts = {}): Promise<string> {
+  const s = opts.spacingScale ?? 1;
+  return autoLayoutGraph(source, { rankdir: opts.rankdir ?? "LR", nodeWidth: 200, nodeHeight: 140, nodesep: Math.round(60 * s), ranksep: Math.round(160 * s) });
 }

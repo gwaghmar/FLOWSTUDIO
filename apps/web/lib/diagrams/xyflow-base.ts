@@ -53,6 +53,13 @@ export type LayoutOpts = {
   ranksep?: number;
 };
 
+// User-facing layout overrides driven from the editor controls. rankdir flips
+// flow direction; spacingScale multiplies the type's default node/rank spacing.
+export type ManualLayoutOpts = {
+  rankdir?: "LR" | "TB";
+  spacingScale?: number;
+};
+
 export async function autoLayoutGraph(source: string, opts: LayoutOpts = {}): Promise<string> {
   const { rankdir = "LR", nodeWidth = 160, nodeHeight = 60, nodesep = 80, ranksep = 120 } = opts;
   try {

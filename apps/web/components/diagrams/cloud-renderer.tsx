@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Handle, Position, BackgroundVariant, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { parseGraph, serializeGraph, makeChangeHandlers, autoLayoutGraph, type GraphData } from "@/lib/diagrams/xyflow-base";
+import { parseGraph, serializeGraph, makeChangeHandlers, autoLayoutGraph, type GraphData, type ManualLayoutOpts } from "@/lib/diagrams/xyflow-base";
 import { resolveIconId, PROVIDER_COLORS, type CloudProvider } from "@/lib/diagrams/cloud-icons";
 import { GLYPHS } from "@/lib/diagrams/cloud-glyphs";
 
@@ -102,6 +102,7 @@ export function CloudRenderer({ source, onChange, readOnly = false }: Props) {
   );
 }
 
-export function autoLayoutCloud(source: string): Promise<string> {
-  return autoLayoutGraph(source, { rankdir: "LR" });
+export function autoLayoutCloud(source: string, opts: ManualLayoutOpts = {}): Promise<string> {
+  const s = opts.spacingScale ?? 1;
+  return autoLayoutGraph(source, { rankdir: opts.rankdir ?? "LR", nodesep: Math.round(80 * s), ranksep: Math.round(120 * s) });
 }
