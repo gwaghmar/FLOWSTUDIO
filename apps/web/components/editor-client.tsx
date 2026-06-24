@@ -55,6 +55,7 @@ import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
 import { applyPatch, isValidJson } from "@/lib/agent-tools";
 import { matchTemplateId } from "@/lib/template-match";
+import { downloadSource, sourceFileExtension } from "@/lib/diagrams/source-export";
 import { TEMPLATES } from "@/lib/templates";
 import type { Template } from "@/lib/templates";
 import { usePresence, presenceColor } from "@/lib/use-presence";
@@ -494,6 +495,7 @@ export function EditorClient({
   }, [messages]);
 
   const [assumptionBanner, setAssumptionBanner] = useState<string | null>(null);
+  const [missingPieces, setMissingPieces] = useState<string[] | null>(null);
 
   // Handle incoming data stream (replacing experimental_onData)
   useEffect(() => {
@@ -529,7 +531,25 @@ export function EditorClient({
       const presetLabel = activePreset?.label ?? "Custom";
       setAssumptionBanner(`Generated as: ${meta.resolvedSubtype} · ${presetLabel} · ${detail} detail`);
     }
+    // Dark-launched "missing pieces" hint — prompt-derived, informational only.
+    if (
+      process.env.NEXT_PUBLIC_MISSING_PIECES === "1" &&
+      meta.detailLevel !== "low" &&
+      Array.isArray(meta.missingInfo)
+    ) {
+      const PLACEHOLDERS = new Set(["domain specifics", "domain-specific details", "critical unknowns"]);
+      const pieces = meta.missingInfo
+        .map((s: unknown) => String(s).trim())
+        .filter((s: string) => s.length > 0 && !PLACEHOLDERS.has(s.toLowerCase()));
+      setMissingPieces(pieces.length > 0 ? pieces.slice(0, 5) : null);
+    }
   }, [streamData, presetId]);
+
+  useEffect(() => {
+    if (!missingPieces) return;
+    const t = setTimeout(() => setMissingPieces(null), 12000);
+    return () => clearTimeout(t);
+  }, [missingPieces]);
 
   // D-12: auto-dismiss assumption banner after 8 seconds
   useEffect(() => {
@@ -1287,6 +1307,15 @@ export function EditorClient({
     }
   }, [diagramType, source, pngScale, bgColor, echartsUiTheme, showToast]);
 
+  const handleCopySource = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(source);
+      showToast("Source copied to clipboard");
+    } catch {
+      showToast("Copy failed — try Download instead");
+    }
+  }, [source, showToast]);
+
   /**
    * Capture a 1200x630 PNG of the current diagram for OG previews. Best-effort:
    * returns undefined on any failure so the OG route falls back to the
@@ -1418,6 +1447,8 @@ export function EditorClient({
   const frameW = preset?.width ?? customExportWidth;
   const frameH = preset?.height ?? customExportHeight;
   const previewScale = Math.min(1.8, Math.max(0.4, zoom));
+
+  const EDIT_CHIPS = ["Change colors", "Add a step", "Simplify", "Add labels", "Fix layout"];
 
   const QUICK_PROMPTS: Partial<Record<DiagramType, string[]>> = {
     mermaid: getMermaidSubtypeMeta(mermaidSubtype).quickPrompts,
@@ -1726,6 +1757,23 @@ export function EditorClient({
 
           {/* Prompt Area with Quick Prompts */}
           <div className="shrink-0 space-y-3" style={{ borderTop: "1px solid var(--fs-border)", padding: "10px 12px", background: "var(--cream)" }}>
+            {messages.length > 0 && source.trim() && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", color: "var(--charcoal-light)", opacity: 0.7 }}>EDIT</span>
+                {EDIT_CHIPS.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => { if (!aiLoading) sendChatMessage(label); }}
+                    disabled={aiLoading}
+                    className="fs-btn-press"
+                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.02em", padding: "3px 9px", border: "1px solid #C7D2FE", borderRadius: 2, background: "#EEF2FF", color: "#4338CA", cursor: aiLoading ? "default" : "pointer", opacity: aiLoading ? 0.5 : 1 }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {messages.length > 0 && QUICK_PROMPTS[diagramType]?.length && (
               <div className="flex flex-wrap gap-2">
                 {QUICK_PROMPTS[diagramType]?.map((q) => (
@@ -1875,6 +1923,19 @@ export function EditorClient({
             onClick={() => setAssumptionBanner(null)}
             className="rounded-sm p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
             aria-label="Dismiss generation notice"
+          >×</button>
+        </div>
+      )}
+      {missingPieces && missingPieces.length > 0 && (
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
+          <span className="leading-snug">
+            <span className="font-medium">Possibly missing:</span> your prompt implied {missingPieces.join(", ")}. Ask me to add anything that&apos;s not in the diagram.
+          </span>
+          <button
+            type="button"
+            onClick={() => setMissingPieces(null)}
+            className="shrink-0 rounded-sm p-0.5 text-amber-400 hover:bg-amber-200 hover:text-amber-700 dark:hover:bg-amber-900 dark:hover:text-amber-200"
+            aria-label="Dismiss missing-pieces notice"
           >×</button>
         </div>
       )}
@@ -2128,6 +2189,10 @@ export function EditorClient({
                 <div className="absolute right-0 top-full z-30 mt-1 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-lg">
                   <div className="mb-1.5">
                     <button type="button" onClick={() => void handleCopyImage()} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">Copy image</button>
+                  </div>
+                  <div className="mb-1.5 flex items-center gap-1.5">
+                    <button type="button" onClick={() => void handleCopySource()} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">Copy source</button>
+                    <button type="button" onClick={() => downloadSource(source, diagramType, title || "diagram")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">{`Download .${sourceFileExtension(diagramType)}`}</button>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => void handleExport("png")} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">PNG</button>

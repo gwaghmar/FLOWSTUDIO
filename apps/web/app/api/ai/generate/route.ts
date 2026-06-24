@@ -458,6 +458,7 @@ Quality requirements:
             diagramType: effectiveDiagramType,
             needsClarification: false,
             assumptions: intentPlan.assumptions,
+            missingInfo: intentPlan.missingInfo,
             assistantMessage: assumptionNote,
             detailLevel: intentPlan.detailLevel,
             resolvedSubtype:

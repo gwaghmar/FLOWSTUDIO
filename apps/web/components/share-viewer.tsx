@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import Link from "next/link";
 import { buildMermaidConfig, getTheme } from "@flowchart/core";
 import type { DiagramType } from "@flowchart/core";
+import { downloadSource, sourceFileExtension } from "@/lib/diagrams/source-export";
 
 // Lazy-load heavy renderers so they don't bloat the share page bundle
 const ExcalidrawRenderer = dynamic(
@@ -60,6 +61,7 @@ type ShareData = {
 export function ShareViewer({ token, authorHandle }: { token: string; authorHandle?: string | null }) {
   const [data, setData] = useState<ShareData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sourceCopied, setSourceCopied] = useState(false);
   const innerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +114,17 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
     URL.revokeObjectURL(a.href);
   };
 
+  const copySource = async () => {
+    if (!data) return;
+    try {
+      await navigator.clipboard.writeText(data.source);
+      setSourceCopied(true);
+      setTimeout(() => setSourceCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — Download source still works */
+    }
+  };
+
   const diagramType = data?.diagramType ?? "mermaid";
   const DIAGRAM_TYPE_LABELS: Record<DiagramType, string> = {
     mermaid: "Text flowchart",
@@ -154,7 +167,7 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
         )}
         <p className="mt-1 text-sm text-slate-500">
           {data ? `${DIAGRAM_TYPE_LABELS[diagramType]} · ` : ""}
-          View-only link. You can export a PNG from this page.
+          View-only link. Export a PNG or grab the raw source from this page.
         </p>
 
         {error ? (
@@ -172,6 +185,20 @@ export function ShareViewer({ token, authorHandle }: { token: string; authorHand
               >
                 Download PNG
               </button>
+              <button
+                onClick={copySource}
+                className="rounded-sm border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                {sourceCopied ? "Copied!" : "Copy source"}
+              </button>
+              {data && (
+                <button
+                  onClick={() => downloadSource(data.source, diagramType, data.title || "diagram")}
+                  className="rounded-sm border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  {`Download .${sourceFileExtension(diagramType)}`}
+                </button>
+              )}
               {diagramType === "mermaid" && (
                 <span className="text-xs text-slate-500">
                   Theme: <span className="font-medium">{theme.name}</span>

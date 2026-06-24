@@ -57,6 +57,7 @@ type ShareData = {
 export function EmbedViewer({ token }: { token: string }) {
   const [data, setData] = useState<ShareData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sourceCopied, setSourceCopied] = useState(false);
   const innerRef = useRef<HTMLDivElement>(null);
 
   const theme = useMemo(() => getTheme(data?.themeId ?? "stage_pipeline"), [data?.themeId]);
@@ -137,8 +138,25 @@ export function EmbedViewer({ token }: { token: string }) {
   };
   const bg = diagramType === "mermaid" ? (theme.themeVariables.background ?? "#fff") : "#fff";
 
+  const copySource = async () => {
+    try {
+      await navigator.clipboard.writeText(data.source);
+      setSourceCopied(true);
+      setTimeout(() => setSourceCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
   return (
-    <div className="h-screen w-screen overflow-hidden" style={{ background: bg }}>
+    <div className="group relative h-screen w-screen overflow-hidden" style={{ background: bg }}>
+      <button
+        onClick={copySource}
+        title="Copy diagram source"
+        className="absolute bottom-2 right-2 z-10 rounded border border-slate-200 bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 opacity-0 backdrop-blur-sm transition-opacity hover:text-slate-800 group-hover:opacity-100"
+      >
+        {sourceCopied ? "Copied!" : "</> source"}
+      </button>
       {diagramType === "mermaid" && (
         <div className="flex h-full w-full items-center justify-center p-4">
           <div ref={innerRef} className="[&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:w-auto" />
