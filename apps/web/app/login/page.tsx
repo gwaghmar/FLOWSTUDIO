@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signInWithPassword, signUpWithPassword } from "@/app/actions/login";
 import { isMockAuthEnabled } from "@/lib/auth-mode";
+import { Logo } from "@/components/logo";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "Incorrect email or password.",
@@ -22,20 +23,101 @@ export default async function LoginPage({
   const errorMsg = sp.error ? (ERROR_MESSAGES[sp.error] ?? "Something went wrong. Please try again.") : null;
   const isMock = isMockAuthEnabled();
 
+  const inputStyle = {
+    width: "100%",
+    background: "#fff",
+    border: "1.5px solid var(--fs-border)",
+    borderRadius: 2,
+    padding: "10px 12px",
+    fontFamily: "var(--font-sans-fs)",
+    fontSize: 14,
+    color: "var(--charcoal)",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontFamily: "var(--font-mono-fs)",
+    fontSize: 10,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase" as const,
+    color: "var(--charcoal-light)",
+    marginBottom: 6,
+  };
+
   return (
-    <div className="min-h-screen dot-grid-bg">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
-          FlowStudio
+    <div style={{ background: "var(--cream)", minHeight: "100vh" }}>
+      {/* NAV */}
+      <header style={{ maxWidth: 960, margin: "0 auto", padding: "24px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+          <Logo className="h-6 w-6" />
+          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--charcoal)", fontWeight: 500 }}>
+            FlowStudio
+          </span>
         </Link>
-        <Link href="/" className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+        <Link
+          href="/"
+          style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--charcoal-light)", textDecoration: "none" }}
+        >
           Back to home
         </Link>
       </header>
 
-      <div className="mx-auto flex max-w-md flex-col px-6 pb-16 pt-12">
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-xs backdrop-blur-xs sm:p-7">
+      {/* CARD */}
+      <div style={{ maxWidth: 400, margin: "48px auto 0", padding: "0 24px 80px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fs-indigo)", marginBottom: 12 }}>
+            FlowStudio
+          </p>
+          <h1 style={{ fontFamily: "var(--font-mono-fs)", fontSize: 28, fontWeight: 400, textTransform: "uppercase", letterSpacing: "-0.01em", color: "var(--charcoal)", margin: 0 }}>
+            {isSignUp ? "Create account" : "Welcome back"}
+          </h1>
+        </div>
 
+        <div style={{ background: "#fff", border: "1.5px solid var(--fs-border)", borderRadius: 4, padding: 28 }}>
+
+          {/* Tab switcher */}
+          <div style={{ display: "flex", border: "1.5px solid var(--fs-border)", borderRadius: 2, overflow: "hidden", marginBottom: 24 }}>
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(cb)}`}
+              style={{
+                flex: 1,
+                padding: "8px 0",
+                textAlign: "center",
+                fontFamily: "var(--font-mono-fs)",
+                fontSize: 11,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                background: !isSignUp ? "var(--charcoal)" : "transparent",
+                color: !isSignUp ? "#fff" : "var(--charcoal-light)",
+                transition: "background 0.15s, color 0.15s",
+              }}
+            >
+              Sign in
+            </Link>
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(cb)}&mode=signup`}
+              style={{
+                flex: 1,
+                padding: "8px 0",
+                textAlign: "center",
+                fontFamily: "var(--font-mono-fs)",
+                fontSize: 11,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                background: isSignUp ? "var(--charcoal)" : "transparent",
+                color: isSignUp ? "#fff" : "var(--charcoal-light)",
+                transition: "background 0.15s, color 0.15s",
+              }}
+            >
+              Create account
+            </Link>
+          </div>
+
+          {/* Dev mock sign-in */}
           {isMock && (
             <form
               action={async (formData: FormData) => {
@@ -44,41 +126,55 @@ export default async function LoginPage({
                 void email;
                 redirect(cb);
               }}
-              className="mb-5 flex flex-col gap-3"
+              style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}
             >
-              <input name="email" type="email" placeholder="dev@example.com"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
+              <input
+                name="email"
+                type="email"
+                placeholder="dev@example.com"
+                style={inputStyle}
               />
-              <button type="submit"
-                className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+              <button
+                type="submit"
+                style={{
+                  width: "100%",
+                  background: "#059669",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 2,
+                  padding: "10px 0",
+                  fontFamily: "var(--font-mono-fs)",
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
               >
                 Demo sign-in
               </button>
-              <p className="text-center text-xs text-slate-400">Dev mode — no password required</p>
+              <p style={{ textAlign: "center", fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.06em", color: "var(--charcoal-light)" }}>
+                Dev mode — no password required
+              </p>
             </form>
           )}
 
-          <div className="flex rounded-lg border border-slate-200 p-1 text-sm font-medium">
-            <Link
-              href={`/login?callbackUrl=${encodeURIComponent(cb)}`}
-              className={`flex-1 rounded-md py-1.5 text-center transition-colors ${!isSignUp ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
-            >
-              Sign in
-            </Link>
-            <Link
-              href={`/login?callbackUrl=${encodeURIComponent(cb)}&mode=signup`}
-              className={`flex-1 rounded-md py-1.5 text-center transition-colors ${isSignUp ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
-            >
-              Create account
-            </Link>
-          </div>
-
-          {errorMsg ? (
-            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+          {/* Error */}
+          {errorMsg && (
+            <p style={{
+              marginBottom: 20,
+              border: "1.5px solid #fca5a5",
+              background: "#fef2f2",
+              borderRadius: 2,
+              padding: "10px 12px",
+              fontFamily: "var(--font-sans-fs)",
+              fontSize: 13,
+              color: "#991b1b",
+            }}>
               {errorMsg}
             </p>
-          ) : null}
+          )}
 
+          {/* Sign up form */}
           {isSignUp ? (
             <form
               action={async (formData: FormData) => {
@@ -92,24 +188,40 @@ export default async function LoginPage({
                   redirect(`${base}&error=${err}`);
                 }
               }}
-              className="mt-5 flex flex-col gap-4"
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}
             >
               <div>
-                <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+                <label htmlFor="signup-email" style={labelStyle}>Email</label>
                 <input id="signup-email" name="email" type="email" required autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+                <label htmlFor="signup-password" style={labelStyle}>Password</label>
                 <input id="signup-password" name="password" type="password" required minLength={8} autoComplete="new-password"
                   placeholder="Min. 8 characters"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
+                  style={inputStyle}
                 />
               </div>
-              <button type="submit" className="rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
-                Create account
+              <button
+                type="submit"
+                className="fs-btn-press"
+                style={{
+                  width: "100%",
+                  background: "var(--charcoal)",
+                  color: "#fff",
+                  border: "1.5px solid var(--charcoal)",
+                  borderRadius: 2,
+                  padding: "11px 0",
+                  fontFamily: "var(--font-mono-fs)",
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                Create account →
               </button>
             </form>
           ) : (
@@ -125,28 +237,51 @@ export default async function LoginPage({
                   redirect(`${base}&error=${err}`);
                 }
               }}
-              className="mt-5 flex flex-col gap-4"
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}
             >
               <div>
-                <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+                <label htmlFor="login-email" style={labelStyle}>Email</label>
                 <input id="login-email" name="email" type="email" required autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+                <label htmlFor="login-password" style={labelStyle}>Password</label>
                 <input id="login-password" name="password" type="password" required autoComplete="current-password"
                   placeholder="Your password"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-200"
+                  style={inputStyle}
                 />
               </div>
-              <button type="submit" className="rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
-                Sign in
+              <button
+                type="submit"
+                className="fs-btn-press"
+                style={{
+                  width: "100%",
+                  background: "var(--charcoal)",
+                  color: "#fff",
+                  border: "1.5px solid var(--charcoal)",
+                  borderRadius: 2,
+                  padding: "11px 0",
+                  fontFamily: "var(--font-mono-fs)",
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                Sign in →
               </button>
             </form>
           )}
         </div>
+
+        <p style={{ textAlign: "center", marginTop: 20, fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "var(--charcoal-light)" }}>
+          By signing in you agree to our{" "}
+          <Link href="/legal/terms" style={{ color: "var(--charcoal)", textDecoration: "underline" }}>Terms</Link>
+          {" "}and{" "}
+          <Link href="/legal/privacy" style={{ color: "var(--charcoal)", textDecoration: "underline" }}>Privacy Policy</Link>.
+        </p>
       </div>
     </div>
   );
