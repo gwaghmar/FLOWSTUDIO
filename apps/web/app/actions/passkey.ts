@@ -12,7 +12,7 @@ import { passkeyCredentials, passkeyChallenge, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 const RP_ID = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname : "localhost";
-const RP_NAME = "FlowStudio";
+const RP_NAME = "drawxyz";
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3040";
 
 type AuthenticatorTransportFuture = "ble" | "internal" | "nfc" | "smart-card" | "usb" | "hybrid";

@@ -36,9 +36,11 @@ pnpm --filter @flowchart/web db:studio    # Drizzle Studio UI
 
 ## What this is
 
-**FlowStudio** — an AI-powered diagram editor. Plain-text prompt in → rendered
+**drawxyz** — an AI-powered diagram editor. Plain-text prompt in → rendered
 diagram out. Aimed at solo creators (founders, indie hackers, technical writers)
 who need diagrams for decks, blog posts, docs, social posts, and embeds.
+
+URL: https://drawxyz.vercel.app
 
 URL pattern: prompt → AI picks diagram type → editor renders → user iterates →
 share / embed / export.

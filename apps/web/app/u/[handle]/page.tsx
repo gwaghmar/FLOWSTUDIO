@@ -9,11 +9,11 @@ const getProfile = cache(resolveProfile);
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
   const user = await getProfile(handle);
-  if (!user) return { title: "Not found — FlowStudio" };
+  if (!user) return { title: "Not found — drawxyz" };
   const name = user.name ?? user.email.split("@")[0];
   return {
-    title: `${name} (@${handle}) — FlowStudio`,
-    description: `Diagrams published by ${name} on FlowStudio.`,
+    title: `${name} (@${handle}) — drawxyz`,
+    description: `Diagrams published by ${name} on drawxyz.`,
   };
 }
 

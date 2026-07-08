@@ -113,7 +113,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
           >
             F
           </div>
-          <div style={{ fontSize: "22px", fontWeight: 600, color: "#1e293b" }}>FlowStudio</div>
+          <div style={{ fontSize: "22px", fontWeight: 600, color: "#1e293b" }}>drawxyz</div>
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -144,7 +144,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ fontSize: "20px", color: "#64748b" }}>
-            View this diagram on FlowStudio
+            View this diagram on drawxyz
           </div>
           <div style={{ fontSize: "18px", color: "#94a3b8" }}>flowstudio.app</div>
         </div>

@@ -46,7 +46,7 @@ export default async function HomePage() {
             <br />in seconds.
           </h1>
           <p style={{ fontFamily: "var(--font-sans-fs)", fontSize: 20, fontWeight: 300, lineHeight: 1.6, color: "var(--charcoal-light)", maxWidth: 560, margin: "0 auto 40px" }}>
-            Describe what you need. FlowStudio picks the right diagram type and generates it instantly — flowcharts, timelines, org charts, and 19 more.
+            Describe what you need. drawxyz picks the right diagram type and generates it instantly — flowcharts, timelines, org charts, and 19 more.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 16 }}>
             {isLoggedIn ? (
@@ -154,14 +154,14 @@ export default async function HomePage() {
         <footer style={{ background: "#111", padding: "36px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Logo className="h-6 w-6 rounded-sm shadow-xs shadow-orange-500/20" />
-            <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "#555" }}>FlowStudio</span>
+            <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "#555" }}>drawxyz</span>
           </div>
           <div style={{ display: "flex", gap: 24 }}>
             {["Pricing", "Docs", "Privacy", "Terms"].map((l) => (
               <Link key={l} href={`/${l.toLowerCase()}`} style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#555", textDecoration: "none", letterSpacing: "0.04em" }}>{l}</Link>
             ))}
           </div>
-          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#444" }}>© 2026 FlowStudio</span>
+          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#444" }}>© 2026 drawxyz</span>
         </footer>
       </main>
     </div>

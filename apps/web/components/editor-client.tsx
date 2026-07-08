@@ -1480,7 +1480,7 @@ export function EditorClient({
             style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "var(--charcoal)" }}
           >
             <Logo className="h-5 w-5 shadow-xs rounded-sm shadow-orange-500/20" />
-            <span style={{ fontFamily: "var(--font-mono-fs)", fontWeight: 500, color: "var(--charcoal)" }}>{title || "FlowStudio"}</span>
+            <span style={{ fontFamily: "var(--font-mono-fs)", fontWeight: 500, color: "var(--charcoal)" }}>{title || "drawxyz"}</span>
             <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
 
@@ -2370,7 +2370,7 @@ export function EditorClient({
                       <span className="font-mono">{mermaidRenderError}</span>
                     </div>
                   )}
-                  {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with FlowStudio</div>}
+                  {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with drawxyz</div>}
                 </div>
               </div>
             </div>

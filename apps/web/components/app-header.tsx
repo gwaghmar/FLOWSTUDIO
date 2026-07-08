@@ -31,7 +31,7 @@ export function AppHeader({ creditsLabel, showAdmin, headerIdentity, signOutActi
         <Link href="/app" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <Logo className="h-6 w-6 shadow-xs rounded-sm shadow-orange-500/20" />
           <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 14, color: "var(--charcoal)", fontWeight: 500 }}>
-            FlowStudio
+            drawxyz
           </span>
         </Link>
 

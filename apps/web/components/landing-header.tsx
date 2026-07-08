@@ -27,7 +27,7 @@ export function LandingHeader({ isLoggedIn, editorHref }: Props) {
         {/* Logo */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <Logo className="h-7 w-7 rounded-sm shadow-xs shadow-orange-500/20" />
-          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 15, color: "var(--charcoal)", fontWeight: 500 }}>FlowStudio</span>
+          <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 15, color: "var(--charcoal)", fontWeight: 500 }}>drawxyz</span>
         </Link>
 
         {/* Desktop nav */}

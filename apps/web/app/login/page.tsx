@@ -54,7 +54,7 @@ export default async function LoginPage({
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <Logo className="h-6 w-6" />
           <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--charcoal)", fontWeight: 500 }}>
-            FlowStudio
+            drawxyz
           </span>
         </Link>
         <Link
@@ -69,7 +69,7 @@ export default async function LoginPage({
       <div style={{ maxWidth: 400, margin: "48px auto 0", padding: "0 24px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fs-indigo)", marginBottom: 12 }}>
-            FlowStudio
+            drawxyz
           </p>
           <h1 style={{ fontFamily: "var(--font-mono-fs)", fontSize: 28, fontWeight: 400, textTransform: "uppercase", letterSpacing: "-0.01em", color: "var(--charcoal)", margin: 0 }}>
             {isSignUp ? "Create account" : "Welcome back"}

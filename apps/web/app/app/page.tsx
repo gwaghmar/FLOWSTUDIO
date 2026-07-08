@@ -62,7 +62,7 @@ export default async function DashboardPage() {
               AI-first workspace
             </div>
             <h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
-              What should FlowStudio create, {userName}?
+              What should drawxyz create, {userName}?
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
               Generate diagrams, data charts, process maps, and export-ready visuals from one prompt.

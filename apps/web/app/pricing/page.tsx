@@ -36,7 +36,7 @@ export default function PricingPage() {
             href="/"
             className={`text-lg font-semibold tracking-tight text-slate-900 ${focusRing} rounded-xs`}
           >
-            FlowStudio
+            drawxyz
           </Link>
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-x-6 text-sm text-slate-600">

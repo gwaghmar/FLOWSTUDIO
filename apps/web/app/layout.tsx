@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FlowStudio — AI Diagram Generator",
+  title: "drawxyz — AI Diagram Generator",
   description:
     "Describe it. Get a diagram. Export anywhere. AI picks from 22 diagram types instantly.",
   icons: {
