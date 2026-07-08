@@ -52,6 +52,7 @@ export function CollaboratorsPanel({
         {others.map((collab) => (
           <div
             key={collab.sessionId}
+            title={`Collaborator: ${collab.userId}`}
             style={{
               width: 28,
               height: 28,
@@ -66,7 +67,6 @@ export function CollaboratorsPanel({
               fontWeight: "bold",
               color: "white",
               cursor: "default",
-              title: `Collaborator: ${collab.userId}`,
             }}
           >
             {collab.userId.charAt(0).toUpperCase()}

@@ -52,23 +52,17 @@ export function useCollaboration(projectId: string, sessionId: string) {
         const state = channel.presenceState();
         const allCollaborators: Collaborator[] = [];
         Object.values(state).forEach((users) => {
-          users.forEach((user) => {
+          users.forEach((user: any) => {
             allCollaborators.push(user as Collaborator);
           });
         });
         setCollaborators(allCollaborators);
       })
-      .on("presence", { event: "join" }, (payload) => {
+      .on("presence", { event: "join" }, () => {
         // New collaborator joined
       })
-      .on("presence", { event: "leave" }, (payload) => {
-        setCollaborators((prev) =>
-          prev.filter(
-            (c) =>
-              c.userId !== payload.newPresences[0]?.userId ||
-              c.sessionId !== payload.newPresences[0]?.sessionId
-          )
-        );
+      .on("presence", { event: "leave" }, () => {
+        // Collaborator left
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {

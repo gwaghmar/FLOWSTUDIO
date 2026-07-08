@@ -242,7 +242,7 @@ function matchTemplate(prompt: string): Template | null {
   return id ? (TEMPLATES.find((t) => t.id === id) ?? null) : null;
 }
 
-type Props = {
+export type EditorClientProps = {
   initialSource: string;
   initialThemeId: string;
   initialTitle: string;
@@ -257,6 +257,8 @@ type Props = {
   userEmail?: string;
   userName?: string;
 };
+
+type Props = EditorClientProps;
 
 function useClickOutside(
   ref: React.RefObject<HTMLElement | null>,

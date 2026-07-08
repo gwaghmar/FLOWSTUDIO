@@ -31,11 +31,10 @@ export async function addCollaborator(
     });
     if (!user) return { success: false, error: "User not found" };
 
-    const isOwner = project.workspaceId === (
-      await db.query.workspaces.findFirst({
-        where: eq(workspaces.id, project.workspaceId),
-      })
-    )?.ownerId === session.user.id;
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, project.workspaceId),
+    });
+    const isOwner = workspace?.ownerId === session.user.id;
 
     if (!isOwner)
       return { success: false, error: "Only workspace owner can add collaborators" };
