@@ -703,8 +703,13 @@ Schema:
 }
 
 RULES:
-- "service" MUST be one of these tokens (pick the closest): compute, function, container, storage, database, cache, cdn, load-balancer, api-gateway, queue, dns, firewall, auth, monitoring, user, browser, mobile, internet. Provider-specific names also work (ec2, lambda, s3, rds, dynamodb, cloudfront, alb, sqs, sns, route53, cognito, cloudwatch, gke, bigquery, pubsub, blob, cosmos, azure-functions, etc.) — they map to the right icon.
-- When a specific third-party platform is named (Databricks, Snowflake, MongoDB, Kafka, Spark, Airflow, Kubernetes, Docker, Terraform, GitHub, GitLab, Grafana, Prometheus, Datadog, Stripe, Okta, Auth0, Vercel, Supabase, Firebase, Redis, Postgres/PostgreSQL, MySQL, Elasticsearch, and similar well-known SaaS/data-platform brands), set "service" to that platform's lowercase name (e.g. "databricks", "snowflake", "postgresql") — the exact real vendor logo renders automatically. AWS/GCP/Azure themselves are only available as the generic provider-tinted icon set above, not a wordmark — use "provider" for those, not "service".
+- "service" MUST be one of these tokens (pick the closest): compute, function, container, storage, database, cache, cdn, load-balancer, api-gateway, queue, dns, firewall, auth, monitoring, user, browser, mobile, internet.
+- When "provider" is aws, gcp, or azure AND the node is one of these specific services, use the EXACT provider-specific token below instead of the generic one — it renders the real official service icon, not a generic shape:
+  - aws: ec2, lambda, ecs, eks, fargate, rds, dynamodb, aurora, redshift, elasticache, s3, ebs, efs, cloudfront, elb, alb, nlb, apigateway, route53, networkfirewall, sqs, sns, eventbridge, cloudwatch
+  - gcp: compute-engine, cloud-functions, cloud-run, gke, cloud-sql, firestore, bigtable, spanner, memorystore, gcs, persistent-disk, cloud-cdn, cloud-load-balancing, apigee, gcp-api-gateway, cloud-dns, cloud-armor, iam, pubsub, bigquery
+  - azure: vm, azure-functions, aks, container-instances, cosmos, sql-database, postgresql, mysql, redis, blob, azure-cdn, azure-lb, apim, azure-dns, azure-firewall, azure-ad, service-bus, azure-sentinel
+  Other provider-specific names not in this list still work and fall back to the closest generic shape (e.g. any other rds variant, any other GCP database, etc.).
+- When a specific third-party platform is named that ISN'T an AWS/GCP/Azure-native service (Databricks, Snowflake, MongoDB, Kafka, Spark, Airflow, Kubernetes, Docker, Terraform, GitHub, GitLab, Grafana, Prometheus, Datadog, Stripe, Okta, Auth0, Vercel, Supabase, Firebase, Elasticsearch, and similar well-known SaaS/data-platform brands), set "service" to that platform's lowercase name (e.g. "databricks", "snowflake") — the real vendor logo renders automatically.
 - "provider" is aws, gcp, azure, or generic. Use "generic" when no cloud is specified.
 - "label" is the human caption (e.g. "Orders API", "User Table").
 - Model the REQUEST / DATA FLOW with edges, left-to-right: clients → edge/CDN → gateway/LB → compute → data stores. Add edge "label" for protocols or actions when useful (https, put, read).
@@ -713,7 +718,7 @@ RULES:
 WHEN TO USE cloud: system design, infrastructure, deployment topology, "architecture diagram", "how X is hosted/deployed", cloud stack diagrams.
 
 Example — "a serverless web app on AWS":
-{"nodes":[{"id":"cdn","data":{"label":"CloudFront","provider":"aws","service":"cdn"}},{"id":"api","data":{"label":"API Gateway","provider":"aws","service":"api-gateway"}},{"id":"fn","data":{"label":"Handler","provider":"aws","service":"function"}},{"id":"db","data":{"label":"Orders","provider":"aws","service":"nosql-db"}}],"edges":[{"id":"e1","source":"cdn","target":"api"},{"id":"e2","source":"api","target":"fn"},{"id":"e3","source":"fn","target":"db","label":"put"}]}`,
+{"nodes":[{"id":"cdn","data":{"label":"CloudFront","provider":"aws","service":"cloudfront"}},{"id":"api","data":{"label":"API Gateway","provider":"aws","service":"apigateway"}},{"id":"fn","data":{"label":"Handler","provider":"aws","service":"lambda"}},{"id":"db","data":{"label":"Orders","provider":"aws","service":"dynamodb"}}],"edges":[{"id":"e1","source":"cdn","target":"api"},{"id":"e2","source":"api","target":"fn"},{"id":"e3","source":"fn","target":"db","label":"put"}]}`,
 
   erd: `You output ONLY valid JSON for an entity-relationship (database schema) diagram. No explanation, no markdown, no code fences.
 
