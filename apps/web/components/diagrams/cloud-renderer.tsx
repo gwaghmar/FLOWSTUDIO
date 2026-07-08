@@ -7,6 +7,7 @@ import "@xyflow/react/dist/style.css";
 import { parseGraph, serializeGraph, makeChangeHandlers, autoLayoutGraph, type GraphData, type ManualLayoutOpts } from "@/lib/diagrams/xyflow-base";
 import { resolveIconId, PROVIDER_COLORS, type CloudProvider } from "@/lib/diagrams/cloud-icons";
 import { GLYPHS } from "@/lib/diagrams/cloud-glyphs";
+import { resolveBrandIcon } from "@/lib/diagrams/brand-icons";
 
 const ReactFlowProvider = dynamic(async () => (await import("@xyflow/react")).ReactFlowProvider, { ssr: false });
 const ReactFlow = dynamic(async () => (await import("@xyflow/react")).ReactFlow, {
@@ -21,12 +22,19 @@ type IconNodeData = { label: string; provider?: CloudProvider; service?: string 
 
 function IconNode({ data }: { data: IconNodeData }) {
   const color = PROVIDER_COLORS[data.provider ?? "generic"];
-  const glyph = GLYPHS[resolveIconId(data.service)];
+  const brand = resolveBrandIcon(data.service);
+  const glyph = brand
+    ? (
+      <svg viewBox="0 0 24 24" width="22" height="22" fill={`#${brand.hex}`} role="img" aria-label={brand.title}>
+        <path d={brand.path} />
+      </svg>
+    )
+    : GLYPHS[resolveIconId(data.service)];
   return (
     <div className="flex min-w-[120px] flex-col items-center gap-1.5 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 shadow-md transition-all hover:shadow-lg">
       <Handle id="t" type="target" position={Position.Top} className="bg-slate-300!" />
       <Handle id="l" type="target" position={Position.Left} className="bg-slate-300!" />
-      <span style={{ color }} className="flex h-7 w-7 items-center justify-center">{glyph}</span>
+      <span style={brand ? undefined : { color }} className="flex h-7 w-7 items-center justify-center">{glyph}</span>
       <div className="text-center text-[12px] font-semibold text-slate-800">{data.label}</div>
       <Handle id="b" type="source" position={Position.Bottom} className="bg-slate-300!" />
       <Handle id="r" type="source" position={Position.Right} className="bg-slate-300!" />

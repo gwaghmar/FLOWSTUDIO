@@ -704,6 +704,7 @@ Schema:
 
 RULES:
 - "service" MUST be one of these tokens (pick the closest): compute, function, container, storage, database, cache, cdn, load-balancer, api-gateway, queue, dns, firewall, auth, monitoring, user, browser, mobile, internet. Provider-specific names also work (ec2, lambda, s3, rds, dynamodb, cloudfront, alb, sqs, sns, route53, cognito, cloudwatch, gke, bigquery, pubsub, blob, cosmos, azure-functions, etc.) — they map to the right icon.
+- When a specific third-party platform is named (Databricks, Snowflake, MongoDB, Kafka, Spark, Airflow, Kubernetes, Docker, Terraform, GitHub, GitLab, Grafana, Prometheus, Datadog, Stripe, Okta, Auth0, Vercel, Supabase, Firebase, Redis, Postgres/PostgreSQL, MySQL, Elasticsearch, and similar well-known SaaS/data-platform brands), set "service" to that platform's lowercase name (e.g. "databricks", "snowflake", "postgresql") — the exact real vendor logo renders automatically. AWS/GCP/Azure themselves are only available as the generic provider-tinted icon set above, not a wordmark — use "provider" for those, not "service".
 - "provider" is aws, gcp, azure, or generic. Use "generic" when no cloud is specified.
 - "label" is the human caption (e.g. "Orders API", "User Table").
 - Model the REQUEST / DATA FLOW with edges, left-to-right: clients → edge/CDN → gateway/LB → compute → data stores. Add edge "label" for protocols or actions when useful (https, put, read).
