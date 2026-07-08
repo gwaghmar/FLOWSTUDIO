@@ -274,6 +274,13 @@ export default async function LoginPage({
                 >
                   Sign in →
                 </button>
+
+                <Link
+                  href="/auth/forgot-password"
+                  style={{ textAlign: "center", fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "var(--fs-indigo)", textDecoration: "none" }}
+                >
+                  Forgot password?
+                </Link>
               </form>
 
               {/* Divider */}
