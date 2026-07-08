@@ -5,7 +5,7 @@ import { recordEdit } from "@/app/actions/collaboration";
 interface EditOperation {
   type: "insert" | "delete" | "replace";
   position: number;
-  content: string;
+  content?: string;
   oldContent?: string;
 }
 
