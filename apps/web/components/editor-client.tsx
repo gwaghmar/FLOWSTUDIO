@@ -321,6 +321,7 @@ export function EditorClient({
   const [parseError, setParseError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showTypePanel, setShowTypePanel] = useState(false);
+  const [showTypeHelp, setShowTypeHelp] = useState(false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showEchartsStylePanel, setShowEchartsStylePanel] = useState(false);
   const [showBgPanel, setShowBgPanel] = useState(false);
@@ -1665,6 +1666,27 @@ export function EditorClient({
                 <div style={{ fontFamily: "var(--font-sans-fs)", fontSize: 12, color: "#999", lineHeight: 1.5, fontWeight: 300 }}>
                   Describe the diagram or process you want to create. I handle Mermaid, Charts, Whiteboards and more.
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTypeHelp(true)}
+                  className="mt-3 flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-medium text-indigo-600 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+                >
+                  📌 Not sure which diagram type to use?
+                </button>
+                {showTypeHelp && (
+                  <div className="mt-3 max-w-xs rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 text-left dark:border-indigo-800 dark:bg-indigo-950/40">
+                    <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                      Just describe your idea in plain language — the AI reads it and automatically picks the best diagram type (flowchart, cloud architecture, ERD, timeline, comparison card, and 17 others). You can also pick one yourself with the <span className="font-medium text-indigo-600 dark:text-indigo-300">type switcher</span> in the top toolbar, or change it anytime after generating.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setShowTypeHelp(false); setShowTypePanel(true); }}
+                      className="mt-2 text-[11px] font-medium text-indigo-600 underline dark:text-indigo-300"
+                    >
+                      Browse all 22 types →
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             
@@ -1982,15 +2004,49 @@ export function EditorClient({
             </div>
             
             <div className="hidden lg:block h-4 w-px shrink-0" style={{ background: "var(--fs-border)" }} />
-            <button
-              type="button"
-              className="hidden lg:flex shrink-0 items-center gap-1.5 fs-btn-press"
-              style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", padding: "3px 10px", borderRadius: 2, border: "1px solid var(--fs-indigo-border)", cursor: "default" }}
-              title="Diagram type"
-            >
-              <DiagramTypeIcon type={diagramType} size={10} />
-              {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label} ▾
-            </button>
+            <div className="relative hidden lg:block shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowTypePanel((v) => !v)}
+                className="flex items-center gap-1.5 fs-btn-press"
+                style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", background: "var(--fs-indigo-bg)", color: "var(--fs-indigo)", padding: "3px 10px", borderRadius: 2, border: "1px solid var(--fs-indigo-border)", cursor: "pointer" }}
+                title="Change diagram type"
+              >
+                <DiagramTypeIcon type={diagramType} size={10} />
+                {diagramType === "mermaid" ? getMermaidSubtypeMeta(mermaidSubtype).label : typeMeta.label} ▾
+              </button>
+              {showTypePanel && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowTypePanel(false)} />
+                  <div
+                    className="absolute left-0 top-full z-50 mt-1.5 max-h-96 w-72 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                    role="menu"
+                  >
+                    <p className="px-2 pt-1 pb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      Switch diagram type
+                    </p>
+                    {DIAGRAM_TYPE_META.map((meta) => (
+                      <button
+                        key={meta.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => handleSwitchType(meta.id)}
+                        className={`flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-700 ${meta.id === diagramType ? "bg-indigo-50 dark:bg-indigo-950" : ""}`}
+                      >
+                        <DiagramTypeIcon type={meta.id} size={14} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium text-slate-700 dark:text-slate-200">{meta.label}</span>
+                          <span className="block truncate text-[10px] text-slate-400 dark:text-slate-500">{meta.description}</span>
+                        </span>
+                      </button>
+                    ))}
+                    <p className="px-2 pt-1.5 pb-1 text-[10px] text-amber-600 dark:text-amber-400">
+                      Switching resets the canvas to a blank starter for the new type.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
 
             {(["mermaid", "reactflow", "nivo", "bpmn"] as DiagramType[]).includes(diagramType) && (
               <>
