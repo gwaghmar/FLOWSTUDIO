@@ -272,6 +272,11 @@ export async function verifyPasskeyAuthentication(credential: unknown): Promise<
       expectedChallenge: challenge.challenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
+      credential: {
+        id: storedCred.credentialId,
+        publicKey: base64urlDecode(storedCred.credentialPublicKey),
+        counter: storedCred.counter,
+      } as any,
     });
 
     if (!verification.verified) {
