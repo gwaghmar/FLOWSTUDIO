@@ -219,3 +219,69 @@ export const passkeyChallenge = pgTable("passkey_challenge", {
   index("passkey_challenge_user_idx").on(t.userId),
   check("passkey_challenge_type_chk", sql`type IN ('registration', 'authentication')`),
 ]).enableRLS();
+
+export const projectCollaborators = pgTable("project_collaborator", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("editor"),
+  joinedAt: timestamp("joined_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  index("project_collaborator_project_idx").on(t.projectId),
+  index("project_collaborator_user_idx").on(t.userId),
+  check("project_collaborator_role_chk", sql`role IN ('viewer', 'editor', 'admin')`),
+]).enableRLS();
+
+export const projectEdits = pgTable("project_edit", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "set null" }),
+  operation: text("operation").notNull(),
+  operationData: text("operation_data").notNull(),
+  clientId: text("client_id").notNull(),
+  lamportTimestamp: integer("lamport_timestamp").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  index("project_edit_project_idx").on(t.projectId),
+  index("project_edit_created_idx").on(t.createdAt),
+]).enableRLS();
+
+export const collaboratorPresence = pgTable("collaborator_presence", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(),
+  cursorX: integer("cursor_x"),
+  cursorY: integer("cursor_y"),
+  selectionStart: text("selection_start"),
+  selectionEnd: text("selection_end"),
+  color: text("color").notNull(),
+  lastHeartbeat: timestamp("last_heartbeat", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  index("collaborator_presence_project_idx").on(t.projectId),
+  index("collaborator_presence_heartbeat_idx").on(t.lastHeartbeat),
+]).enableRLS();

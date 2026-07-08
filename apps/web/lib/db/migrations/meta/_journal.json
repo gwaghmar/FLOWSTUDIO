@@ -50,6 +50,13 @@
       "when": 1783473659441,
       "tag": "0006_wonderful_shadowcat",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783483820972,
+      "tag": "0007_fantastic_expediter",
+      "breakpoints": true
     }
   ]
 }
