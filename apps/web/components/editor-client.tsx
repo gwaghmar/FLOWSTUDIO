@@ -2372,7 +2372,7 @@ export function EditorClient({
                       <span className="font-mono">{mermaidRenderError}</span>
                     </div>
                   )}
-                  {showWatermark && <div data-no-export className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with drawxyz</div>}
+                  {showWatermark && <div className="absolute bottom-3 right-4 text-[10px] opacity-30 text-slate-600 font-medium select-none">Made with drawxyz</div>}
                 </div>
               </div>
             </div>

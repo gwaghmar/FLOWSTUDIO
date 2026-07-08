@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { streamText, tool, stepCountIs, convertToModelMessages } from "ai";
 import { z } from "zod";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
@@ -14,6 +17,22 @@ import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
 import { applyPatch } from "@/lib/agent-tools";
 
 export const maxDuration = 60;
+
+async function tryDecrementCredit(userId: string): Promise<boolean> {
+  const out = await db
+    .update(users)
+    .set({ creditsBalance: sql`${users.creditsBalance} - 1` })
+    .where(and(eq(users.id, userId), gt(users.creditsBalance, 0)))
+    .returning({ id: users.id });
+  return out.length > 0;
+}
+
+async function refundCredit(userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ creditsBalance: sql`${users.creditsBalance} + 1` })
+    .where(eq(users.id, userId));
+}
 
 // Block fetches to loopback, private ranges, link-local, and the cloud metadata
 // endpoint. Defends fetch_external_data against SSRF. Hostnames that resolve to
@@ -64,6 +83,15 @@ export async function POST(req: Request) {
   const headerKey = req.headers.get("x-openai-key");
   let apiKey: string | null = headerKey?.trim() || null;
   let keySource: "header" | "byok" | "env" = "header";
+  const skipCredits = user.plan === "pro" || Boolean(headerKey?.trim());
+
+  if (user.plan === "free" && !skipCredits && user.creditsBalance <= 0) {
+    const body: ApiError = {
+      error: "No credits left. Add an AI key in Settings, upgrade to Pro, or wait for an admin grant.",
+      code: "INSUFFICIENT_CREDITS",
+    };
+    return NextResponse.json(body, { status: 402 });
+  }
 
   if (!apiKey) {
     const cipher = user.aiApiKeyCipher ?? null;
@@ -152,12 +180,28 @@ export async function POST(req: Request) {
   const promptLength = JSON.stringify(lastUserText ?? "").length;
   const sourceLength = (currentSource || "").length;
 
+  let creditReserved = false;
+  if (user.plan === "free" && !skipCredits) {
+    creditReserved = await tryDecrementCredit(user.id);
+    if (!creditReserved) {
+      const body: ApiError = { error: "No credits left. Add an AI key in Settings, upgrade to Pro, or wait for an admin grant.", code: "INSUFFICIENT_CREDITS" };
+      return NextResponse.json(body, { status: 402 });
+    }
+  }
+
   try {
     const result = streamText({
       model: languageModel,
       messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       abortSignal: AbortSignal.timeout(45_000),
+      onError: ({ error }) => {
+        if (creditReserved) {
+          creditReserved = false;
+          void refundCredit(user.id);
+        }
+        console.error("[Agent stream error]", error);
+      },
       onFinish: ({ usage }) => {
         void recordAiEvent({
           userId: user.id,
@@ -403,6 +447,10 @@ STRATEGY:
 
     return result.toUIMessageStreamResponse();
   } catch (e) {
+    if (creditReserved) {
+      creditReserved = false;
+      void refundCredit(user.id);
+    }
     console.error("[Agent error]", e);
     const errBody: ApiError = { error: e instanceof Error ? e.message : "Agent failed", code: "INTERNAL_ERROR" };
     return NextResponse.json(errBody, { status: 502 });
