@@ -181,3 +181,41 @@ export const exportJobs = pgTable("export_job", {
   index("export_job_user_idx").on(t.userId),
   check("export_job_status_chk", sql`status IN ('queued', 'processing', 'done', 'failed')`),
 ]).enableRLS();
+
+export const passkeyCredentials = pgTable("passkey_credential", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialId: text("credential_id").notNull().unique(),
+  credentialPublicKey: text("credential_public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  transports: text("transports"),
+  aaguid: text("aaguid"),
+  name: text("name"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  index("passkey_credential_user_idx").on(t.userId),
+  index("passkey_credential_id_idx").on(t.credentialId),
+]).enableRLS();
+
+export const passkeyChallenge = pgTable("passkey_challenge", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  challenge: text("challenge").notNull(),
+  type: text("type").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" })
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  index("passkey_challenge_user_idx").on(t.userId),
+  check("passkey_challenge_type_chk", sql`type IN ('registration', 'authentication')`),
+]).enableRLS();

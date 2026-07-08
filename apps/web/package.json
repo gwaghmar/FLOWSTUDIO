@@ -19,6 +19,8 @@
     "@ai-sdk/mistral": "^3.0.37",
     "@ai-sdk/openai": "^3.0.67",
     "@ai-sdk/react": "^3.0.196",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.0",
     "@dagrejs/dagre": "^3.0.0",
     "@excalidraw/excalidraw": "^0.18.1",
     "@flowchart/core": "workspace:*",

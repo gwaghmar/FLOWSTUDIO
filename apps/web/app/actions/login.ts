@@ -96,6 +96,7 @@ export async function signUpWithPassword(
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({ email, password });
   if (error) {
+    console.error("[signUpWithPassword] Supabase error:", error.status, error.message);
     const msg = error.message.toLowerCase();
     if (msg.includes("already") || msg.includes("registered")) {
       return "already_registered";

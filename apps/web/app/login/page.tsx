@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { signInWithPassword, signUpWithPassword } from "@/app/actions/login";
 import { isMockAuthEnabled } from "@/lib/auth-mode";
 import { Logo } from "@/components/logo";
+import { PasskeyAuth } from "@/components/passkey-auth";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "Incorrect email or password.",
@@ -225,54 +226,72 @@ export default async function LoginPage({
               </button>
             </form>
           ) : (
-            <form
-              action={async (formData: FormData) => {
-                "use server";
-                const email = (formData.get("email") as string)?.trim();
-                const password = formData.get("password") as string;
-                const base = `/login?callbackUrl=${encodeURIComponent(cb)}`;
-                const err = await signInWithPassword(email, password, cb);
-                if (err) {
-                  const { redirect } = await import("next/navigation");
-                  redirect(`${base}&error=${err}`);
-                }
-              }}
-              style={{ display: "flex", flexDirection: "column", gap: 16 }}
-            >
-              <div>
-                <label htmlFor="login-email" style={labelStyle}>Email</label>
-                <input id="login-email" name="email" type="email" required autoComplete="email"
-                  placeholder="you@example.com"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label htmlFor="login-password" style={labelStyle}>Password</label>
-                <input id="login-password" name="password" type="password" required autoComplete="current-password"
-                  placeholder="Your password"
-                  style={inputStyle}
-                />
-              </div>
-              <button
-                type="submit"
-                className="fs-btn-press"
-                style={{
-                  width: "100%",
-                  background: "var(--charcoal)",
-                  color: "#fff",
-                  border: "1.5px solid var(--charcoal)",
-                  borderRadius: 2,
-                  padding: "11px 0",
-                  fontFamily: "var(--font-mono-fs)",
-                  fontSize: 11,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
+            <>
+              <form
+                action={async (formData: FormData) => {
+                  "use server";
+                  const email = (formData.get("email") as string)?.trim();
+                  const password = formData.get("password") as string;
+                  const base = `/login?callbackUrl=${encodeURIComponent(cb)}`;
+                  const err = await signInWithPassword(email, password, cb);
+                  if (err) {
+                    const { redirect } = await import("next/navigation");
+                    redirect(`${base}&error=${err}`);
+                  }
                 }}
+                style={{ display: "flex", flexDirection: "column", gap: 16 }}
               >
-                Sign in →
-              </button>
-            </form>
+                <div>
+                  <label htmlFor="login-email" style={labelStyle}>Email</label>
+                  <input id="login-email" name="email" type="email" required autoComplete="email"
+                    placeholder="you@example.com"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="login-password" style={labelStyle}>Password</label>
+                  <input id="login-password" name="password" type="password" required autoComplete="current-password"
+                    placeholder="Your password"
+                    style={inputStyle}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="fs-btn-press"
+                  style={{
+                    width: "100%",
+                    background: "var(--charcoal)",
+                    color: "#fff",
+                    border: "1.5px solid var(--charcoal)",
+                    borderRadius: 2,
+                    padding: "11px 0",
+                    fontFamily: "var(--font-mono-fs)",
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}
+                >
+                  Sign in →
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "8px 0" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--fs-border)" }} />
+                <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, color: "var(--charcoal-light)" }}>
+                  OR
+                </span>
+                <div style={{ flex: 1, height: "1px", background: "var(--fs-border)" }} />
+              </div>
+
+              {/* Passkey auth */}
+              <PasskeyAuth
+                email={undefined}
+                mode="signin"
+                callbackUrl={cb}
+              />
+            </>
           )}
         </div>
 
