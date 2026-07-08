@@ -36,7 +36,7 @@ export default async function HomePage() {
       <main id="main-content" tabIndex={-1}>
 
         {/* HERO */}
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "96px 40px 56px", textAlign: "center" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "72px 40px 40px", textAlign: "center" }}>
           <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fs-indigo)", marginBottom: 24 }}>
             AI Diagram Generator
           </p>
@@ -90,7 +90,7 @@ export default async function HomePage() {
         </div>
 
         {/* FEATURES */}
-        <div style={{ background: "var(--cream)", padding: "80px 40px" }}>
+        <div style={{ background: "var(--cream)", padding: "56px 40px" }}>
           <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fs-indigo)", textAlign: "center", marginBottom: 16 }}>How it works</p>
           <h2 style={{ fontFamily: "var(--font-mono-fs)", fontSize: "clamp(24px,4vw,40px)", fontWeight: 400, textTransform: "uppercase", color: "var(--charcoal)", textAlign: "center", marginBottom: 56, lineHeight: 1.1 }}>
             Three steps to a finished diagram
@@ -111,7 +111,7 @@ export default async function HomePage() {
         </div>
 
         {/* 22 TYPES CHIP CLOUD */}
-        <div style={{ background: "var(--cream-dark)", padding: "72px 40px" }}>
+        <div style={{ background: "var(--cream-dark)", padding: "56px 40px" }}>
           <p style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fs-indigo)", textAlign: "center", marginBottom: 16 }}>22 diagram types</p>
           <h2 style={{ fontFamily: "var(--font-mono-fs)", fontSize: "clamp(24px,4vw,40px)", fontWeight: 400, textTransform: "uppercase", color: "var(--charcoal)", textAlign: "center", marginBottom: 32, lineHeight: 1.1 }}>
             One tool. Every diagram.
@@ -134,7 +134,7 @@ export default async function HomePage() {
         </div>
 
         {/* DARK CTA */}
-        <div style={{ background: "var(--charcoal)", padding: "80px 40px", textAlign: "center" }}>
+        <div style={{ background: "var(--charcoal)", padding: "56px 40px", textAlign: "center" }}>
           <h2 style={{ fontFamily: "var(--font-mono-fs)", fontSize: "clamp(24px,4vw,40px)", fontWeight: 400, textTransform: "uppercase", color: "white", marginBottom: 16, lineHeight: 1.1 }}>
             Start diagramming in 30 seconds.
           </h2>
@@ -151,14 +151,19 @@ export default async function HomePage() {
         </div>
 
         {/* FOOTER */}
-        <footer style={{ background: "#111", padding: "36px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <footer style={{ background: "#111", padding: "40px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Logo className="h-6 w-6 rounded-sm shadow-xs shadow-orange-500/20" />
             <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 13, color: "#555" }}>drawxyz</span>
           </div>
-          <div style={{ display: "flex", gap: 24 }}>
-            {["Pricing", "Docs", "Privacy", "Terms"].map((l) => (
-              <Link key={l} href={`/${l.toLowerCase()}`} style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#555", textDecoration: "none", letterSpacing: "0.04em" }}>{l}</Link>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            {[
+              { label: "Pricing", href: "/pricing" },
+              { label: "Docs", href: "/docs" },
+              { label: "Privacy", href: "/legal/privacy" },
+              { label: "Terms", href: "/legal/terms" },
+            ].map(({ label, href }) => (
+              <Link key={label} href={href} style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#555", textDecoration: "none", letterSpacing: "0.04em" }}>{label}</Link>
             ))}
           </div>
           <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "#444" }}>© 2026 drawxyz</span>
