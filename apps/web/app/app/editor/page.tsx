@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { EditorClient } from "@/components/editor-client";
+import { EditorWithCollaboration } from "@/components/editor-with-collaboration";
 import { getProject } from "@/app/actions/project";
 import { getPlanForEmail } from "@/lib/entitlements";
 import { ensureUserAndWorkspace } from "@/lib/user-sync";
@@ -11,6 +12,7 @@ import type { DiagramType } from "@flowchart/core";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,9 @@ export default async function EditorPage({
   const showWatermark = plan !== "pro";
   const userName = session?.user?.name ?? email.split("@")[0];
 
+  // Generate unique session ID for this editor session (for collaboration)
+  const sessionId = randomUUID();
+
   // Fetch credits balance for upgrade nudge
   // const [userData] = await db.select({ creditsBalance: users.creditsBalance }).from(users).where(eq(users.email, email)).limit(1);
   // const creditsBalance = userData?.creditsBalance ?? 5;
@@ -75,8 +80,9 @@ export default async function EditorPage({
       ? (p.diagramType as DiagramType)
       : "mermaid";
     return (
-      <EditorClient
+      <EditorWithCollaboration
         projectId={p.id}
+        sessionId={sessionId}
         initialTitle={p.title}
         initialSource={p.source}
         initialThemeId={p.themeId}
