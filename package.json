@@ -27,6 +27,9 @@
       "@parcel/watcher",
       "unrs-resolver",
       "better-sqlite3"
-    ]
+    ],
+    "overrides": {
+      "ws": "^8.21.0"
+    }
   }
 }
