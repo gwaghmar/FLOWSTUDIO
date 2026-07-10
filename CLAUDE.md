@@ -216,21 +216,22 @@ docs the user didn't ask for.
 - `apply_patch` / `update_node` results are applied client-side and not server-validated (lower risk — surgical edits). Only `update_diagram` goes through `validateAndRepairOutput`.
 - Excalidraw auto-layout is intentionally NOT built — it's a free-form whiteboard with no node graph to lay out.
 
-## Supabase situation (as of 2026-06-21)
+## Supabase / database situation (as of 2026-07-10)
 
-**Old Supabase project (`flowchart` project) is PAUSED** — hit the free-tier limit.
-Govind created a **new Supabase account** to replace it. Steps needed when ready:
-1. Get new `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the new project
-2. Get new `DATABASE_URL` (postgres connection string)
-3. Set all three in Vercel → Settings → Environment Variables (production + preview)
-4. Update `apps/web/.env` for local dev
-5. Run `pnpm --filter @flowchart/web db:push` to apply the Drizzle schema to the new DB
-6. Redeploy on Vercel
+The original Supabase project (`flowchart`) paused on the free tier and was never replaced with a
+working one — for a stretch, no database existed for this product at all. `auth()` already degrades
+gracefully (returns signed-out instead of a hard 500 when Supabase is unreachable), so this didn't
+show up as visible errors, just silent non-persistence.
 
-**Current production state:** All server-rendered pages return 500 because Supabase client throws
-`"Error: Your project's URL and API key are required"` — env vars point to paused/dummy project.
-Pages still visually render via client-side fallback / error boundaries.
-Production URL: `https://flowstudio-govw.vercel.app`
+Fix in progress: `DATABASE_URL` now points to a **Neon** project (connected via Vercel's Storage
+integration — zero code change needed, `lib/db/index.ts` only reads a plain Postgres connection
+string). **Auth** runs through a separate, standalone Supabase project (free-tier org was full;
+this one lives under a different account) via `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+Not yet confirmed end-to-end (no real signup has been click-tested since the fix) — see
+`docs/SAAS-AUDIT-2026-07.md` for the full writeup and remaining punch list.
+
+Production URL: `https://drawwx.vercel.app` (`drawxyz.vercel.app` and the old `flowstudio-*.vercel.app`
+aliases resolve to the same deployment).
 
 ## What's been accomplished (full milestone history)
 
