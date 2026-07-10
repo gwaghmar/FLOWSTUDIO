@@ -9,7 +9,7 @@
 
 A separate, concurrent Claude Code session shipped 21 commits directly to `master` in the days after this audit (`5775737` → `29dee92`), closing several items below and adding scope this audit never covered. This section corrects the record; the rest of the document is left as originally written for the historical trail.
 
-**Also renamed:** the product is now branded **"drawxyz"** everywhere in the UI (title, header, footer, passkey RP name) — the npm package name (`@flowchart/web`) and this repo are unchanged. Live at `drawxyz.vercel.app` (the old `flowstudio-*.vercel.app` aliases still resolve to the same deployment).
+**Also renamed:** the product is now branded **"drawxyz"** everywhere in the UI (title, header, footer, passkey RP name) — the npm package name (`@flowchart/web`) and this repo are unchanged. **Live at `https://drawwx.vercel.app`** — confirmed via direct fetch (`/api/health` → 200). `drawxyz.vercel.app` and the old `flowstudio-*.vercel.app` aliases all resolve to the same deployment; `drawwx.vercel.app` is the canonical one going forward.
 
 **Confirmed CLOSED (verified against current `master`, not just commit messages):**
 - §1.3 watermark bug — genuinely fixed. `showWatermark = plan !== "pro"` (`app/app/editor/page.tsx:65`), and the watermark `<div>` no longer carries `data-no-export`, so it now survives free-tier exports as intended. The same commit (`a2eac29`) also fixed an audit-missed bug: Agent Mode never deducted AI credits, letting free users bypass the credit gate entirely.
