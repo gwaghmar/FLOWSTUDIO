@@ -1,7 +1,30 @@
 # FlowStudio — SaaS Readiness Audit & Market Analysis
 
-**Date:** 2026-07-06
+**Date:** 2026-07-06 (see 2026-07-10 update below)
 **Scope:** Full regression/readiness audit of the codebase and live infrastructure, competitive market analysis, cost strategy, and a go-forward recommendation.
+
+---
+
+## Update — 2026-07-10
+
+A separate, concurrent Claude Code session shipped 21 commits directly to `master` in the days after this audit (`5775737` → `29dee92`), closing several items below and adding scope this audit never covered. This section corrects the record; the rest of the document is left as originally written for the historical trail.
+
+**Also renamed:** the product is now branded **"drawxyz"** everywhere in the UI (title, header, footer, passkey RP name) — the npm package name (`@flowchart/web`) and this repo are unchanged. Live at `drawxyz.vercel.app` (the old `flowstudio-*.vercel.app` aliases still resolve to the same deployment).
+
+**Confirmed CLOSED (verified against current `master`, not just commit messages):**
+- §1.3 watermark bug — genuinely fixed. `showWatermark = plan !== "pro"` (`app/app/editor/page.tsx:65`), and the watermark `<div>` no longer carries `data-no-export`, so it now survives free-tier exports as intended. The same commit (`a2eac29`) also fixed an audit-missed bug: Agent Mode never deducted AI credits, letting free users bypass the credit gate entirely.
+- §1.4 no password reset — genuinely fixed. Full `/auth/forgot-password` → `/auth/reset-sent` → `/auth/reset-password` flow via `password-reset.ts`, using Supabase's `resetPasswordForEmail`.
+- New, beyond original scope: **passkey (WebAuthn) auth** as a full alternative to password login (`actions/passkey.ts`, `settings/passkeys/page.tsx`), and **real-time collaboration** — live cursors/presence and edit sync (`use-collaboration.ts`, `use-edit-sync.ts`, 3 new schema tables: `project_collaborator`, `project_edit`, `collaborator_presence`). Neither was flagged as needed in the original audit; both are substantial net-new surface area to keep in mind for the punch list below (more auth/session code paths, another realtime dependency to keep cheap).
+
+**Confirmed STILL OPEN (re-checked against current `master`):**
+- §1.4 OAuth is dead UI — still true. `signInGoogle/GitHub/Apple` exist only in `actions/login.ts`; no component renders them.
+- §1.4 no account deletion / change email / change password in Settings — still true.
+- §1.6 rate limiting in-memory fallback — code unchanged (`lib/rate-limit.ts` still falls back to a per-process `Map` without Upstash env vars). Whether Upstash is actually configured on Vercel is unverified.
+- §1.6 no error tracking — still true, no Sentry or equivalent anywhere.
+- §1.6 no transactional email provider — still true (Resend/SendGrid/nodemailer absent); password reset currently rides entirely on Supabase's built-in mailer, which is fine for that one flow but doesn't cover receipts or other transactional mail.
+- §1.5 `exportJobs` table — still defined, still unused.
+
+**In progress, not yet confirmed working (this session, same thread as this audit):** the database was fully down (no Supabase project existed at all — confirmed by listing the connected Supabase account, which had 8 unrelated projects and nothing for this product). Mid-fix as of this update: Neon connected via Vercel's Storage integration for `DATABASE_URL`, a new standalone Supabase project created for Auth only (`NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` handed off), production redeployed. Confirmed via direct fetch that `/`, `/login`, and `/api/health` render correctly with no crashes and zero runtime errors logged — but zero real traffic has hit the site, so an actual signup → save → share round-trip is still unverified. This sandbox's network policy blocks outbound requests to `*.vercel.app` (confirmed via the proxy's own status endpoint: `403` policy denial), so it cannot be verified from here with `curl` or a real browser — needs a manual click-test.
 
 ---
 
