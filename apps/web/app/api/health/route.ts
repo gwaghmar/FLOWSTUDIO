@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 async function checkDb() {
-  await db.execute(sql`select 1`);
+  // Queries the real users table (not just "select 1") so a missing schema
+  // (db:push never run) fails this check instead of silently passing.
+  await db.select({ id: users.id }).from(users).limit(1);
 }
 
 async function checkAuth() {
