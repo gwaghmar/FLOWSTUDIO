@@ -189,7 +189,10 @@ export async function POST(req: Request) {
 
   let detectedProvider: AiProvider | null = null;
   if (!apiKey) {
-    if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (process.env.OPENROUTER_API_KEY) {
+      apiKey = process.env.OPENROUTER_API_KEY;
+      detectedProvider = "openai";
+    } else if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
       detectedProvider = "google";
     } else if (process.env.OPENAI_API_KEY) {
@@ -197,9 +200,6 @@ export async function POST(req: Request) {
       detectedProvider = "openai";
     } else if (process.env.AI_GATEWAY_KEY) {
       apiKey = process.env.AI_GATEWAY_KEY;
-      detectedProvider = "openai";
-    } else if (process.env.OPENROUTER_API_KEY) {
-      apiKey = process.env.OPENROUTER_API_KEY;
       detectedProvider = "openai";
     }
     if (apiKey) keySource = "env";
@@ -260,14 +260,13 @@ export async function POST(req: Request) {
   const googleModelFromEnv = process.env.GOOGLE_MODEL?.trim();
   const openAiModelFromEnv = process.env.OPENAI_MODEL?.trim();
   const usingOpenRouterEnvKey =
-    keySource === "env" && detectedProvider === "openai" &&
-    !process.env.OPENAI_API_KEY && !process.env.AI_GATEWAY_KEY && Boolean(process.env.OPENROUTER_API_KEY);
+    keySource === "env" && detectedProvider === "openai" && apiKey === process.env.OPENROUTER_API_KEY;
   const openRouterModelFromEnv = process.env.OPENROUTER_MODEL?.trim();
 
   const model = (keySource === "env" && detectedProvider === "google")
     ? (googleModelFromEnv || "gemini-flash-latest")
     : usingOpenRouterEnvKey
-    ? (openRouterModelFromEnv || "openai/gpt-4o-mini")
+    ? (openRouterModelFromEnv || "google/gemini-2.0-flash-001")
     : (keySource === "env" && detectedProvider === "openai")
     ? (openAiModelFromEnv || "gpt-4o-mini")
     : user.aiModel?.trim() ||

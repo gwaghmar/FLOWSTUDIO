@@ -22,6 +22,9 @@ function getDemoUses(cookieHeader: string | null): number {
 }
 
 function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google"; baseUrl: string | null } | null {
+  if (process.env.OPENROUTER_API_KEY) {
+    return { apiKey: process.env.OPENROUTER_API_KEY, provider: "openai", baseUrl: "https://openrouter.ai/api/v1" };
+  }
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY, provider: "google", baseUrl: null };
   }
@@ -30,9 +33,6 @@ function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google"; bas
   }
   if (process.env.AI_GATEWAY_KEY) {
     return { apiKey: process.env.AI_GATEWAY_KEY, provider: "openai", baseUrl: process.env.OPENAI_BASE_URL?.replace(/\/$/, "") ?? null };
-  }
-  if (process.env.OPENROUTER_API_KEY) {
-    return { apiKey: process.env.OPENROUTER_API_KEY, provider: "openai", baseUrl: "https://openrouter.ai/api/v1" };
   }
   return null;
 }
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     credentials.provider === "google"
       ? (googleModelFromEnv || "gemini-flash-latest")
       : usingOpenRouter
-      ? (openRouterModelFromEnv || "openai/gpt-4o-mini")
+      ? (openRouterModelFromEnv || "google/gemini-2.0-flash-001")
       : (openAiModelFromEnv || "gpt-4o-mini");
 
   const languageModel = buildLanguageModel(credentials.provider, model, credentials.apiKey, credentials.baseUrl);
