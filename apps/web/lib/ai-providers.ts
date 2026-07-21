@@ -33,8 +33,8 @@ export const PROVIDER_META: ProviderMeta[] = [
   {
     id: "google",
     label: "Google Gemini",
-    defaultModel: "gemini-1.5-flash",
-    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
+    defaultModel: "gemini-2.5-flash",
+    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
   },
   {
     id: "mistral",

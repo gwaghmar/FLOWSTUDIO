@@ -21,15 +21,18 @@ function getDemoUses(cookieHeader: string | null): number {
   return match ? Math.min(parseInt(match[1], 10), MAX_DEMO_USES) : 0;
 }
 
-function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google" } | null {
+function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google"; baseUrl: string | null } | null {
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY, provider: "google" };
+    return { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY, provider: "google", baseUrl: null };
   }
   if (process.env.OPENAI_API_KEY) {
-    return { apiKey: process.env.OPENAI_API_KEY, provider: "openai" };
+    return { apiKey: process.env.OPENAI_API_KEY, provider: "openai", baseUrl: process.env.OPENAI_BASE_URL?.replace(/\/$/, "") ?? null };
   }
   if (process.env.AI_GATEWAY_KEY) {
-    return { apiKey: process.env.AI_GATEWAY_KEY, provider: "openai" };
+    return { apiKey: process.env.AI_GATEWAY_KEY, provider: "openai", baseUrl: process.env.OPENAI_BASE_URL?.replace(/\/$/, "") ?? null };
+  }
+  if (process.env.OPENROUTER_API_KEY) {
+    return { apiKey: process.env.OPENROUTER_API_KEY, provider: "openai", baseUrl: "https://openrouter.ai/api/v1" };
   }
   return null;
 }
@@ -74,12 +77,16 @@ export async function POST(req: Request) {
 
   const googleModelFromEnv = process.env.GOOGLE_MODEL?.trim();
   const openAiModelFromEnv = process.env.OPENAI_MODEL?.trim();
+  const openRouterModelFromEnv = process.env.OPENROUTER_MODEL?.trim();
+  const usingOpenRouter = credentials.provider === "openai" && credentials.baseUrl === "https://openrouter.ai/api/v1";
   const model =
     credentials.provider === "google"
-      ? (googleModelFromEnv || "gemini-1.5-flash")
+      ? (googleModelFromEnv || "gemini-2.5-flash")
+      : usingOpenRouter
+      ? (openRouterModelFromEnv || "openai/gpt-4o-mini")
       : (openAiModelFromEnv || "gpt-4o-mini");
 
-  const languageModel = buildLanguageModel(credentials.provider, model, credentials.apiKey, null);
+  const languageModel = buildLanguageModel(credentials.provider, model, credentials.apiKey, credentials.baseUrl);
   const systemPrompt = DIAGRAM_SYSTEM_PROMPTS["mermaid"];
 
   let raw: string;
