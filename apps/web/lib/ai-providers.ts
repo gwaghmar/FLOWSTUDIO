@@ -129,14 +129,17 @@ export function buildLanguageModel(
     case "custom": {
       const base = safeBaseUrl ?? (provider === "ollama" ? "http://localhost:11434/v1" : undefined);
       const client = createOpenAI({ apiKey: apiKey || "ollama", baseURL: base });
-      return client(model) as any;
+      // .chat() targets Chat Completions — the format OpenRouter, Ollama, and
+      // most OpenAI-compatible proxies support. Calling the client directly
+      // defaults to the newer Responses API, which most proxies don't serve.
+      return client.chat(model) as any;
     }
     case "openai":
     default: {
       const opts: Parameters<typeof createOpenAI>[0] = { apiKey };
       if (safeBaseUrl) opts.baseURL = safeBaseUrl;
       const client = createOpenAI(opts);
-      return client(model) as any;
+      return client.chat(model) as any;
     }
   }
 }
