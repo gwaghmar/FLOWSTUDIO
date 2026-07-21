@@ -95,9 +95,22 @@ export async function ensureUserAndWorkspace(email: string) {
       return user ?? null;
     },
     createUser: async (values) => {
-      const [user] = await db.insert(usersTable).values(values).returning();
-      if (!user) throw new Error("Failed to create user");
-      return user;
+      const [user] = await db
+        .insert(usersTable)
+        .values(values)
+        .onConflictDoNothing({ target: usersTable.email })
+        .returning();
+      if (user) return user;
+
+      // A concurrent request (e.g. the sign-up action and the redirected
+      // page render) won the race and inserted this email first.
+      const [existing] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, values.email))
+        .limit(1);
+      if (!existing) throw new Error("Failed to create user");
+      return existing;
     },
     selectWorkspaceByOwnerId: async (ownerId) => {
       const [workspace] = await db
