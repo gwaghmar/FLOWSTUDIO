@@ -335,6 +335,7 @@ export function EditorClient({
   const [mermaidSubtype, setMermaidSubtype] = useState<MermaidSubtype>("flowchart");
   /** Tools / chat column — hide for focus on diagram (persisted). */
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [showAiPopover, setShowAiPopover] = useState(false);
   const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
   const [sourceCaret, setSourceCaret] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const [searchOpen, setSearchOpen] = useState(false);
@@ -501,6 +502,7 @@ export function EditorClient({
 
   const [assumptionBanner, setAssumptionBanner] = useState<string | null>(null);
   const [missingPieces, setMissingPieces] = useState<string[] | null>(null);
+  const [clarificationOptions, setClarificationOptions] = useState<string[] | null>(null);
 
   // Handle incoming data stream (replacing experimental_onData)
   useEffect(() => {
@@ -523,6 +525,11 @@ export function EditorClient({
     }
     if (meta.assistantMessage) {
       setAiNotice(meta.assistantMessage);
+    }
+    if (meta.needsClarification && Array.isArray(meta.clarificationOptions) && meta.clarificationOptions.length > 0) {
+      setClarificationOptions(meta.clarificationOptions);
+    } else if (meta.needsClarification === false || meta.assistantMessage) {
+      setClarificationOptions(null);
     }
     // D-09/D-10: formatted "Generated as: …" banner after silent generation only.
     // Skip the banner for patch responses — assistantMessage already says "Patched existing diagram".
@@ -1926,6 +1933,58 @@ export function EditorClient({
       )}
     </AnimatePresence>
 
+    {/* Floating "Ask AI" pill — shown only while the AI Chat panel is collapsed */}
+    {!leftPanelOpen && (
+      <div style={{ position: "absolute", left: 16, bottom: 16, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+        {showAiPopover && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleChatSubmit(e); setShowAiPopover(false); }}
+            style={{ width: 300, borderRadius: 18, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", border: "1.5px solid var(--fs-border)", boxShadow: "0 12px 32px rgba(0,0,0,0.16)", padding: 10 }}
+          >
+            <textarea
+              autoFocus
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="What should I change, or ask about this?"
+              rows={2}
+              style={{ width: "100%", resize: "none", border: "1px solid var(--fs-border)", borderRadius: 12, padding: "8px 10px", fontFamily: "var(--font-sans-fs)", fontSize: 13, color: "var(--charcoal)", outline: "none", boxSizing: "border-box" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleChatSubmit(e);
+                  setShowAiPopover(false);
+                }
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+              <button
+                type="submit"
+                disabled={!input?.trim() || aiLoading}
+                className="flex items-center justify-center disabled:opacity-30"
+                style={{ width: 26, height: 26, background: "var(--charcoal)", borderRadius: 999, color: "white", border: "none", cursor: "pointer" }}
+              >
+                {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />}
+              </button>
+            </div>
+          </form>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowAiPopover((v) => !v)}
+          className="fs-btn-press"
+          style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 999,
+            background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid var(--fs-border)",
+            color: "var(--charcoal)", fontFamily: "var(--font-mono-fs)", fontSize: 12, letterSpacing: "0.04em",
+            cursor: "pointer", boxShadow: "0 4px 14px rgba(0,0,0,0.10)",
+          }}
+        >
+          <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--fs-indigo)" }} />
+          Ask AI
+        </button>
+      </div>
+    )}
+
     {/* Center/Right: Diagram Canvas */}
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* AI generation progress bar */}
@@ -1934,11 +1993,36 @@ export function EditorClient({
           <div className="ai-progress-bar" />
         </div>
       )}
-      {/* AI notice banner — type switch or assumption info */}
+      {/* AI notice banner — type switch, assumption info, or a clarifying question */}
       {aiNotice && (
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
-          <span>{aiNotice}</span>
-          <button type="button" onClick={() => setAiNotice(null)} className="rounded-sm p-0.5 hover:bg-indigo-100" aria-label="Dismiss notice">×</button>
+        <div className="flex shrink-0 flex-col gap-1.5 border-b border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700">
+          <div className="flex items-center justify-between gap-2">
+            <span>{aiNotice}</span>
+            <button
+              type="button"
+              onClick={() => { setAiNotice(null); setClarificationOptions(null); }}
+              className="rounded-sm p-0.5 hover:bg-indigo-100"
+              aria-label="Dismiss notice"
+            >×</button>
+          </div>
+          {clarificationOptions && clarificationOptions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {clarificationOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setAiNotice(null);
+                    setClarificationOptions(null);
+                    sendChatMessage(option);
+                  }}
+                  className="fs-btn-press rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {/* AI-05: assumption disclosure banner — "Generated as: type · preset · detail" */}

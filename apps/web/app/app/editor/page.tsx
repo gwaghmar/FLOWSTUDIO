@@ -118,34 +118,16 @@ export default async function EditorPage({
     );
   }
 
-  // No project, type, or explicit template — show demo diagram to eliminate blank-page paralysis
-  const DEMO_SOURCE = `sequenceDiagram
-    participant Browser as \uD83C\uDF10 Browser
-    participant App as \uD83D\uDDA5 App Server
-    participant Auth as \uD83D\uDD10 Auth Server
-    participant DB as \uD83D\uDDC4 Database
-    Browser->>App: GET /login
-    App-->>Browser: Redirect \u2192 Auth Server
-    Browser->>Auth: Username + password
-    Auth->>DB: Verify credentials
-    DB-->>Auth: \u2713 Valid user
-    Auth-->>Browser: Redirect + auth code
-    Browser->>App: POST auth code
-    App->>Auth: Exchange code for tokens
-    Auth-->>App: Access token + refresh token
-    App->>DB: Store session
-    App-->>Browser: Set cookie \u2713
-    Browser->>App: API request (cookie)
-    App-->>Browser: 200 OK \u2014 Protected data`;
-
+  // No project, type, or explicit template — start on a blank whiteboard to
+  // eliminate blank-page paralysis and let people start sketching immediately.
   if (!templateId) {
     return (
       <EditorClient
         projectId={null}
-        initialTitle="Example: OAuth Login Flow"
-        initialSource={DEMO_SOURCE}
+        initialTitle="Example: Whiteboard Sketch"
+        initialSource={DIAGRAM_TYPE_DEFAULTS.excalidraw}
         initialThemeId="stage_pipeline"
-        initialDiagramType="mermaid"
+        initialDiagramType="excalidraw"
         showWatermark={showWatermark}
         creditsBalance={creditsBalance}
         aiAssistantHint={aiAssistantHint}

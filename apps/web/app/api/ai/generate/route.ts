@@ -37,6 +37,7 @@ type IntentPlan = {
   detailLevel: DetailLevel;
   shouldAskClarification: boolean;
   clarificationQuestion?: string;
+  clarificationOptions?: string[];
   suggestedPresetId?: SocialPresetId | null;
   suggestedDiagramType?: DiagramType | null;
 };
@@ -105,6 +106,9 @@ function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?
       typeof parsed.clarificationQuestion === "string" && parsed.clarificationQuestion.trim()
         ? parsed.clarificationQuestion.trim()
         : "What is the main outcome and who are the key steps/actors I should include?";
+    const clarificationOptions = Array.isArray(parsed.clarificationOptions)
+      ? parsed.clarificationOptions.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 4)
+      : [];
     return {
       intentSummary: parsed.intentSummary?.trim() || prompt.slice(0, 220),
       primaryGoal: parsed.primaryGoal?.trim() || "Generate a coherent diagram from user intent",
@@ -119,6 +123,7 @@ function parseIntentPlan(raw: string, prompt: string): IntentPlan & { _fallback?
       shouldAskClarification:
         typeof parsed.shouldAskClarification === "boolean" ? parsed.shouldAskClarification : ambiguityScore >= 75,
       clarificationQuestion,
+      clarificationOptions,
       suggestedPresetId: typeof parsed.suggestedPresetId === "string" && VALID_PRESET_IDS.includes(parsed.suggestedPresetId as SocialPresetId)
         ? (parsed.suggestedPresetId as SocialPresetId)
         : null,
@@ -346,6 +351,7 @@ Return ONLY JSON matching this shape:
   "detailLevel": "low|medium|high",
   "shouldAskClarification": true|false,
   "clarificationQuestion": "one concise question",
+  "clarificationOptions": ["short answer option 1", "short answer option 2", "short answer option 3 (optional)"],
   "suggestedPresetId": "landscape|square_feed|story_reel|vertical_feed|link_preview|null",
   "suggestedDiagramType": "mermaid|excalidraw|reactflow|echarts|nivo|tldraw|bpmn|cloud|erd|orgchart|timeline|versus|matrix2x2|funnel|venn|tierlist|iceberg|alignment|budget|habits|bingo|bracket|null"
 }
@@ -354,6 +360,7 @@ Rules:
 - If request is detailed, detailLevel should be high and shouldAskClarification false.
 - Keep arrays compact and practical.
 - Set \`shouldAskClarification: true\` ONLY when a critical actor, entity, or structure is completely absent from the prompt AND you cannot make a reasonable assumption. Most requests — even vague ones — should generate immediately with assumptions noted in \`assumptions\`. Do NOT ask for clarification if the user's intent is clear enough to produce a useful diagram. Prefer producing something and noting assumptions over blocking on questions.
+- When \`shouldAskClarification\` is true, also fill \`clarificationOptions\` with 2-4 short, concrete, mutually-distinct answers the user could tap instead of typing (e.g. ["E-commerce checkout", "User onboarding", "Support ticket flow"]). Keep each option under 6 words. Leave it as an empty array only if no sensible discrete options exist.
 - suggestedPresetId rules (STRICT - default to null when unsure):
   - "pitch deck", "presentation", "slides", "keynote", "16:9", "widescreen" -> "landscape"
   - "LinkedIn", "LinkedIn post", "Twitter", "X post", "Facebook post", "square", "1:1" -> "square_feed"
@@ -407,6 +414,7 @@ Rules:
         source: null,
         needsClarification: true,
         assistantMessage: intentPlan.clarificationQuestion,
+        clarificationOptions: intentPlan.clarificationOptions,
         assumptions: intentPlan.assumptions,
       });
     }
