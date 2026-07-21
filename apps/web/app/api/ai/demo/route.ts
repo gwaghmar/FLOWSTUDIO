@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   const usingOpenRouter = credentials.provider === "openai" && credentials.baseUrl === "https://openrouter.ai/api/v1";
   const model =
     credentials.provider === "google"
-      ? (googleModelFromEnv || "gemini-2.5-flash")
+      ? (googleModelFromEnv || "gemini-flash-latest")
       : usingOpenRouter
       ? (openRouterModelFromEnv || "openai/gpt-4o-mini")
       : (openAiModelFromEnv || "gpt-4o-mini");
@@ -98,7 +98,8 @@ export async function POST(req: Request) {
       maxOutputTokens: 1200,
     });
     raw = result.text.trim();
-  } catch {
+  } catch (e) {
+    console.error("[AI demo error]", e);
     return NextResponse.json({ error: "generation_failed" }, { status: 500 });
   }
 

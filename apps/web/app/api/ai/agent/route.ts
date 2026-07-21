@@ -152,7 +152,7 @@ export async function POST(req: Request) {
   const openRouterModelFromEnv = process.env.OPENROUTER_MODEL?.trim();
 
   const model = (keySource === "env" && detectedProvider === "google")
-    ? (googleModelFromEnv || "gemini-2.5-flash")
+    ? (googleModelFromEnv || "gemini-flash-latest")
     : usingOpenRouterEnvKey
     ? (openRouterModelFromEnv || "openai/gpt-4o-mini")
     : (keySource === "env" && detectedProvider === "openai")
