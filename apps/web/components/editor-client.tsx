@@ -1935,7 +1935,7 @@ export function EditorClient({
 
     {/* Floating "Ask AI" pill — shown only while the AI Chat panel is collapsed */}
     {!leftPanelOpen && (
-      <div style={{ position: "absolute", left: 16, bottom: 16, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+      <div style={{ position: "absolute", left: 16, bottom: 64, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
         {showAiPopover && (
           <form
             onSubmit={(e) => { e.preventDefault(); handleChatSubmit(e); setShowAiPopover(false); }}
