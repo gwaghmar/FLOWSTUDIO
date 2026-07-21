@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     credentials.provider === "google"
       ? (googleModelFromEnv || "gemini-flash-latest")
       : usingOpenRouter
-      ? (openRouterModelFromEnv || "google/gemini-2.0-flash-001")
+      ? (openRouterModelFromEnv || "google/gemini-2.5-flash-lite")
       : (openAiModelFromEnv || "gpt-4o-mini");
 
   const languageModel = buildLanguageModel(credentials.provider, model, credentials.apiKey, credentials.baseUrl);

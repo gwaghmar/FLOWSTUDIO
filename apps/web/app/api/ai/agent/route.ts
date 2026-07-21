@@ -153,7 +153,7 @@ export async function POST(req: Request) {
   const model = (keySource === "env" && detectedProvider === "google")
     ? (googleModelFromEnv || "gemini-flash-latest")
     : usingOpenRouterEnvKey
-    ? (openRouterModelFromEnv || "google/gemini-2.0-flash-001")
+    ? (openRouterModelFromEnv || "google/gemini-2.5-flash-lite")
     : (keySource === "env" && detectedProvider === "openai")
     ? (openAiModelFromEnv || "gpt-4o-mini")
     : user.aiModel?.trim() ||
