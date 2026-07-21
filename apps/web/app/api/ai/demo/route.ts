@@ -22,11 +22,12 @@ function getDemoUses(cookieHeader: string | null): number {
 }
 
 function buildDemoApiKey(): { apiKey: string; provider: "openai" | "google"; baseUrl: string | null } | null {
-  if (process.env.OPENROUTER_API_KEY) {
-    return { apiKey: process.env.OPENROUTER_API_KEY, provider: "openai", baseUrl: "https://openrouter.ai/api/v1" };
-  }
+  // TEMP: Google checked first to verify the freshly-rotated key. Revert after testing.
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY, provider: "google", baseUrl: null };
+  }
+  if (process.env.OPENROUTER_API_KEY) {
+    return { apiKey: process.env.OPENROUTER_API_KEY, provider: "openai", baseUrl: "https://openrouter.ai/api/v1" };
   }
   if (process.env.OPENAI_API_KEY) {
     return { apiKey: process.env.OPENAI_API_KEY, provider: "openai", baseUrl: process.env.OPENAI_BASE_URL?.replace(/\/$/, "") ?? null };
