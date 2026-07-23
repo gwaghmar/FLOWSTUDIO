@@ -35,6 +35,7 @@ import {
   Sun,
   LayoutTemplate,
   Command,
+  Zap,
 } from "lucide-react";
 import { CommandPalette, type CommandPaletteAction } from "@/components/command-palette";
 import { motion, AnimatePresence } from "framer-motion";
@@ -419,6 +420,14 @@ export function EditorClient({
   useEffect(() => {
     localStorage.setItem("flowstudio-dark-mode", String(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    setCompactAiContext(localStorage.getItem("flowstudio-compact-ai-context") === "true");
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("flowstudio-compact-ai-context", String(compactAiContext));
+  }, [compactAiContext]);
 
   // useChat binds the transport once; a useMemo keyed on isAgentMode does NOT
   // re-route after the toggle flips. Route per-request via a ref instead so the
@@ -1560,8 +1569,15 @@ export function EditorClient({
         icon: <DiagramTypeIcon type={diagramType} size={14} />,
         run: () => setShowTypePanel(true),
       },
+      {
+        id: "toggle-compact-ai-context",
+        label: compactAiContext ? "Send full diagram context to AI" : "Send less diagram context to AI",
+        hint: compactAiContext ? "Compact: on" : "Compact: off",
+        icon: <Zap className="h-4 w-4" />,
+        run: () => setCompactAiContext((v) => !v),
+      },
     ],
-    [diagramType, darkMode, isAgentMode, router, handleApplyBrandKit]
+    [diagramType, darkMode, isAgentMode, router, handleApplyBrandKit, compactAiContext]
   );
 
   const preset = useMemo(() => presetId === "custom" ? null : getPreset(presetId), [presetId]);
