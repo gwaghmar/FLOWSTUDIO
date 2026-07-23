@@ -61,10 +61,7 @@ import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
 import { highlightSource } from "@/lib/source-highlight";
 import { applyPatch, isValidJson } from "@/lib/agent-tools";
-import { matchTemplateId } from "@/lib/template-match";
 import { downloadSource, sourceFileExtension } from "@/lib/diagrams/source-export";
-import { TEMPLATES } from "@/lib/templates";
-import type { Template } from "@/lib/templates";
 import { usePresence, presenceColor } from "@/lib/use-presence";
 import { saveProject, createProject, listRevisions, restoreRevision } from "@/app/actions/project";
 import { getBrandKit } from "@/app/actions/brand-kit";
@@ -244,11 +241,6 @@ export type AiAssistantHint =
   | { kind: "server" }
   | { kind: "none" };
 
-function matchTemplate(prompt: string): Template | null {
-  const id = matchTemplateId(prompt);
-  return id ? (TEMPLATES.find((t) => t.id === id) ?? null) : null;
-}
-
 export type EditorClientProps = {
   initialSource: string;
   initialThemeId: string;
@@ -395,8 +387,6 @@ export function EditorClient({
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [applyingBrand, setApplyingBrand] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [suggestedTemplate, setSuggestedTemplate] = useState<Template | null>(null);
-  const [pendingSuggestInput, setPendingSuggestInput] = useState<string>("");
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const [input, setInput] = useState("");
   const [darkMode, setDarkMode] = useState(false);
@@ -480,7 +470,6 @@ export function EditorClient({
       const aiLabel = forceCreateNext
         ? `AI regenerated${promptSnippet ? `: ${promptSnippet}` : ""}`
         : `AI patched${promptSnippet ? `: ${promptSnippet}` : ""}`;
-      setSuggestedTemplate(null);
       setPendingRevisionLabel(aiLabel);
       void handleSave(aiLabel);
       if (forceCreateNext) setForceCreateNext(false);
@@ -1030,17 +1019,10 @@ export function EditorClient({
   const handleChatSubmit = useCallback((_e?: React.FormEvent<HTMLFormElement> | React.KeyboardEvent) => {
     if (!input.trim() || aiLoading) return;
     setAiError(null);
-    const match = matchTemplate(input);
-    if (match && !suggestedTemplate) {
-      setPendingSuggestInput(input);
-      setSuggestedTemplate(match);
-      setInput("");
-      return;
-    }
     const text = input;
     setInput("");
     sendChatMessage(text);
-  }, [input, aiLoading, suggestedTemplate, sendChatMessage]);
+  }, [input, aiLoading, sendChatMessage]);
 
   const handleUseCaseChange = useCallback((id: UseCaseId) => {
     setUseCaseId(id);
@@ -1851,23 +1833,45 @@ export function EditorClient({
                 >
                   {(() => {
                     const raw = getMessageText(msg);
-                    const trimmed = raw.trim();
+                    // Strip a leading ```json/```xml-style fence before checking —
+                    // otherwise "```json\n{...}" starts with a backtick, not "{",
+                    // and slips past the structured-source check below.
+                    const withoutFence = raw.trim().replace(/^```[a-z]*\n?/i, "").trim();
                     // Non-mermaid diagram types stream raw JSON/XML source as
                     // the model's "reply" text — that's the diagram source,
                     // not a chat message, and shouldn't be dumped verbatim
                     // into the transcript. The real natural-language summary
                     // (aiNotice, shown above the canvas) is what belongs here.
                     const looksLikeStructuredSource =
-                      trimmed.length > 40 &&
-                      (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("<"));
-                    if (!looksLikeStructuredSource) return raw;
-                    return msg.role === "assistant" && i === messages.length - 1 && aiLoading
-                      ? "Working on your diagram…"
-                      : "✓ Diagram updated.";
+                      withoutFence.length > 40 &&
+                      (withoutFence.startsWith("{") || withoutFence.startsWith("[") || withoutFence.startsWith("<"));
+                    const isStreamingThisMessage = msg.role === "assistant" && i === messages.length - 1 && aiLoading;
+                    if (!looksLikeStructuredSource) {
+                      return (
+                        <>
+                          {raw}
+                          {isStreamingThisMessage && (
+                            <span className="fs-cursor" style={{ display: "inline-block", width: 2, height: 14, background: "var(--fs-indigo)", marginLeft: 2, verticalAlign: "middle" }} />
+                          )}
+                        </>
+                      );
+                    }
+                    if (!isStreamingThisMessage) return "✓ Diagram updated.";
+                    // A JSON/XML diagram can't render partial/invalid mid-stream —
+                    // unlike Mermaid, there's no meaningful "growing" text to show,
+                    // so a few bounce dots stand in for a progress cue instead of
+                    // a static line that reads as stalled.
+                    return (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Working on your diagram
+                        <span style={{ display: "inline-flex", gap: 3 }}>
+                          {[0, 1, 2].map((i) => (
+                            <span key={i} className="fs-bounce-dot" style={{ width: 4, height: 4, background: "var(--fs-indigo)", borderRadius: "50%", display: "inline-block", animationDelay: `${i * 0.15}s` }} />
+                          ))}
+                        </span>
+                      </span>
+                    );
                   })()}
-                  {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
-                    <span className="fs-cursor" style={{ display: "inline-block", width: 2, height: 14, background: "var(--fs-indigo)", marginLeft: 2, verticalAlign: "middle" }} />
-                  )}
                 </div>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {(Array.isArray((msg as { parts?: unknown[] }).parts) ? ((msg as { parts: any[] }).parts as any[]) : [])
@@ -1969,50 +1973,6 @@ export function EditorClient({
               );
             })()}
             
-            {suggestedTemplate && (
-              <div className="mx-3 mb-3 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 p-3">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 text-sm">📌</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{suggestedTemplate.title}</p>
-                    <p className="mt-0.5 text-xs text-indigo-700 dark:text-indigo-300">{suggestedTemplate.description}</p>
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        onClick={() => {
-                          recordUndo(source);
-                          setSource(suggestedTemplate.source);
-                          setDiagramType(suggestedTemplate.diagramType);
-                          setThemeId(suggestedTemplate.themeId);
-                          setTitle(suggestedTemplate.title);
-                          setSuggestedTemplate(null);
-                          setPendingSuggestInput("");
-                        }}
-                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
-                      >
-                        Use template
-                      </button>
-                      <button
-                        onClick={() => {
-                          sendChatMessage(pendingSuggestInput);
-                          setSuggestedTemplate(null);
-                          setPendingSuggestInput("");
-                        }}
-                        className="rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors dark:bg-slate-800 dark:border-indigo-600 dark:text-indigo-300 dark:hover:bg-indigo-900"
-                      >
-                        Generate anyway
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { setSuggestedTemplate(null); setPendingSuggestInput(""); }}
-                    className="text-indigo-400 hover:text-indigo-600 text-xs"
-                    aria-label="Dismiss suggestion"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
