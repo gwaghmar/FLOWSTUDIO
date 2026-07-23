@@ -324,13 +324,9 @@ export function EditorClient({
   const [saving, setSaving] = useState(false);
   const [showTypePanel, setShowTypePanel] = useState(false);
   const [showTypeHelp, setShowTypeHelp] = useState(false);
-  const [showStylePanel, setShowStylePanel] = useState(false);
-  const [showEchartsStylePanel, setShowEchartsStylePanel] = useState(false);
-  const [showBgPanel, setShowBgPanel] = useState(false);
   const [backgroundPattern, setBackgroundPattern] = useState<"none" | "dots" | "grid" | "lines">(
     (parsedInitial.ui.backgroundPattern as "none" | "dots" | "grid" | "lines") ?? "none"
   );
-  const [echartsUiTheme, setEchartsUiTheme] = useState<EChartsUiTheme>("light");
   /** Raw source hidden by default; power users expand. Opens automatically on parse errors. */
   const [sourceExpanded, setSourceExpanded] = useState(true);
   /** Active Mermaid subtype — only used when diagramType === "mermaid" */
@@ -390,6 +386,9 @@ export function EditorClient({
   const presenceOthers = usePresence(currentProjectId, userEmail, userName);
   const [input, setInput] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  // ECharts needs an explicit theme (it doesn't inherit CSS dark mode) — follow
+  // the editor's real dark-mode toggle instead of a second, disconnected state.
+  const echartsUiTheme: EChartsUiTheme = darkMode ? "dark" : "light";
   const [toolEffects, setToolEffects] = useState<Record<string, { status: "applied" | "noop" | "error"; label: string; detail?: string }>>({});
   const brandKitInFlight = useRef<Set<string>>(new Set());
 
