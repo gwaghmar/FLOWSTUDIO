@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateText, streamText, createUIMessageStream, createUIMessageStreamResponse, type UIMessageStreamWriter } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
-import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta, buildComplexityDirective, getFollowUpSuggestions, MODE_PERSONAS } from "@flowchart/core";
+import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta, buildComplexityDirective, getFollowUpSuggestions, MODE_PERSONAS, ANTI_GENERIC_DIRECTIVE } from "@flowchart/core";
 import type { DiagramType, SocialPresetId, UseCaseId, EditorMode } from "@flowchart/core";
 import type { ApiError } from "@flowchart/core";
 import { auth } from "@/auth";
@@ -465,7 +465,8 @@ Quality requirements:
 - Label edges with intent verbs for flow diagrams.
 - Use balanced spacing and avoid overlapping/orphaned nodes.
 - Detail scaling: low=compact but complete, medium=moderate branching, high=rich sub-steps and annotations.
-- If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}${modePersonaBlock ? `\n${modePersonaBlock}` : ""}`;
+- If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}${modePersonaBlock ? `\n${modePersonaBlock}` : ""}
+${ANTI_GENERIC_DIRECTIVE}`;
 
     const typeSwitched = effectiveDiagramType !== diagramType;
     const switchedTypeLabel = typeSwitched ? getDiagramTypeMeta(effectiveDiagramType).label : null;

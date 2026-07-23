@@ -10,7 +10,7 @@ import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypt
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
 import { rateLimit } from "@/lib/rate-limit";
 import type { ApiError, EditorMode } from "@flowchart/core";
-import { THEME_IDS, MODE_PERSONAS, MODE_STRATEGY_HINTS } from "@flowchart/core";
+import { THEME_IDS, MODE_PERSONAS, MODE_STRATEGY_HINTS, ANTI_GENERIC_DIRECTIVE } from "@flowchart/core";
 import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
 import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
@@ -244,6 +244,7 @@ ${stateContext}
 
 ${brandDirective}
 ${MODE_PERSONAS[editorMode] ?? ""}
+${ANTI_GENERIC_DIRECTIVE}
 
 Current source code:
 \`\`\`

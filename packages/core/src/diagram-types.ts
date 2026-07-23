@@ -904,6 +904,19 @@ RULES:
 Example: {"type":"bracket","title":"Best JS Framework","rounds":[{"name":"Semifinals","matches":[{"a":"React","b":"Vue","winner":"React"},{"a":"Svelte","b":"Solid","winner":"Svelte"}]},{"name":"Final","matches":[{"a":"React","b":"Svelte"}]}]}`,
 };
 
+// ─── Anti-generic directive ──────────────────────────────────────────────────
+// Cheap and model-agnostic: LLMs default to the flattest, safest completion
+// unless explicitly told not to. Named, concrete rules beat "be creative" —
+// vague creativity instructions are themselves generic and don't change
+// behavior. Shared across all diagram types and both AI pipelines.
+
+export const ANTI_GENERIC_DIRECTIVE = `
+Avoid generic AI output — this is the most common failure mode, and it costs nothing to avoid:
+- Don't default to the flattest, most obvious structure because it's safe. If the request implies a specific shape (a real approval chain with a rejection path, a data flow with real branches, an actual hierarchy), build that — not a generic straight-line or symmetric-tree fallback.
+- Don't use placeholder-sounding labels ("Step 1", "Process A", "User", "Admin", "Service") when the prompt gives you enough to be specific. Name real entities, real service names, real role titles, real stage names.
+- Make deliberate visual choices — grouping, color, emphasis, layout — instead of even-spacing/default-palette output. An unspecified detail is freedom to make a good call, not license to do the least possible.
+- When a "textbook example" version and a "built for this specific request" version would look different, always build the specific one.`;
+
 // ─── Large / complex diagram guidance ────────────────────────────────────────
 // Graph-structured types degrade into spaghetti past ~25 nodes. When the intent
 // implies a big system, steer the model toward grouped, readable layouts instead
