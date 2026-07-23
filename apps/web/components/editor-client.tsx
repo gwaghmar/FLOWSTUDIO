@@ -1849,7 +1849,22 @@ export function EditorClient({
                     : { background: "white", border: "1px solid var(--fs-border)", borderRadius: 4, color: "var(--charcoal-mid)", fontFamily: "var(--font-sans-fs)" }
                   }
                 >
-                  {getMessageText(msg)}
+                  {(() => {
+                    const raw = getMessageText(msg);
+                    const trimmed = raw.trim();
+                    // Non-mermaid diagram types stream raw JSON/XML source as
+                    // the model's "reply" text — that's the diagram source,
+                    // not a chat message, and shouldn't be dumped verbatim
+                    // into the transcript. The real natural-language summary
+                    // (aiNotice, shown above the canvas) is what belongs here.
+                    const looksLikeStructuredSource =
+                      trimmed.length > 40 &&
+                      (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("<"));
+                    if (!looksLikeStructuredSource) return raw;
+                    return msg.role === "assistant" && i === messages.length - 1 && aiLoading
+                      ? "Working on your diagram…"
+                      : "✓ Diagram updated.";
+                  })()}
                   {msg.role === "assistant" && i === messages.length - 1 && aiLoading && (
                     <span className="fs-cursor" style={{ display: "inline-block", width: 2, height: 14, background: "var(--fs-indigo)", marginLeft: 2, verticalAlign: "middle" }} />
                   )}
@@ -1934,37 +1949,25 @@ export function EditorClient({
 
           {/* Prompt Area with Quick Prompts */}
           <div className="shrink-0 space-y-3" style={{ borderTop: "1px solid var(--fs-border)", padding: "10px 12px", background: "var(--cream)" }}>
-            {messages.length > 0 && source.trim() && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.04em", color: "var(--charcoal-light)", opacity: 0.7 }}>EDIT</span>
-                {EDIT_CHIPS.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => { if (!aiLoading) sendChatMessage(label); }}
-                    disabled={aiLoading}
-                    className="fs-btn-press"
-                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.02em", padding: "3px 9px", border: "1px solid #C7D2FE", borderRadius: 2, background: "#EEF2FF", color: "#4338CA", cursor: aiLoading ? "default" : "pointer", opacity: aiLoading ? 0.5 : 1 }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {messages.length > 0 && QUICK_PROMPTS[diagramType]?.length && (
-              <div className="flex flex-wrap gap-2">
-                {QUICK_PROMPTS[diagramType]?.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => setInput(q)}
-                    className="fs-btn-press"
-                    style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10, letterSpacing: "0.02em", padding: "3px 9px", border: "1px solid var(--fs-border)", borderRadius: 2, background: "white", color: "var(--charcoal-light)", cursor: "pointer" }}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
+            {messages.length > 0 && source.trim() && (() => {
+              const chips = [...(QUICK_PROMPTS[diagramType] ?? []), ...EDIT_CHIPS].slice(0, 4);
+              return chips.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {chips.map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => { if (!aiLoading) sendChatMessage(label); }}
+                      disabled={aiLoading}
+                      className="fs-btn-press"
+                      style={{ fontFamily: "var(--font-mono-fs)", fontSize: 10.5, letterSpacing: "0.02em", padding: "5px 12px", border: "1px solid #C7D2FE", borderRadius: 999, background: "#EEF2FF", color: "#4338CA", cursor: aiLoading ? "default" : "pointer", opacity: aiLoading ? 0.5 : 1 }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
             
             {suggestedTemplate && (
               <div className="mx-3 mb-3 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 p-3">
@@ -2274,7 +2277,8 @@ export function EditorClient({
             >
               {(
                 [
-                  { id: "diagram", label: "Diagram" },
+                  { id: "business", label: "Business" },
+                  { id: "technology", label: "Technology" },
                   { id: "marketing", label: "Marketing" },
                   { id: "art", label: "Art Board" },
                 ] as { id: EditorMode; label: string }[]

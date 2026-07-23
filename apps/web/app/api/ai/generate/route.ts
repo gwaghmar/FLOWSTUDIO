@@ -252,7 +252,7 @@ export async function POST(req: Request) {
   const compact = Boolean(reqBody.compact);
   const useCaseId: UseCaseId = reqBody.useCaseId ?? "custom";
   const useCaseStyleBlock = USE_CASE_STYLE_INSTRUCTIONS[useCaseId] ?? "";
-  const editorMode: EditorMode = reqBody.editorMode ?? "diagram";
+  const editorMode: EditorMode = reqBody.editorMode ?? "business";
   const modePersonaBlock = MODE_PERSONAS[editorMode] ?? "";
   // Patch mode: user is iterating on an existing diagram. Honor an explicit
   // `mode` flag, otherwise infer from whether currentSource is non-empty.
@@ -396,7 +396,8 @@ Rules:
   - "habit tracker", "streak", "daily habit", "30 day challenge", "habit grid" → "habits"
   - "bingo" → "bingo"
   - "bracket", "tournament", "single elimination", "who wins" → "bracket"
-  - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.`;
+  - DEFAULT to null — do not suggest switching when the current type can serve the request reasonably.${editorMode === "business" ? `
+- Business-mode style check (independent of the content-ambiguity rule above): if \`requestedStyle\` gives no clear stylistic direction, set \`shouldAskClarification: true\` with a \`clarificationQuestion\` about visual style and exactly 3 \`clarificationOptions\` in this spirit — one formal/enterprise-consulting look (e.g. "Gartner-style — formal, analyst-report feel"), one bold/minimal startup look (e.g. "Startup-style — bold, minimal, modern"), and one wildcard (e.g. "Surprise me"). Skip this check (proceed to generate normally) if the user already stated a style preference anywhere in the conversation, or if this is a patch to an existing diagram rather than a first generation.` : ""}`;
     const intentStart = Date.now();
     const { text: intentText } = await generateText({
       model: languageModel,

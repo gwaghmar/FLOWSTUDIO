@@ -33,10 +33,11 @@ export type DiagramCategory =
   | "social";
 
 /** Outcome-first editor grouping — coarser than DiagramCategory, drives the mode tabs */
-export type EditorMode = "diagram" | "marketing" | "art";
+export type EditorMode = "business" | "technology" | "marketing" | "art";
 
 export const EDITOR_MODE_CATEGORIES: Record<EditorMode, DiagramCategory[]> = {
-  diagram: ["technical", "flowchart", "data", "business"],
+  business: ["flowchart", "data", "business"],
+  technology: ["technical"],
   marketing: ["social"],
   art: ["whiteboard"],
 };
@@ -44,7 +45,7 @@ export const EDITOR_MODE_CATEGORIES: Record<EditorMode, DiagramCategory[]> = {
 export function getEditorModeForCategory(category: DiagramCategory): EditorMode {
   const found = (Object.entries(EDITOR_MODE_CATEGORIES) as [EditorMode, DiagramCategory[]][])
     .find(([, categories]) => categories.includes(category));
-  return found ? found[0] : "diagram";
+  return found ? found[0] : "business";
 }
 
 export type DiagramTypeMeta = {

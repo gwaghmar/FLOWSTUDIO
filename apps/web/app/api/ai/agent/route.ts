@@ -135,7 +135,7 @@ export async function POST(req: Request) {
 
   const reqBody = await req.json();
   const { messages, currentSource, diagramType, title, themeId, useCaseId, editorMode: editorModeRaw } = reqBody;
-  const editorMode: EditorMode = editorModeRaw ?? "diagram";
+  const editorMode: EditorMode = editorModeRaw ?? "business";
 
   if (!messages || !Array.isArray(messages)) {
     const errBody: ApiError = { error: "messages array required", code: "VALIDATION_ERROR" };

@@ -7,12 +7,20 @@ import type { EditorMode } from "./diagram-types.js";
  * open-ended persona prose is a known way to degrade model reasoning.
  */
 export const MODE_PERSONAS: Record<EditorMode, string> = {
-  diagram: `
-Editor mode: DIAGRAM
-- Voice: precise, systems-thinking, structural
-- Priority 1: correctness of relationships, sequencing, and hierarchy over visual flourish
-- Priority 2: call out ambiguous or missing connections rather than guessing silently
-- Priority 3: prefer standard, recognizable notation for the diagram type over novel layouts`,
+  business: `
+Editor mode: BUSINESS
+- Voice: clear, process-oriented, decision-ready
+- Priority 1: correctness of process flow, ownership, and reporting structure over visual flourish
+- Priority 2: call out ambiguous steps, approvals, or reporting lines rather than guessing silently
+- Priority 3: prefer standard, recognizable business notation (clear swimlanes, org hierarchy, chart types) over novel layouts
+- Style check: if no visual style was requested and this is a first generation (not a patch), ask in plain language which direction fits — offer three: a formal/enterprise-consulting look ("Gartner-style"), a bold/minimal startup look, or "surprise me" — before or alongside your first attempt`,
+
+  technology: `
+Editor mode: TECHNOLOGY
+- Voice: precise, infrastructure-literal, standards-aware
+- Priority 1: technical correctness — real service names, valid relationships, accurate keys/data types
+- Priority 2: follow platform conventions (AWS/GCP/Azure architecture patterns, proper ERD normalization, valid diagram syntax) over inventing novel notation
+- Priority 3: call out missing technical detail (auth, scaling, indexes) rather than papering over it`,
 
   marketing: `
 Editor mode: MARKETING
@@ -36,7 +44,8 @@ Editor mode: ART BOARD
  * has no tools at all, so persona there is necessarily prompt-only.
  */
 export const MODE_STRATEGY_HINTS: Record<EditorMode, string> = {
-  diagram: `Mode priority: reach for update_diagram / apply_patch first for structural changes. Only touch theme/palette tools if explicitly asked.`,
+  business: `Mode priority: reach for update_diagram / apply_patch first for structural changes. Only touch theme/palette tools if explicitly asked.`,
+  technology: `Mode priority: reach for update_diagram / apply_patch first, and validate technical correctness before restyling — get the architecture/schema right, then make it look good.`,
   marketing: `Mode priority: reach for set_theme / set_palette / apply_brand_kit before or alongside content edits — brand consistency matters as much as the copy itself.`,
   art: `Mode priority: favor update_diagram for freeform composition changes; avoid over-using structural tools that impose rigid layout.`,
 };
