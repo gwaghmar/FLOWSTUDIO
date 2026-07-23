@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { generateText, streamText, createUIMessageStream, createUIMessageStreamResponse, type UIMessageStreamWriter } from "ai";
 import { and, eq, gt, sql } from "drizzle-orm";
-import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta, buildComplexityDirective } from "@flowchart/core";
-import type { DiagramType, SocialPresetId, UseCaseId } from "@flowchart/core";
+import { DIAGRAM_SYSTEM_PROMPTS, USE_CASE_STYLE_INSTRUCTIONS, getDiagramTypeMeta, buildComplexityDirective, getFollowUpSuggestions, MODE_PERSONAS } from "@flowchart/core";
+import type { DiagramType, SocialPresetId, UseCaseId, EditorMode } from "@flowchart/core";
 import type { ApiError } from "@flowchart/core";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -236,6 +236,7 @@ export async function POST(req: Request) {
     title?: string;
     compact?: boolean;
     useCaseId?: UseCaseId;
+    editorMode?: EditorMode;
     mode?: "patch" | "create";
   };
 
@@ -251,6 +252,8 @@ export async function POST(req: Request) {
   const compact = Boolean(reqBody.compact);
   const useCaseId: UseCaseId = reqBody.useCaseId ?? "custom";
   const useCaseStyleBlock = USE_CASE_STYLE_INSTRUCTIONS[useCaseId] ?? "";
+  const editorMode: EditorMode = reqBody.editorMode ?? "diagram";
+  const modePersonaBlock = MODE_PERSONAS[editorMode] ?? "";
   // Patch mode: user is iterating on an existing diagram. Honor an explicit
   // `mode` flag, otherwise infer from whether currentSource is non-empty.
   const hasExistingSource = Boolean(reqBody.currentSource?.trim());
@@ -461,7 +464,7 @@ Quality requirements:
 - Label edges with intent verbs for flow diagrams.
 - Use balanced spacing and avoid overlapping/orphaned nodes.
 - Detail scaling: low=compact but complete, medium=moderate branching, high=rich sub-steps and annotations.
-- If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}`;
+- If assumptions are used, encode them conservatively in the diagram content.${useCaseStyleBlock ? `\n${useCaseStyleBlock}` : ""}${modePersonaBlock ? `\n${modePersonaBlock}` : ""}`;
 
     const typeSwitched = effectiveDiagramType !== diagramType;
     const switchedTypeLabel = typeSwitched ? getDiagramTypeMeta(effectiveDiagramType).label : null;
@@ -543,6 +546,19 @@ Quality requirements:
           } catch {}
 
           const validation = await validateAndRepairOutput(effectiveDiagramType, finalText);
+
+          // Deterministic, authored follow-up suggestions computed against the
+          // actual final source (not model-generated, not predicted blind before
+          // generation) — see packages/core/src/followups.ts.
+          writer.write({
+            type: "data-meta",
+            data: {
+              suggestedFollowUps: getFollowUpSuggestions(
+                effectiveDiagramType,
+                validation.ok ? validation.source : finalText
+              ),
+            },
+          });
 
           if (!validation.ok) {
             retryAttempted = true;

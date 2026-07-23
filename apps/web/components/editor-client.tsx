@@ -33,8 +33,12 @@ import {
   X,
   Moon,
   Sun,
+  LayoutTemplate,
+  Command,
 } from "lucide-react";
+import { CommandPalette, type CommandPaletteAction } from "@/components/command-palette";
 import { motion, AnimatePresence } from "framer-motion";
+import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import {
   THEMES,
   buildMermaidConfig,
@@ -45,10 +49,13 @@ import {
   getDiagramTypeMeta,
   MERMAID_SUBTYPE_META,
   getMermaidSubtypeMeta,
+  EDITOR_MODE_CATEGORIES,
+  getEditorModeForCategory,
   type SocialPresetId,
   type DiagramType,
   type MermaidSubtype,
   type UseCaseId,
+  type EditorMode,
 } from "@flowchart/core";
 import Link from "next/link";
 import { DiagramTypeIcon } from "@/components/diagram-icon";
@@ -306,6 +313,9 @@ export function EditorClient({
   const [themeId, setThemeId] = useState(initialThemeId);
   const [title, setTitle] = useState(initialTitle);
   const [diagramType, setDiagramType] = useState<DiagramType>(initialDiagramType);
+  const [editorMode, setEditorMode] = useState<EditorMode>(() =>
+    getEditorModeForCategory(getDiagramTypeMeta(initialDiagramType).category)
+  );
   const [presetId, setPresetId] = useState<SocialPresetId>("square_feed");
   const [useCaseId, setUseCaseId] = useState<UseCaseId>("custom");
   const [customExportWidth, setCustomExportWidth] = useState(1920);
@@ -345,6 +355,32 @@ export function EditorClient({
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [replaceQuery, setReplaceQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const chatPanelRef = useRef<PanelImperativeHandle>(null);
+
+  // leftPanelOpen (toggled via ⌘B / the collapse button) is the single source
+  // of truth; sync it into the resizable-panel library's own collapse state
+  // rather than making the relationship bidirectional.
+  useEffect(() => {
+    const panel = chatPanelRef.current;
+    if (!panel) return;
+    if (leftPanelOpen && panel.isCollapsed()) panel.expand();
+    else if (!leftPanelOpen && !panel.isCollapsed()) panel.collapse();
+  }, [leftPanelOpen]);
+
+  // Restore a saved width after mount only — reading localStorage during
+  // render (as the library's own useDefaultLayout hook does) breaks Next.js
+  // SSR, since the server has no localStorage.
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem("flowstudio-ai-chat-width"));
+    if (Number.isFinite(saved) && saved > 0) chatPanelRef.current?.resize(saved);
+  }, []);
+
+  const handleChatGroupLayoutChanged = useCallback((_layout: unknown, meta: { isUserInteraction: boolean }) => {
+    if (!meta.isUserInteraction) return;
+    const panel = chatPanelRef.current;
+    if (!panel || panel.isCollapsed()) return;
+    window.localStorage.setItem("flowstudio-ai-chat-width", String(Math.round(panel.getSize().inPixels)));
+  }, []);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [agentTasks, setAgentTasks] = useState<{ id: string; label: string; status: "pending" | "loading" | "completed" }[]>([]);
   const [compactAiContext, setCompactAiContext] = useState(false);
@@ -377,6 +413,7 @@ export function EditorClient({
       diagramSummary: summarizeDiagramSource(diagramType, source),
       compact: compactAiContext,
       useCaseId,
+      editorMode,
       mode: forceCreateNext || !source.trim() ? "create" : "patch",
     };
   });
@@ -503,13 +540,14 @@ export function EditorClient({
   const [assumptionBanner, setAssumptionBanner] = useState<string | null>(null);
   const [missingPieces, setMissingPieces] = useState<string[] | null>(null);
   const [clarificationOptions, setClarificationOptions] = useState<string[] | null>(null);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[] | null>(null);
 
   // Handle incoming data stream (replacing experimental_onData)
   useEffect(() => {
     if (!streamData || streamData.length === 0) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const meta = streamData[0] as any;
+    const meta = streamData[streamData.length - 1] as any;
     if (!meta) return;
     
     if (meta.suggestedPresetId) {
@@ -521,10 +559,15 @@ export function EditorClient({
     }
     if (meta.typeSwitched && meta.diagramType) {
       setDiagramType(meta.diagramType);
+      setEditorMode(getEditorModeForCategory(getDiagramTypeMeta(meta.diagramType).category));
       if (meta.diagramType === "mermaid") setMermaidSubtype("flowchart");
     }
     if (meta.assistantMessage) {
       setAiNotice(meta.assistantMessage);
+      setFollowUpSuggestions(null); // a fresh reply supersedes any prior turn's suggestions
+    }
+    if (Array.isArray(meta.suggestedFollowUps)) {
+      setFollowUpSuggestions(meta.suggestedFollowUps.length > 0 ? meta.suggestedFollowUps : null);
     }
     if (meta.needsClarification && Array.isArray(meta.clarificationOptions) && meta.clarificationOptions.length > 0) {
       setClarificationOptions(meta.clarificationOptions);
@@ -911,28 +954,39 @@ export function EditorClient({
     }
   }, [diagramType, source, recordUndo, showToast, layoutDir, layoutSpacing]);
 
-  const handleApplyBrandKit = useCallback(async (): Promise<boolean> => {
+  const handleApplyBrandKit = useCallback(async (opts?: { silent?: boolean }): Promise<boolean> => {
     setApplyingBrand(true);
     try {
       const kit = await getBrandKit();
       if (!kit || !kit.palette) {
-        showToast("No brand kit yet — set one in Settings");
+        if (!opts?.silent) showToast("No brand kit yet — set one in Settings");
         return false;
       }
-      recordUndo(source);
+      if (!opts?.silent) recordUndo(source);
       setCustomAccent(kit.palette.primary);
       if (kit.palette.background) setCustomBackground(kit.palette.background);
       setPaletteId("brand");
-      showToast(`Applied "${kit.name}" · ⌘Z to undo`);
+      if (!opts?.silent) showToast(`Applied "${kit.name}" · ⌘Z to undo`);
       return true;
     } catch (e) {
       console.error("[brand-kit]", e);
-      showToast("Could not apply brand kit");
+      if (!opts?.silent) showToast("Could not apply brand kit");
       return false;
     } finally {
       setApplyingBrand(false);
     }
   }, [source, recordUndo, showToast]);
+
+  // New diagrams only — never retroactively overwrite an existing saved
+  // project's palette. currentProjectId is null and parsedInitial.ui is empty
+  // exactly when this is a brand-new, unsaved diagram (see EditorClient mount
+  // paths in app/app/editor/page.tsx, which always pass projectId={null} for
+  // new diagrams, never an empty string).
+  useEffect(() => {
+    if (currentProjectId || parsedInitial.ui.paletteId) return;
+    void handleApplyBrandKit({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cleanModelOutput = (text: string) => {
     // Strip markdown code blocks
@@ -1402,6 +1456,7 @@ export function EditorClient({
     if (newType === diagramType) { setShowTypePanel(false); return; }
     recordUndo(source);
     setDiagramType(newType);
+    setEditorMode(getEditorModeForCategory(getDiagramTypeMeta(newType).category));
     if (newType === "mermaid") {
       setMermaidSubtype("flowchart");
       setSource(MERMAID_SUBTYPE_META[0].starter);
@@ -1455,6 +1510,78 @@ export function EditorClient({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleSave, handleResetView, openSearch]);
+
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const commandPaletteActions: CommandPaletteAction[] = useMemo(
+    () => [
+      {
+        id: "apply-brand-kit",
+        label: "Apply brand kit",
+        hint: "Colors",
+        icon: <Palette className="h-4 w-4" />,
+        run: () => void handleApplyBrandKit(),
+      },
+      ...(diagramType === "mermaid"
+        ? [
+            {
+              id: "mermaid-theme",
+              label: "Change Mermaid theme",
+              hint: "Style",
+              icon: <Paintbrush className="h-4 w-4" />,
+              run: () => setThemeMenuOpen(true),
+            },
+          ]
+        : []),
+      {
+        id: "version-history",
+        label: "Open version history",
+        hint: "History",
+        icon: <Clock className="h-4 w-4" />,
+        run: () => setHistoryOpen(true),
+      },
+      {
+        id: "browse-templates",
+        label: "Browse templates",
+        hint: "Gallery",
+        icon: <LayoutTemplate className="h-4 w-4" />,
+        run: () => router.push("/app/templates"),
+      },
+      {
+        id: "toggle-dark-mode",
+        label: darkMode ? "Switch to light mode" : "Switch to dark mode",
+        hint: "Theme",
+        icon: darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />,
+        run: () => setDarkMode((v) => !v),
+      },
+      {
+        id: "toggle-agent-mode",
+        label: isAgentMode ? "Turn off Agent mode" : "Turn on Agent mode",
+        hint: "AI",
+        icon: <Bot className="h-4 w-4" />,
+        run: () => setIsAgentMode((v) => !v),
+      },
+      {
+        id: "change-diagram-type",
+        label: "Change diagram type",
+        hint: "Type",
+        icon: <DiagramTypeIcon type={diagramType} size={14} />,
+        run: () => setShowTypePanel(true),
+      },
+    ],
+    [diagramType, darkMode, isAgentMode, router, handleApplyBrandKit]
+  );
 
   const preset = useMemo(() => presetId === "custom" ? null : getPreset(presetId), [presetId]);
   const frameW = preset?.width ?? customExportWidth;
@@ -1586,6 +1713,15 @@ export function EditorClient({
            >
              Publish ↗
            </button>
+           <button
+             type="button"
+             onClick={() => setCommandPaletteOpen(true)}
+             className="flex items-center gap-1 fs-btn-press"
+             style={{ fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "var(--charcoal-light)", background: "transparent", border: "1px solid var(--fs-border)", padding: "5px 8px", borderRadius: 4, cursor: "pointer" }}
+             title="Command palette"
+           >
+             <Command className="h-3 w-3" /> K
+           </button>
            {presenceOthers.length > 0 && (
              <div className="flex items-center" style={{ marginLeft: 4 }}>
                {presenceOthers.slice(0, 4).map((u) => (
@@ -1612,17 +1748,24 @@ export function EditorClient({
       </header>
 
       <div className="relative flex min-h-0 w-full flex-1 flex-row overflow-hidden dark:bg-slate-950" style={{ background: "var(--cream-dark)" }}>
-        <AnimatePresence mode="wait">
-          {leftPanelOpen && (
-            <motion.aside
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="relative z-40 flex flex-col overflow-hidden"
-              style={{ background: "var(--cream)", borderRight: "1.5px solid var(--fs-border)", flexShrink: 0 }}
-            >
-              <div className="h-full w-[280px] flex flex-col overflow-hidden">
+        <Group
+          orientation="horizontal"
+          className="flex min-h-0 w-full flex-1 flex-row"
+          onLayoutChanged={handleChatGroupLayoutChanged}
+        >
+          <Panel
+            id="ai-chat"
+            panelRef={chatPanelRef}
+            collapsible
+            collapsedSize={0}
+            minSize={240}
+            maxSize={480}
+            defaultSize={280}
+            className="relative z-40 flex flex-col overflow-hidden"
+            style={{ background: "var(--cream)", borderRight: leftPanelOpen ? "1.5px solid var(--fs-border)" : "none" }}
+          >
+            {leftPanelOpen && (
+              <div className="h-full w-full flex flex-col overflow-hidden">
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--fs-border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono-fs)", fontSize: 11, color: "var(--charcoal)", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                     <span className="fs-pulse-dot" style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />
@@ -1929,9 +2072,13 @@ export function EditorClient({
             </form>
           </div>
           </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+            )}
+          </Panel>
+          <Separator
+            className="relative z-40 w-1 shrink-0 cursor-col-resize outline-none hover:bg-indigo-200 active:bg-indigo-400 dark:hover:bg-indigo-800 dark:active:bg-indigo-600"
+            style={{ background: "var(--fs-border)" }}
+          />
+          <Panel id="editor-main" className="flex min-w-0 flex-1 flex-row" style={{ position: "relative" }}>
 
     {/* Floating "Ask AI" pill — shown only while the AI Chat panel is collapsed */}
     {!leftPanelOpen && (
@@ -1941,6 +2088,35 @@ export function EditorClient({
             onSubmit={(e) => { e.preventDefault(); handleChatSubmit(e); setShowAiPopover(false); }}
             style={{ width: 300, borderRadius: 18, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", border: "1.5px solid var(--fs-border)", boxShadow: "0 12px 32px rgba(0,0,0,0.16)", padding: 10 }}
           >
+            {/* Same underlying chat/message state as the expanded AI Chat panel — just a second, collapsed presentation */}
+            {aiNotice && (
+              <div style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-sans-fs)", fontSize: 12, lineHeight: 1.4, color: "var(--charcoal)" }}>
+                  {aiNotice}
+                </p>
+                {followUpSuggestions && followUpSuggestions.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {followUpSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => {
+                          setFollowUpSuggestions(null);
+                          sendChatMessage(suggestion);
+                        }}
+                        className="fs-btn-press"
+                        style={{
+                          borderRadius: 999, border: "1px solid #FDE68A", background: "#FFFBEB",
+                          color: "#92400E", fontSize: 11, fontWeight: 500, padding: "4px 10px", cursor: "pointer",
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <textarea
               autoFocus
               value={input}
@@ -2000,7 +2176,7 @@ export function EditorClient({
             <span>{aiNotice}</span>
             <button
               type="button"
-              onClick={() => { setAiNotice(null); setClarificationOptions(null); }}
+              onClick={() => { setAiNotice(null); setClarificationOptions(null); setFollowUpSuggestions(null); }}
               className="rounded-sm p-0.5 hover:bg-indigo-100"
               aria-label="Dismiss notice"
             >×</button>
@@ -2019,6 +2195,23 @@ export function EditorClient({
                   className="fs-btn-press rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
                 >
                   {option}
+                </button>
+              ))}
+            </div>
+          )}
+          {followUpSuggestions && followUpSuggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {followUpSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => {
+                    setFollowUpSuggestions(null);
+                    sendChatMessage(suggestion);
+                  }}
+                  className="fs-btn-press rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-200 dark:hover:bg-amber-900"
+                >
+                  {suggestion}
                 </button>
               ))}
             </div>
@@ -2072,6 +2265,45 @@ export function EditorClient({
             {"</>"} Source
           </button>
             <div className="hidden lg:block h-4 w-px shrink-0" style={{ background: "var(--fs-border)" }} />
+            {/* Mode tabs — outcome-first grouping, filters the type dropdown below */}
+            <div
+              className="hidden lg:flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
+              style={{ background: darkMode ? "rgba(255,255,255,0.06)" : "var(--cream-dark)" }}
+              role="tablist"
+              aria-label="Editor mode"
+            >
+              {(
+                [
+                  { id: "diagram", label: "Diagram" },
+                  { id: "marketing", label: "Marketing" },
+                  { id: "art", label: "Art Board" },
+                ] as { id: EditorMode; label: string }[]
+              ).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={editorMode === m.id}
+                  onClick={() => setEditorMode(m.id)}
+                  className="fs-btn-press"
+                  style={{
+                    fontFamily: "var(--font-mono-fs)",
+                    fontSize: 10,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    padding: "3px 9px",
+                    borderRadius: 5,
+                    border: "none",
+                    cursor: "pointer",
+                    background: editorMode === m.id ? "var(--fs-indigo)" : "transparent",
+                    color: editorMode === m.id ? "#fff" : "var(--charcoal-light)",
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <div className="hidden lg:block h-4 w-px shrink-0" style={{ background: "var(--fs-border)" }} />
             {/* Zoom */}
             <div className="hidden lg:flex shrink-0 items-center gap-0.5">
               <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} className="rounded-sm px-1.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">−</button>
@@ -2109,7 +2341,9 @@ export function EditorClient({
                     <p className="px-2 pt-1 pb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                       Switch diagram type
                     </p>
-                    {DIAGRAM_TYPE_META.map((meta) => (
+                    {DIAGRAM_TYPE_META.filter((meta) =>
+                      EDITOR_MODE_CATEGORIES[editorMode].includes(meta.category)
+                    ).map((meta) => (
                       <button
                         key={meta.id}
                         type="button"
@@ -2187,7 +2421,7 @@ export function EditorClient({
               </button>
               <button
                 type="button"
-                onClick={handleApplyBrandKit}
+                onClick={() => handleApplyBrandKit()}
                 disabled={applyingBrand}
                 title="Apply your brand kit colors (manage in Settings)"
                 className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -2910,7 +3144,15 @@ export function EditorClient({
           </motion.aside>
         )}
       </AnimatePresence>
+          </Panel>
+        </Group>
       </div>
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        actions={commandPaletteActions}
+      />
 
       {toast && (
         <div

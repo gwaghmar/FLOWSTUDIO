@@ -9,8 +9,8 @@ import { ensureUserAndWorkspace } from "@/lib/user-sync";
 import { decryptAiApiKey, isAiKeyEncryptionConfigured } from "@/lib/ai-key-crypto";
 import { buildLanguageModel, getProviderMeta, type AiProvider } from "@/lib/ai-providers";
 import { rateLimit } from "@/lib/rate-limit";
-import type { ApiError } from "@flowchart/core";
-import { THEME_IDS } from "@flowchart/core";
+import type { ApiError, EditorMode } from "@flowchart/core";
+import { THEME_IDS, MODE_PERSONAS, MODE_STRATEGY_HINTS } from "@flowchart/core";
 import { buildBrandDirective } from "@/lib/brand-directive";
 import { recordAiEvent } from "@/lib/ai-events";
 import { validateAndRepairOutput } from "@/lib/diagrams/validate-output";
@@ -134,7 +134,8 @@ export async function POST(req: Request) {
   }
 
   const reqBody = await req.json();
-  const { messages, currentSource, diagramType, title, themeId, useCaseId } = reqBody;
+  const { messages, currentSource, diagramType, title, themeId, useCaseId, editorMode: editorModeRaw } = reqBody;
+  const editorMode: EditorMode = editorModeRaw ?? "diagram";
 
   if (!messages || !Array.isArray(messages)) {
     const errBody: ApiError = { error: "messages array required", code: "VALIDATION_ERROR" };
@@ -242,6 +243,7 @@ The current diagram type is: ${diagramType}.
 ${stateContext}
 
 ${brandDirective}
+${MODE_PERSONAS[editorMode] ?? ""}
 
 Current source code:
 \`\`\`
@@ -266,7 +268,8 @@ STRATEGY:
 4. To restyle, prefer 'set_theme'/'set_palette'/'apply_brand_kit' over editing colors by hand.
 5. Do not call 'apply_brand_kit' unless a brand kit is configured (see CURRENT STATE).
 6. update_diagram validates your output. If it returns an error, read the error and call update_diagram again with corrected output.
-7. Always briefly explain what you are doing before calling a tool.`,
+7. Always briefly explain what you are doing before calling a tool.
+8. ${MODE_STRATEGY_HINTS[editorMode] ?? ""}`,
       tools: {
         update_diagram: tool({
           description: "Update or create the diagram source code (Full rewrite).",

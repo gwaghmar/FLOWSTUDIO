@@ -61,6 +61,7 @@
     "postgres": "^3.4.9",
     "react": "19.2.7",
     "react-dom": "19.2.7",
+    "react-resizable-panels": "^4.12.2",
     "sharp": "^0.34.5",
     "simple-icons": "^16.25.0",
     "stripe": "^22.2.0",
