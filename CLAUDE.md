@@ -87,6 +87,32 @@ All renderers live in `apps/web/components/diagrams/*-renderer.tsx`. The cloud, 
 `apps/web/components/editor-client.tsx` (one big file — every diagram type
 branches inside its render section).
 
+## In progress: custom canvas engine (replacing tldraw)
+
+tldraw's license requires a separate paid commercial agreement for production use —
+not free for a product we sell. Decision: build our own freeform canvas engine from
+scratch (original code, Konva.js — MIT licensed, confirmed) to eventually replace the
+tldraw-powered Art Board mode. Full plan: `docs/planning/freeform-canvas-engine-plan.md`.
+
+**Status: Milestones 1–2 of 12 done, not yet wired into the app.**
+- `apps/web/lib/diagrams/freeform-canvas.ts` — scene-graph schema (`CanvasDocument`/
+  `CanvasShape`) + pure functions (parse/serialize/resolveArrowEndpoint/validateRefs).
+- `apps/web/lib/diagrams/freeform-canvas.test.ts` — unit tests, in `test:unit`.
+- `apps/web/components/diagrams/freeform-renderer.tsx` — Konva-based renderer.
+  Working: static rendering, select (click/shift-click/marquee), drag-to-move,
+  delete, keyboard nudge, `onChange` wiring with the same ref-guard pattern as
+  `tldraw-renderer.tsx`. NOT yet done: resize/rotate, text editing, snapping, arrow
+  binding, frames, sticky notes, zoom/pan, AI generation wiring, app wiring.
+- **Not reachable in the app yet** — no `"freeform"` entry in `DiagramType`
+  (`packages/core/src/diagram-types.ts`), no render branch in `editor-client.tsx`.
+  Safe to ignore during normal work on this repo until that wiring lands (last
+  build-order step, milestone 12).
+- An isolated working copy lives at `~/FLOWSTUDIO-canvas-lab` (separate directory,
+  not part of this git history) with a throwaway `/freeform-lab` test harness page
+  for manually clicking through interactions before porting stable pieces back here.
+- Next step on resume: milestone 3 (resize + rotate via `Konva.Transformer`) — see
+  the build order in the plan doc.
+
 ## Status — what's shipped
 
 ### Milestone 1.0 — AI Diagram Quality & Precision ✅
